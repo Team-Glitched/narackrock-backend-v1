@@ -4,9 +4,18 @@ import glitched.adlips.global.entity.BaseCreatedEntity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "follows", uniqueConstraints = @UniqueConstraint(columnNames = {"follower_id", "following_id"}))
+@Table(
+        name = "follows",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"follower_id", "following_id"}),
+        indexes = {
+                @Index(columnList = "follower_id"),
+                @Index(columnList = "following_id")
+        }
+)
 public class Follow extends BaseCreatedEntity {
-    @Id @GeneratedValue(strategy = GenerationType.IDENTITY) @Column(name = "id")
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "id")
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

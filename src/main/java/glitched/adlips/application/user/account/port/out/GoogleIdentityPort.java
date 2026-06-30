@@ -1,7 +1,7 @@
 package glitched.adlips.application.user.account.port.out;
 
-import glitched.adlips.application.user.account.GoogleIdentity;
+import glitched.adlips.application.user.account.dto.response.GoogleIdentityResponse;
 
 public interface GoogleIdentityPort {
-    GoogleIdentity verify(String idToken);
+    GoogleIdentityResponse verify(String idToken);
 }

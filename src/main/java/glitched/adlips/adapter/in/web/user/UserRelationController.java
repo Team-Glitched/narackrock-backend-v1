@@ -1,17 +1,24 @@
 package glitched.adlips.adapter.in.web.user;
 
 import glitched.adlips.adapter.in.web.ApiResponse;
-import glitched.adlips.application.user.relation.FollowCreateUseCase;
-import glitched.adlips.application.user.relation.FollowCancelUseCase;
-import glitched.adlips.application.user.relation.FollowResult;
-import glitched.adlips.application.user.relation.FollowerGetListUseCase;
-import glitched.adlips.application.user.relation.FollowingGetListUseCase;
-import glitched.adlips.application.user.relation.RecommendationResult;
-import glitched.adlips.application.user.relation.RelationType;
-import glitched.adlips.application.user.relation.UserCard;
-import glitched.adlips.application.user.relation.RecommendedUserGetListUseCase;
-import glitched.adlips.application.user.relation.UserSearchUseCase;
-import glitched.adlips.application.user.relation.UserSearchResult;
+import glitched.adlips.application.user.relation.dto.request.FollowCancelRequest;
+import glitched.adlips.application.user.relation.dto.request.FollowCreateRequest;
+import glitched.adlips.application.user.relation.dto.request.FollowerGetListRequest;
+import glitched.adlips.application.user.relation.dto.request.FollowingGetListRequest;
+import glitched.adlips.application.user.relation.dto.request.RecommendedUserGetListRequest;
+import glitched.adlips.application.user.relation.dto.request.UserSearchRequest;
+import glitched.adlips.application.user.relation.dto.response.FollowCancelResponse;
+import glitched.adlips.application.user.relation.dto.response.FollowCreateResponse;
+import glitched.adlips.application.user.relation.dto.response.RecommendedUserGetListResponse;
+import glitched.adlips.application.user.relation.dto.response.UserRelationResponse;
+import glitched.adlips.application.user.relation.dto.response.UserSearchResponse;
+import glitched.adlips.application.user.relation.model.RelationType;
+import glitched.adlips.application.user.relation.usecase.FollowCancelUseCase;
+import glitched.adlips.application.user.relation.usecase.FollowCreateUseCase;
+import glitched.adlips.application.user.relation.usecase.FollowerGetListUseCase;
+import glitched.adlips.application.user.relation.usecase.FollowingGetListUseCase;
+import glitched.adlips.application.user.relation.usecase.RecommendedUserGetListUseCase;
+import glitched.adlips.application.user.relation.usecase.UserSearchUseCase;
 import java.util.List;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -52,31 +59,31 @@ public class UserRelationController {
     }
 
     @PostMapping("/{userId}/follow")
-    public ApiResponse<FollowResult> follow(
+    public ApiResponse<FollowCreateResponse> follow(
             @PathVariable Long userId,
             @RequestHeader("Authorization") String authorization
     ) {
         Long requesterId = authenticatedUserResolver.requireUserId(authorization);
         return ApiResponse.success(
                 "팔로우 상태가 성공적으로 반영되었습니다.",
-                followCreateUseCase.execute(requesterId, userId)
+                followCreateUseCase.execute(new FollowCreateRequest(requesterId, userId))
         );
     }
 
     @DeleteMapping("/{userId}/follow")
-    public ApiResponse<FollowResult> unfollow(
+    public ApiResponse<FollowCancelResponse> unfollow(
             @PathVariable Long userId,
             @RequestHeader("Authorization") String authorization
     ) {
         Long requesterId = authenticatedUserResolver.requireUserId(authorization);
         return ApiResponse.success(
                 "팔로우가 성공적으로 취소되었습니다.",
-                followCancelUseCase.execute(requesterId, userId)
+                followCancelUseCase.execute(new FollowCancelRequest(requesterId, userId))
         );
     }
 
     @GetMapping("/{userId}/relations")
-    public ApiResponse<List<UserCard>> getRelations(
+    public ApiResponse<List<UserRelationResponse>> getRelations(
             @PathVariable Long userId,
             @RequestParam String type
     ) {
@@ -87,7 +94,7 @@ public class UserRelationController {
     }
 
     @GetMapping("/search")
-    public ApiResponse<UserSearchResult> search(
+    public ApiResponse<UserSearchResponse> search(
             @RequestHeader("Authorization") String authorization,
             @RequestParam String keyword,
             @RequestParam(defaultValue = "0") int page,
@@ -96,12 +103,12 @@ public class UserRelationController {
         Long requesterId = authenticatedUserResolver.requireUserId(authorization);
         return ApiResponse.success(
                 "사용자 검색이 완료되었습니다.",
-                userSearchUseCase.execute(requesterId, keyword, page, size)
+                userSearchUseCase.execute(new UserSearchRequest(requesterId, keyword, page, size))
         );
     }
 
     @GetMapping("/recommendations")
-    public ApiResponse<RecommendationResult> recommendations(
+    public ApiResponse<RecommendedUserGetListResponse> recommendations(
             @RequestHeader("Authorization") String authorization,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size
@@ -109,13 +116,15 @@ public class UserRelationController {
         Long requesterId = authenticatedUserResolver.requireUserId(authorization);
         return ApiResponse.success(
                 "인기 및 활발한 활동 유저 기반의 추천 목록 조회가 완료되었습니다.",
-                recommendedUserGetListUseCase.execute(requesterId, page, size)
+                recommendedUserGetListUseCase.execute(
+                        new RecommendedUserGetListRequest(requesterId, page, size)
+                )
         );
     }
 
-    private List<UserCard> getRelationList(Long userId, RelationType type) {
+    private List<UserRelationResponse> getRelationList(Long userId, RelationType type) {
         return type == RelationType.FOLLOWING
-                ? followingGetListUseCase.execute(userId)
-                : followerGetListUseCase.execute(userId);
+                ? followingGetListUseCase.execute(new FollowingGetListRequest(userId))
+                : followerGetListUseCase.execute(new FollowerGetListRequest(userId));
     }
 }

@@ -4,7 +4,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
-import glitched.adlips.application.user.account.GoogleIdentity;
+import glitched.adlips.application.user.account.dto.response.GoogleIdentityResponse;
 import glitched.adlips.application.user.account.port.out.GoogleIdentityPort;
 import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
@@ -27,7 +27,7 @@ public class GoogleIdTokenVerifierAdapter implements GoogleIdentityPort {
     }
 
     @Override
-    public GoogleIdentity verify(String idToken) {
+    public GoogleIdentityResponse verify(String idToken) {
         if (clientId == null || clientId.isBlank()) {
             throw authenticationFailed(null);
         }
@@ -37,7 +37,7 @@ public class GoogleIdTokenVerifierAdapter implements GoogleIdentityPort {
                 throw authenticationFailed(null);
             }
             GoogleIdToken.Payload payload = verifiedToken.getPayload();
-            return new GoogleIdentity(
+            return new GoogleIdentityResponse(
                     payload.getSubject(),
                     payload.getEmail(),
                     Boolean.TRUE.equals(payload.getEmailVerified())

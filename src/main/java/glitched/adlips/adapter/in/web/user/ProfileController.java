@@ -1,16 +1,18 @@
 package glitched.adlips.adapter.in.web.user;
 
 import glitched.adlips.adapter.in.web.ApiResponse;
-import glitched.adlips.application.user.profile.ProfileImageCommand;
-import glitched.adlips.application.user.profile.ProfileImageUpdateUseCase;
-import glitched.adlips.application.user.profile.ProfileImageResult;
-import glitched.adlips.application.user.profile.ProfileGetUseCase;
-import glitched.adlips.application.user.profile.ProfileShareUseCase;
-import glitched.adlips.application.user.profile.ProfileShareResult;
-import glitched.adlips.application.user.profile.ProfileUpdateUseCase;
-import glitched.adlips.application.user.profile.ProfileUpdateResult;
-import glitched.adlips.application.user.profile.ProfileView;
-import glitched.adlips.application.user.profile.UpdateProfileCommand;
+import glitched.adlips.application.user.profile.dto.request.UserProfileGetRequest;
+import glitched.adlips.application.user.profile.dto.request.UserProfileImageUpdateRequest;
+import glitched.adlips.application.user.profile.dto.request.UserProfileShareRequest;
+import glitched.adlips.application.user.profile.dto.request.UserProfileUpdateRequest;
+import glitched.adlips.application.user.profile.dto.response.UserProfileGetResponse;
+import glitched.adlips.application.user.profile.dto.response.UserProfileImageUpdateResponse;
+import glitched.adlips.application.user.profile.dto.response.UserProfileShareResponse;
+import glitched.adlips.application.user.profile.dto.response.UserProfileUpdateResponse;
+import glitched.adlips.application.user.profile.usecase.ProfileGetUseCase;
+import glitched.adlips.application.user.profile.usecase.ProfileImageUpdateUseCase;
+import glitched.adlips.application.user.profile.usecase.ProfileShareUseCase;
+import glitched.adlips.application.user.profile.usecase.ProfileUpdateUseCase;
 import java.io.IOException;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -47,63 +49,54 @@ public class ProfileController {
     }
 
     @GetMapping("/profiles/{userId}")
-    public ApiResponse<ProfileView> getProfile(
+    public ApiResponse<UserProfileGetResponse> getProfile(
             @PathVariable Long userId,
             @RequestHeader("Authorization") String authorization
     ) {
         Long requesterId = authenticatedUserResolver.requireUserId(authorization);
         return ApiResponse.success(
                 "프로필 조회가 완료되었습니다.",
-                profileGetUseCase.execute(userId, requesterId)
+                profileGetUseCase.execute(new UserProfileGetRequest(userId, requesterId))
         );
     }
 
     @PatchMapping("/me/profile")
-    public ApiResponse<ProfileUpdateResult> updateProfile(
+    public ApiResponse<UserProfileUpdateResponse> updateProfile(
             @RequestHeader("Authorization") String authorization,
-            @RequestBody UpdateProfileRequest request
+            @RequestBody UserProfileUpdateRequest request
     ) {
         Long userId = authenticatedUserResolver.requireUserId(authorization);
-        ProfileUpdateResult result = profileUpdateUseCase.execute(
-                userId,
-                new UpdateProfileCommand(
-                        request.nickname(), request.primaryInstrument(), request.explanation()
+        UserProfileUpdateResponse result = profileUpdateUseCase.execute(
+                new UserProfileUpdateRequest(
+                        userId, request.nickname(), request.primaryInstrument(), request.explanation()
                 )
         );
         return ApiResponse.success("프로필 정보가 성공적으로 수정되었습니다.", result);
     }
 
     @PatchMapping(value = "/me/profile/image", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ApiResponse<ProfileImageResult> updateProfileImage(
+    public ApiResponse<UserProfileImageUpdateResponse> updateProfileImage(
             @RequestHeader("Authorization") String authorization,
             @RequestPart("image") MultipartFile image
     ) throws IOException {
         Long userId = authenticatedUserResolver.requireUserId(authorization);
-        ProfileImageResult result = profileImageUpdateUseCase.execute(
-                userId,
-                new ProfileImageCommand(
-                        image.getOriginalFilename(), image.getContentType(), image.getBytes()
+        UserProfileImageUpdateResponse result = profileImageUpdateUseCase.execute(
+                new UserProfileImageUpdateRequest(
+                        userId, image.getOriginalFilename(), image.getContentType(), image.getBytes()
                 )
         );
         return ApiResponse.success("프로필 이미지가 성공적으로 수정되었습니다.", result);
     }
 
     @GetMapping("/profiles/{userId}/share")
-    public ApiResponse<ProfileShareResult> shareProfile(
+    public ApiResponse<UserProfileShareResponse> shareProfile(
             @PathVariable Long userId,
             @RequestHeader("Authorization") String authorization
     ) {
         authenticatedUserResolver.requireUserId(authorization);
         return ApiResponse.success(
                 "프로필 공유 링크 조회가 완료되었습니다.",
-                profileShareUseCase.execute(userId)
+                profileShareUseCase.execute(new UserProfileShareRequest(userId))
         );
-    }
-
-    public record UpdateProfileRequest(
-            String nickname,
-            String primaryInstrument,
-            String explanation
-    ) {
     }
 }

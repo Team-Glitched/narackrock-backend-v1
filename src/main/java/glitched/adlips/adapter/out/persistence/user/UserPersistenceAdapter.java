@@ -8,7 +8,7 @@ import glitched.adlips.domain.user.AuthProvider;
 import glitched.adlips.domain.user.Profile;
 import glitched.adlips.domain.user.User;
 import glitched.adlips.domain.user.UserAuthProvider;
-import glitched.adlips.application.user.relation.PageResult;
+import glitched.adlips.application.user.relation.model.PageResult;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;

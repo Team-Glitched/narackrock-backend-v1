@@ -1,6 +1,6 @@
 package glitched.adlips.adapter.out.storage;
 
-import glitched.adlips.application.user.profile.ProfileImageCommand;
+import glitched.adlips.application.user.profile.dto.request.UserProfileImageUpdateRequest;
 import glitched.adlips.application.user.profile.port.out.FileStoragePort;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -32,7 +32,7 @@ public class LocalFileStorageAdapter implements FileStoragePort {
     }
 
     @Override
-    public StoredFile store(ProfileImageCommand image) {
+    public StoredFile store(UserProfileImageUpdateRequest image) {
         String extension = EXTENSIONS.get(image.mimeType());
         if (extension == null) {
             throw new IllegalArgumentException("지원하지 않는 이미지 형식입니다.");

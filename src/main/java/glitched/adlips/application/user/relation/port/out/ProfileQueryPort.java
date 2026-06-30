@@ -1,6 +1,6 @@
 package glitched.adlips.application.user.relation.port.out;
 
-import glitched.adlips.application.user.relation.PageResult;
+import glitched.adlips.application.user.relation.model.PageResult;
 import glitched.adlips.domain.user.Profile;
 import java.util.Collection;
 import java.util.List;

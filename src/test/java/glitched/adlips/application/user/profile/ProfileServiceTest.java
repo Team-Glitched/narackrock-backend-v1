@@ -6,7 +6,6 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
-import glitched.adlips.application.user.common.port.out.TransactionPort;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.FileStoragePort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
@@ -23,7 +22,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -67,15 +65,9 @@ class ProfileServiceTest {
             }
         };
         ProfileLinkPort links = userId -> "https://app.example.com/users/profiles/" + userId;
-        TransactionPort transactions = new TransactionPort() {
-            @Override
-            public <T> T required(Supplier<T> operation) {
-                return operation.get();
-            }
-        };
         Clock clock = Clock.fixed(Instant.parse("2026-06-30T00:00:00Z"), ZoneOffset.UTC);
         service = new ProfileService(
-                users, profiles, media, follows, storage, links, transactions, clock
+                users, profiles, media, follows, storage, links, clock
         );
 
         users.save(User.create("user@example.com").withId(1L));

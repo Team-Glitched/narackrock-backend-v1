@@ -7,7 +7,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
-import glitched.adlips.application.user.common.port.out.TransactionPort;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
@@ -24,7 +23,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
-import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -36,13 +34,7 @@ class FollowServiceTest {
     @BeforeEach
     void setUp() {
         store = new SocialStore();
-        TransactionPort transaction = new TransactionPort() {
-            @Override
-            public <T> T required(Supplier<T> operation) {
-                return operation.get();
-            }
-        };
-        service = new FollowService(store, store, store, store, new EmptyMedia(), transaction);
+        service = new FollowService(store, store, store, store, new EmptyMedia());
         store.addUser(1L, "me", 0);
         store.addUser(2L, "target", 4);
     }

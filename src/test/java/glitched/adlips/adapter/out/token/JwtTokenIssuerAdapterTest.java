@@ -1,8 +1,10 @@
 package glitched.adlips.adapter.out.token;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
@@ -48,5 +50,24 @@ class JwtTokenIssuerAdapterTest {
         String token2 = issuer.issue(2L);
 
         assertThat(token1).isNotEqualTo(token2);
+    }
+
+    @Test
+    void verifiesIssuedTokenAndReturnsUserId() {
+        String token = issuer.issue(42L);
+
+        assertThat(issuer.verifyAndExtractUserId(token)).isEqualTo(42L);
+    }
+
+    @Test
+    void rejectsTokenSignedWithDifferentKey() {
+        JwtTokenIssuerAdapter anotherIssuer = new JwtTokenIssuerAdapter(
+                "another-test-secret-at-least-32-characters!!",
+                EXPIRATION_MS
+        );
+        String token = anotherIssuer.issue(42L);
+
+        assertThatThrownBy(() -> issuer.verifyAndExtractUserId(token))
+                .isInstanceOf(JwtException.class);
     }
 }

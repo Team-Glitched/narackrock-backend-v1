@@ -1,8 +1,10 @@
 package glitched.adlips.adapter.out.persistence;
 
+import glitched.adlips.application.exception.DuplicateNicknameException;
 import glitched.adlips.application.port.ProfileRepository;
 import glitched.adlips.domain.user.Profile;
 import java.util.Optional;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -16,7 +18,11 @@ class ProfileRepositoryAdapter implements ProfileRepository {
 
     @Override
     public Profile save(Profile profile) {
-        return jpaRepository.save(profile);
+        try {
+            return jpaRepository.saveAndFlush(profile);
+        } catch (DataIntegrityViolationException e) {
+            throw new DuplicateNicknameException();
+        }
     }
 
     @Override

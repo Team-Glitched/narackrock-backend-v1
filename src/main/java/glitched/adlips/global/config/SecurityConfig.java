@@ -1,5 +1,9 @@
 package glitched.adlips.global.config;
 
+import glitched.adlips.adapter.in.security.JwtAuthenticationFilter;
+import glitched.adlips.adapter.out.token.JwtTokenIssuerAdapter;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -7,13 +11,17 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @Configuration
 @EnableWebSecurity
 public class SecurityConfig {
 
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain securityFilterChain(
+            HttpSecurity http,
+            JwtTokenIssuerAdapter tokenAdapter
+    ) throws Exception {
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
@@ -22,7 +30,23 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/v1/auth/**", "/api/v1/users").permitAll()
                         .anyRequest().authenticated()
+                )
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, exception) ->
+                                response.sendError(HttpServletResponse.SC_UNAUTHORIZED))
+                )
+                .addFilterBefore(
+                        new JwtAuthenticationFilter(tokenAdapter),
+                        UsernamePasswordAuthenticationFilter.class
                 );
         return http.build();
+    }
+
+    @Bean
+    public JwtTokenIssuerAdapter jwtTokenIssuerAdapter(
+            @Value("${jwt.secret}") String secret,
+            @Value("${jwt.expiration-ms}") long expirationMs
+    ) {
+        return new JwtTokenIssuerAdapter(secret, expirationMs);
     }
 }

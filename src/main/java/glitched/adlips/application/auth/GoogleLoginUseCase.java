@@ -4,37 +4,40 @@ import glitched.adlips.application.exception.SignupRequiredException;
 import glitched.adlips.application.port.GoogleTokenVerifier;
 import glitched.adlips.application.port.ProfileRepository;
 import glitched.adlips.application.port.TokenIssuer;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.port.UserAuthProviderRepository;
 import glitched.adlips.domain.user.AuthProvider;
 import glitched.adlips.domain.user.Profile;
 import glitched.adlips.domain.user.UserAuthProvider;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
-@Component
 public class GoogleLoginUseCase {
 
     private final GoogleTokenVerifier tokenVerifier;
     private final UserAuthProviderRepository authProviderRepository;
     private final ProfileRepository profileRepository;
     private final TokenIssuer tokenIssuer;
+    private final TransactionRunner transactionRunner;
 
     public GoogleLoginUseCase(
             GoogleTokenVerifier tokenVerifier,
             UserAuthProviderRepository authProviderRepository,
             ProfileRepository profileRepository,
-            TokenIssuer tokenIssuer
+            TokenIssuer tokenIssuer,
+            TransactionRunner transactionRunner
     ) {
         this.tokenVerifier = tokenVerifier;
         this.authProviderRepository = authProviderRepository;
         this.profileRepository = profileRepository;
         this.tokenIssuer = tokenIssuer;
+        this.transactionRunner = transactionRunner;
     }
 
-    @Transactional(readOnly = true)
     public AuthResult login(String idToken) {
         GoogleUserInfo googleUser = tokenVerifier.verify(idToken);
+        return transactionRunner.readOnly(() -> login(googleUser));
+    }
 
+    private AuthResult login(GoogleUserInfo googleUser) {
         UserAuthProvider authProvider = authProviderRepository
                 .findByProviderAndProviderUserId(AuthProvider.GOOGLE, googleUser.providerUserId())
                 .orElseThrow(SignupRequiredException::new);

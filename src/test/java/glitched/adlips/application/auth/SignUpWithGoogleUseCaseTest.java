@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 
 import glitched.adlips.application.exception.AlreadyRegisteredException;
 import glitched.adlips.application.exception.AuthFailedException;
@@ -11,11 +13,14 @@ import glitched.adlips.application.exception.DuplicateNicknameException;
 import glitched.adlips.application.port.GoogleTokenVerifier;
 import glitched.adlips.application.port.ProfileRepository;
 import glitched.adlips.application.port.TokenIssuer;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.port.UserAuthProviderRepository;
 import glitched.adlips.application.port.UserRepository;
 import glitched.adlips.domain.user.AuthProvider;
 import glitched.adlips.domain.user.Profile;
 import glitched.adlips.domain.user.User;
+import java.util.Optional;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,12 +35,22 @@ class SignUpWithGoogleUseCaseTest {
     @Mock private ProfileRepository profileRepository;
     @Mock private UserAuthProviderRepository authProviderRepository;
     @Mock private TokenIssuer tokenIssuer;
+    @Mock private TransactionRunner transactionRunner;
 
     private SignUpWithGoogleUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new SignUpWithGoogleUseCase(tokenVerifier, userRepository, profileRepository, authProviderRepository, tokenIssuer);
+        lenient().doAnswer(invocation -> ((Supplier<?>) invocation.getArgument(0)).get())
+                .when(transactionRunner).required(any());
+        useCase = new SignUpWithGoogleUseCase(
+                tokenVerifier,
+                userRepository,
+                profileRepository,
+                authProviderRepository,
+                tokenIssuer,
+                transactionRunner
+        );
     }
 
     @Test
@@ -56,6 +71,7 @@ class SignUpWithGoogleUseCaseTest {
         assertThat(result.accessToken()).isEqualTo("jwt-token");
         assertThat(result.tokenType()).isEqualTo("Bearer");
         assertThat(result.nickname()).isEqualTo("guitar_moon");
+        verify(transactionRunner).required(any());
     }
 
     @Test
@@ -83,5 +99,18 @@ class SignUpWithGoogleUseCaseTest {
 
         assertThatThrownBy(() -> useCase.signUp("valid-token", "taken_name"))
                 .isInstanceOf(DuplicateNicknameException.class);
+    }
+
+    @Test
+    void throwsAlreadyRegisteredWhenEmailAccountExists() {
+        User existingUser = new User("user@gmail.com");
+        given(tokenVerifier.verify("valid-token"))
+                .willReturn(new GoogleUserInfo("google-sub-123", "user@gmail.com", true));
+        given(authProviderRepository.existsByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-123"))
+                .willReturn(false);
+        given(userRepository.findByEmail("user@gmail.com")).willReturn(Optional.of(existingUser));
+
+        assertThatThrownBy(() -> useCase.signUp("valid-token", "guitar_moon"))
+                .isInstanceOf(AlreadyRegisteredException.class);
     }
 }

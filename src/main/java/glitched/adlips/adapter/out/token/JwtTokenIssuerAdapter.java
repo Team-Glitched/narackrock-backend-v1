@@ -1,23 +1,21 @@
 package glitched.adlips.adapter.out.token;
 
+import glitched.adlips.application.port.AccessTokenVerifier;
 import glitched.adlips.application.port.TokenIssuer;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import javax.crypto.SecretKey;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
 
-@Component
-public class JwtTokenIssuerAdapter implements TokenIssuer {
+public class JwtTokenIssuerAdapter implements TokenIssuer, AccessTokenVerifier {
 
     private final SecretKey secretKey;
     private final long expirationMs;
 
     public JwtTokenIssuerAdapter(
-            @Value("${jwt.secret}") String secret,
-            @Value("${jwt.expiration-ms:86400000}") long expirationMs
+            String secret,
+            long expirationMs
     ) {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationMs = expirationMs;
@@ -32,5 +30,16 @@ public class JwtTokenIssuerAdapter implements TokenIssuer {
                 .expiration(new Date(now.getTime() + expirationMs))
                 .signWith(secretKey)
                 .compact();
+    }
+
+    @Override
+    public Long verifyAndExtractUserId(String token) {
+        String subject = Jwts.parser()
+                .verifyWith(secretKey)
+                .build()
+                .parseSignedClaims(token)
+                .getPayload()
+                .getSubject();
+        return Long.valueOf(subject);
     }
 }

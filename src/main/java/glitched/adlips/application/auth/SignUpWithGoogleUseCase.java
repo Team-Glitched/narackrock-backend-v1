@@ -5,16 +5,14 @@ import glitched.adlips.application.exception.DuplicateNicknameException;
 import glitched.adlips.application.port.GoogleTokenVerifier;
 import glitched.adlips.application.port.ProfileRepository;
 import glitched.adlips.application.port.TokenIssuer;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.port.UserAuthProviderRepository;
 import glitched.adlips.application.port.UserRepository;
 import glitched.adlips.domain.user.AuthProvider;
 import glitched.adlips.domain.user.Profile;
 import glitched.adlips.domain.user.User;
 import glitched.adlips.domain.user.UserAuthProvider;
-import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
-@Component
 public class SignUpWithGoogleUseCase {
 
     private final GoogleTokenVerifier tokenVerifier;
@@ -22,26 +20,35 @@ public class SignUpWithGoogleUseCase {
     private final ProfileRepository profileRepository;
     private final UserAuthProviderRepository authProviderRepository;
     private final TokenIssuer tokenIssuer;
+    private final TransactionRunner transactionRunner;
 
     public SignUpWithGoogleUseCase(
             GoogleTokenVerifier tokenVerifier,
             UserRepository userRepository,
             ProfileRepository profileRepository,
             UserAuthProviderRepository authProviderRepository,
-            TokenIssuer tokenIssuer
+            TokenIssuer tokenIssuer,
+            TransactionRunner transactionRunner
     ) {
         this.tokenVerifier = tokenVerifier;
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.authProviderRepository = authProviderRepository;
         this.tokenIssuer = tokenIssuer;
+        this.transactionRunner = transactionRunner;
     }
 
-    @Transactional
     public AuthResult signUp(String idToken, String nickname) {
         GoogleUserInfo googleUser = tokenVerifier.verify(idToken);
+        return transactionRunner.required(() -> signUp(googleUser, nickname));
+    }
 
+    private AuthResult signUp(GoogleUserInfo googleUser, String nickname) {
         if (authProviderRepository.existsByProviderAndProviderUserId(AuthProvider.GOOGLE, googleUser.providerUserId())) {
+            throw new AlreadyRegisteredException();
+        }
+
+        if (userRepository.findByEmail(googleUser.email()).isPresent()) {
             throw new AlreadyRegisteredException();
         }
 

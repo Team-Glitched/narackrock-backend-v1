@@ -5,18 +5,22 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.verify;
 
 import glitched.adlips.application.exception.AuthFailedException;
 import glitched.adlips.application.exception.SignupRequiredException;
 import glitched.adlips.application.port.GoogleTokenVerifier;
 import glitched.adlips.application.port.ProfileRepository;
 import glitched.adlips.application.port.TokenIssuer;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.port.UserAuthProviderRepository;
 import glitched.adlips.domain.user.AuthProvider;
 import glitched.adlips.domain.user.Profile;
 import glitched.adlips.domain.user.User;
 import glitched.adlips.domain.user.UserAuthProvider;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,12 +34,21 @@ class GoogleLoginUseCaseTest {
     @Mock private UserAuthProviderRepository authProviderRepository;
     @Mock private ProfileRepository profileRepository;
     @Mock private TokenIssuer tokenIssuer;
+    @Mock private TransactionRunner transactionRunner;
 
     private GoogleLoginUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new GoogleLoginUseCase(tokenVerifier, authProviderRepository, profileRepository, tokenIssuer);
+        lenient().doAnswer(invocation -> ((Supplier<?>) invocation.getArgument(0)).get())
+                .when(transactionRunner).readOnly(any());
+        useCase = new GoogleLoginUseCase(
+                tokenVerifier,
+                authProviderRepository,
+                profileRepository,
+                tokenIssuer,
+                transactionRunner
+        );
     }
 
     @Test
@@ -56,6 +69,7 @@ class GoogleLoginUseCaseTest {
         assertThat(result.tokenType()).isEqualTo("Bearer");
         assertThat(result.nickname()).isEqualTo("guitar_moon");
         assertThat(result.profileImageUrl()).isNull();
+        verify(transactionRunner).readOnly(any());
     }
 
     @Test

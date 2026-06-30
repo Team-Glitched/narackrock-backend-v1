@@ -1,9 +1,11 @@
 package glitched.adlips.adapter.out.persistence;
 
+import glitched.adlips.application.exception.AlreadyRegisteredException;
 import glitched.adlips.application.port.UserAuthProviderRepository;
 import glitched.adlips.domain.user.AuthProvider;
 import glitched.adlips.domain.user.UserAuthProvider;
 import java.util.Optional;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -17,7 +19,11 @@ class UserAuthProviderRepositoryAdapter implements UserAuthProviderRepository {
 
     @Override
     public UserAuthProvider save(UserAuthProvider authProvider) {
-        return jpaRepository.save(authProvider);
+        try {
+            return jpaRepository.saveAndFlush(authProvider);
+        } catch (DataIntegrityViolationException e) {
+            throw new AlreadyRegisteredException();
+        }
     }
 
     @Override

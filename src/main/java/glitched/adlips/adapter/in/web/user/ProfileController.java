@@ -2,9 +2,12 @@ package glitched.adlips.adapter.in.web.user;
 
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.application.user.profile.ProfileImageCommand;
+import glitched.adlips.application.user.profile.ProfileImageUpdateUseCase;
 import glitched.adlips.application.user.profile.ProfileImageResult;
-import glitched.adlips.application.user.profile.ProfileService;
+import glitched.adlips.application.user.profile.ProfileGetUseCase;
+import glitched.adlips.application.user.profile.ProfileShareUseCase;
 import glitched.adlips.application.user.profile.ProfileShareResult;
+import glitched.adlips.application.user.profile.ProfileUpdateUseCase;
 import glitched.adlips.application.user.profile.ProfileUpdateResult;
 import glitched.adlips.application.user.profile.ProfileView;
 import glitched.adlips.application.user.profile.UpdateProfileCommand;
@@ -23,14 +26,23 @@ import org.springframework.web.multipart.MultipartFile;
 @RestController
 @RequestMapping("/api/v1/users")
 public class ProfileController {
-    private final ProfileService profileService;
+    private final ProfileGetUseCase profileGetUseCase;
+    private final ProfileUpdateUseCase profileUpdateUseCase;
+    private final ProfileImageUpdateUseCase profileImageUpdateUseCase;
+    private final ProfileShareUseCase profileShareUseCase;
     private final AuthenticatedUserResolver authenticatedUserResolver;
 
     public ProfileController(
-            ProfileService profileService,
+            ProfileGetUseCase profileGetUseCase,
+            ProfileUpdateUseCase profileUpdateUseCase,
+            ProfileImageUpdateUseCase profileImageUpdateUseCase,
+            ProfileShareUseCase profileShareUseCase,
             AuthenticatedUserResolver authenticatedUserResolver
     ) {
-        this.profileService = profileService;
+        this.profileGetUseCase = profileGetUseCase;
+        this.profileUpdateUseCase = profileUpdateUseCase;
+        this.profileImageUpdateUseCase = profileImageUpdateUseCase;
+        this.profileShareUseCase = profileShareUseCase;
         this.authenticatedUserResolver = authenticatedUserResolver;
     }
 
@@ -42,7 +54,7 @@ public class ProfileController {
         Long requesterId = authenticatedUserResolver.requireUserId(authorization);
         return ApiResponse.success(
                 "프로필 조회가 완료되었습니다.",
-                profileService.getProfile(userId, requesterId)
+                profileGetUseCase.execute(userId, requesterId)
         );
     }
 
@@ -52,7 +64,7 @@ public class ProfileController {
             @RequestBody UpdateProfileRequest request
     ) {
         Long userId = authenticatedUserResolver.requireUserId(authorization);
-        ProfileUpdateResult result = profileService.updateProfile(
+        ProfileUpdateResult result = profileUpdateUseCase.execute(
                 userId,
                 new UpdateProfileCommand(
                         request.nickname(), request.primaryInstrument(), request.explanation()
@@ -67,7 +79,7 @@ public class ProfileController {
             @RequestPart("image") MultipartFile image
     ) throws IOException {
         Long userId = authenticatedUserResolver.requireUserId(authorization);
-        ProfileImageResult result = profileService.updateProfileImage(
+        ProfileImageResult result = profileImageUpdateUseCase.execute(
                 userId,
                 new ProfileImageCommand(
                         image.getOriginalFilename(), image.getContentType(), image.getBytes()
@@ -84,7 +96,7 @@ public class ProfileController {
         authenticatedUserResolver.requireUserId(authorization);
         return ApiResponse.success(
                 "프로필 공유 링크 조회가 완료되었습니다.",
-                profileService.shareProfile(userId)
+                profileShareUseCase.execute(userId)
         );
     }
 

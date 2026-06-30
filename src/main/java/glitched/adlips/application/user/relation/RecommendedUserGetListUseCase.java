@@ -4,7 +4,6 @@ import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.user.relation.RecommendationResult.RecommendedUser;
-import glitched.adlips.application.user.relation.UserSearchResult.SearchUser;
 import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
 import glitched.adlips.application.user.relation.port.out.ProfileQueryPort;
 import glitched.adlips.domain.media.MediaFile;
@@ -19,14 +18,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 @Service
 @Transactional(readOnly = true)
-public class UserDiscoveryService {
+public class RecommendedUserGetListUseCase {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final ProfileQueryPort profileQuery;
     private final FollowRepositoryPort followRepository;
     private final MediaFileRepositoryPort mediaFileRepository;
 
-    public UserDiscoveryService(
+    public RecommendedUserGetListUseCase(
             ProfileQueryPort profileQuery,
             FollowRepositoryPort followRepository,
             MediaFileRepositoryPort mediaFileRepository
@@ -36,31 +35,7 @@ public class UserDiscoveryService {
         this.mediaFileRepository = mediaFileRepository;
     }
 
-    public UserSearchResult search(Long requesterId, String keyword, int page, int size) {
-        validatePage(page, size);
-        if (keyword == null || keyword.isBlank()) {
-            throw new UserApplicationException(
-                    UserErrorCode.VALIDATION_ERROR,
-                    "검색어는 필수 입력 사항입니다."
-            );
-        }
-        String normalizedKeyword = keyword.trim();
-        PageResult<Profile> result = profileQuery.search(normalizedKeyword, page, size);
-        List<SearchUser> users = result.content().stream()
-                .map(profile -> new SearchUser(
-                        profile.getUserId(),
-                        profile.getNickname(),
-                        imageUrl(profile),
-                        profile.getPrimaryInstrument(),
-                        profile.getExplanation(),
-                        !profile.getUserId().equals(requesterId)
-                                && followRepository.exists(requesterId, profile.getUserId())
-                ))
-                .toList();
-        return new UserSearchResult(normalizedKeyword, result.totalCount(), users);
-    }
-
-    public RecommendationResult recommend(Long requesterId, int page, int size) {
+    public RecommendationResult execute(Long requesterId, int page, int size) {
         validatePage(page, size);
         Set<Long> followingIds = new LinkedHashSet<>(followRepository.findFollowingIds(requesterId));
         Set<Long> candidates = new LinkedHashSet<>();
@@ -74,11 +49,10 @@ public class UserDiscoveryService {
                 .sorted(Comparator.comparingInt(Profile::getFollowerCount).reversed())
                 .toList();
         if (!personalized.isEmpty()) {
-            List<Profile> pageContent = page(personalized, page, size);
             return new RecommendationResult(
                     personalized.size(),
                     false,
-                    recommendedUsers(pageContent, requesterId, RecommendType.FRIEND_OF_FRIEND)
+                    recommendedUsers(page(personalized, page, size), requesterId, RecommendType.FRIEND_OF_FRIEND)
             );
         }
 
@@ -130,10 +104,7 @@ public class UserDiscoveryService {
 
     private void validatePage(int page, int size) {
         if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
-            throw new UserApplicationException(
-                    UserErrorCode.VALIDATION_ERROR,
-                    "페이지 번호와 크기를 확인해 주세요."
-            );
+            throw new UserApplicationException(UserErrorCode.VALIDATION_ERROR, "페이지 번호와 크기를 확인해 주세요.");
         }
     }
 }

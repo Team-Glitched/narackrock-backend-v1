@@ -8,5 +8,7 @@ public interface ProfileRepositoryPort {
 
     boolean existsByNickname(String nickname);
 
+    boolean existsByNicknameAndUserIdNot(String nickname, Long userId);
+
     Profile save(Profile profile);
 }

@@ -13,6 +13,8 @@ interface SpringDataUserRepository extends JpaRepository<User, Long> {
 
 interface SpringDataProfileRepository extends JpaRepository<Profile, Long> {
     boolean existsByNickname(String nickname);
+
+    boolean existsByNicknameAndUserIdNot(String nickname, Long userId);
 }
 
 interface SpringDataUserAuthProviderRepository extends JpaRepository<UserAuthProvider, Long> {

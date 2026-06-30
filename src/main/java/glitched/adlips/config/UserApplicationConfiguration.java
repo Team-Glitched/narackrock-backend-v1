@@ -1,8 +1,13 @@
 package glitched.adlips.config;
 
 import glitched.adlips.application.user.AccountService;
+import glitched.adlips.application.user.ProfileService;
 import glitched.adlips.application.user.port.out.AccessTokenPort;
+import glitched.adlips.application.user.port.out.FileStoragePort;
+import glitched.adlips.application.user.port.out.FollowRepositoryPort;
 import glitched.adlips.application.user.port.out.GoogleIdentityPort;
+import glitched.adlips.application.user.port.out.MediaFileRepositoryPort;
+import glitched.adlips.application.user.port.out.ProfileLinkPort;
 import glitched.adlips.application.user.port.out.ProfileRepositoryPort;
 import glitched.adlips.application.user.port.out.TransactionPort;
 import glitched.adlips.application.user.port.out.UserAuthProviderRepositoryPort;
@@ -34,6 +39,29 @@ public class UserApplicationConfiguration {
                 userRepositoryPort,
                 userAuthProviderRepositoryPort,
                 profileRepositoryPort,
+                transactionPort,
+                clock
+        );
+    }
+
+    @Bean
+    ProfileService profileService(
+            UserRepositoryPort userRepositoryPort,
+            ProfileRepositoryPort profileRepositoryPort,
+            MediaFileRepositoryPort mediaFileRepositoryPort,
+            FollowRepositoryPort followRepositoryPort,
+            FileStoragePort fileStoragePort,
+            ProfileLinkPort profileLinkPort,
+            TransactionPort transactionPort,
+            Clock clock
+    ) {
+        return new ProfileService(
+                userRepositoryPort,
+                profileRepositoryPort,
+                mediaFileRepositoryPort,
+                followRepositoryPort,
+                fileStoragePort,
+                profileLinkPort,
                 transactionPort,
                 clock
         );

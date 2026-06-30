@@ -121,6 +121,30 @@ public class Profile extends BaseUpdatedEntity {
         return nicknameUpdatedAt;
     }
 
+    public Profile update(
+            String nickname,
+            String primaryInstrument,
+            String explanation,
+            LocalDateTime changedAt
+    ) {
+        if (nickname != null && !this.nickname.equals(nickname.trim())) {
+            this.nickname = requireNickname(nickname);
+            this.nicknameUpdatedAt = Objects.requireNonNull(changedAt);
+        }
+        if (primaryInstrument != null) {
+            this.primaryInstrument = normalizeOptional(primaryInstrument);
+        }
+        if (explanation != null) {
+            this.explanation = normalizeOptional(explanation);
+        }
+        return this;
+    }
+
+    public Profile changeProfileImage(Long mediaFileId) {
+        this.profileImageFileId = Objects.requireNonNull(mediaFileId);
+        return this;
+    }
+
     private static String requireNickname(String nickname) {
         if (nickname == null || nickname.isBlank()) {
             throw new IllegalArgumentException("닉네임은 필수입니다.");
@@ -133,5 +157,10 @@ public class Profile extends BaseUpdatedEntity {
             throw new IllegalArgumentException("관계 수는 음수일 수 없습니다.");
         }
         return count;
+    }
+
+    private static String normalizeOptional(String value) {
+        String normalized = value.trim();
+        return normalized.isEmpty() ? null : normalized;
     }
 }

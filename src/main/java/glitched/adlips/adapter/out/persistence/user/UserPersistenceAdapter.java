@@ -55,6 +55,11 @@ public class UserPersistenceAdapter implements
     }
 
     @Override
+    public boolean existsByNicknameAndUserIdNot(String nickname, Long userId) {
+        return profileRepository.existsByNicknameAndUserIdNot(nickname, userId);
+    }
+
+    @Override
     public Profile save(Profile profile) {
         return profileRepository.save(profile);
     }

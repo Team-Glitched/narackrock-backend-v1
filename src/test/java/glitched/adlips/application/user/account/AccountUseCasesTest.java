@@ -4,6 +4,9 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import glitched.adlips.application.user.account.dto.request.GoogleLoginRequest;
 import glitched.adlips.application.user.account.dto.request.UserSignupRequest;
@@ -15,6 +18,7 @@ import glitched.adlips.application.user.account.port.out.AccessTokenPort;
 import glitched.adlips.application.user.account.port.out.GoogleIdentityPort;
 import glitched.adlips.application.user.account.port.out.UserAuthProviderRepositoryPort;
 import glitched.adlips.application.user.account.usecase.GoogleLoginUseCase;
+import glitched.adlips.application.user.account.usecase.RefreshTokenManager;
 import glitched.adlips.application.user.account.usecase.UserSignupUseCase;
 import glitched.adlips.application.user.account.usecase.UserWithdrawUseCase;
 import glitched.adlips.application.user.common.UserApplicationException;
@@ -61,10 +65,16 @@ class AccountUseCasesTest {
                 return Long.valueOf(token.substring("access-".length()));
             }
         };
+        RefreshTokenManager refreshTokens = mock(RefreshTokenManager.class);
+        when(refreshTokens.issue(anyLong())).thenReturn("refresh-1");
         Clock clock = Clock.fixed(Instant.parse("2026-06-30T00:00:00Z"), ZoneOffset.UTC);
-        userSignupUseCase = new UserSignupUseCase(google, accessTokens, users, authProviders, profiles);
-        googleLoginUseCase = new GoogleLoginUseCase(google, accessTokens, users, authProviders, profiles);
-        userWithdrawUseCase = new UserWithdrawUseCase(users, clock);
+        userSignupUseCase = new UserSignupUseCase(
+                google, accessTokens, users, authProviders, profiles, refreshTokens
+        );
+        googleLoginUseCase = new GoogleLoginUseCase(
+                google, accessTokens, users, authProviders, profiles, refreshTokens
+        );
+        userWithdrawUseCase = new UserWithdrawUseCase(users, refreshTokens, clock);
     }
 
     @Test
@@ -74,6 +84,7 @@ class AccountUseCasesTest {
         );
 
         assertEquals("access-1", result.accessToken());
+        assertEquals("refresh-1", result.refreshToken());
         assertEquals("Bearer", result.tokenType());
         assertEquals(1L, result.user().userId());
         assertEquals("guitar_moon", result.user().nickname());
@@ -114,6 +125,7 @@ class AccountUseCasesTest {
         GoogleLoginResponse result = googleLoginUseCase.execute(new GoogleLoginRequest("valid-token"));
 
         assertEquals("access-1", result.accessToken());
+        assertEquals("refresh-1", result.refreshToken());
         assertEquals("guitar_moon", result.user().nickname());
     }
 

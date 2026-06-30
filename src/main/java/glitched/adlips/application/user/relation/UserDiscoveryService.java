@@ -14,8 +14,12 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-public final class UserDiscoveryService {
+@Service
+@Transactional(readOnly = true)
+public class UserDiscoveryService {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final ProfileQueryPort profileQuery;

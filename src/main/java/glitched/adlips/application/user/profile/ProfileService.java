@@ -2,7 +2,6 @@ package glitched.adlips.application.user.profile;
 
 import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
-import glitched.adlips.application.user.common.port.out.TransactionPort;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.FileStoragePort;
 import glitched.adlips.application.user.profile.port.out.FileStoragePort.StoredFile;
@@ -15,8 +14,12 @@ import glitched.adlips.domain.user.Profile;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.util.Set;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-public final class ProfileService {
+@Service
+@Transactional(readOnly = true)
+public class ProfileService {
     private static final Set<String> SUPPORTED_IMAGE_TYPES = Set.of(
             "image/jpeg", "image/png", "image/webp", "image/gif"
     );
@@ -27,7 +30,6 @@ public final class ProfileService {
     private final FollowRepositoryPort followRepository;
     private final FileStoragePort fileStorage;
     private final ProfileLinkPort profileLinkPort;
-    private final TransactionPort transactionPort;
     private final Clock clock;
 
     public ProfileService(
@@ -37,7 +39,6 @@ public final class ProfileService {
             FollowRepositoryPort followRepository,
             FileStoragePort fileStorage,
             ProfileLinkPort profileLinkPort,
-            TransactionPort transactionPort,
             Clock clock
     ) {
         this.userRepository = userRepository;
@@ -46,7 +47,6 @@ public final class ProfileService {
         this.followRepository = followRepository;
         this.fileStorage = fileStorage;
         this.profileLinkPort = profileLinkPort;
-        this.transactionPort = transactionPort;
         this.clock = clock;
     }
 
@@ -77,32 +77,32 @@ public final class ProfileService {
         );
     }
 
+    @Transactional
     public ProfileUpdateResult updateProfile(Long userId, UpdateProfileCommand command) {
         if (command == null) {
             throw validation("수정할 프로필 정보를 입력해 주세요.");
         }
         String nickname = normalizeNickname(command.nickname());
-        return transactionPort.required(() -> {
-            requireActiveUser(userId);
-            Profile profile = requireProfile(userId);
-            if (nickname != null && profileRepository.existsByNicknameAndUserIdNot(nickname, userId)) {
-                throw new UserApplicationException(
-                        UserErrorCode.DUPLICATE_NICKNAME,
-                        "이미 사용중인 닉네임입니다."
-                );
-            }
-            Profile saved = profileRepository.save(profile.update(
-                    nickname,
-                    command.primaryInstrument(),
-                    command.explanation(),
-                    LocalDateTime.now(clock)
-            ));
-            return new ProfileUpdateResult(
-                    saved.getNickname(), saved.getPrimaryInstrument(), saved.getExplanation()
+        requireActiveUser(userId);
+        Profile profile = requireProfile(userId);
+        if (nickname != null && profileRepository.existsByNicknameAndUserIdNot(nickname, userId)) {
+            throw new UserApplicationException(
+                    UserErrorCode.DUPLICATE_NICKNAME,
+                    "이미 사용중인 닉네임입니다."
             );
-        });
+        }
+        Profile saved = profileRepository.save(profile.update(
+                nickname,
+                command.primaryInstrument(),
+                command.explanation(),
+                LocalDateTime.now(clock)
+        ));
+        return new ProfileUpdateResult(
+                saved.getNickname(), saved.getPrimaryInstrument(), saved.getExplanation()
+        );
     }
 
+    @Transactional
     public ProfileImageResult updateProfileImage(Long userId, ProfileImageCommand image) {
         validateImage(image);
         requireActiveUser(userId);
@@ -110,19 +110,17 @@ public final class ProfileService {
 
         StoredFile stored = fileStorage.store(image);
         try {
-            return transactionPort.required(() -> {
-                MediaFile mediaFile = mediaFileRepository.save(MediaFile.readyImage(
-                        userId,
-                        stored.url(),
-                        stored.storageKey(),
-                        image.originalFilename(),
-                        image.mimeType(),
-                        image.content().length
-                ));
-                Profile profile = requireProfile(userId);
-                profileRepository.save(profile.changeProfileImage(mediaFile.getId()));
-                return new ProfileImageResult(stored.url());
-            });
+            MediaFile mediaFile = mediaFileRepository.save(MediaFile.readyImage(
+                    userId,
+                    stored.url(),
+                    stored.storageKey(),
+                    image.originalFilename(),
+                    image.mimeType(),
+                    image.content().length
+            ));
+            Profile profile = requireProfile(userId);
+            profileRepository.save(profile.changeProfileImage(mediaFile.getId()));
+            return new ProfileImageResult(stored.url());
         } catch (RuntimeException exception) {
             fileStorage.delete(stored.storageKey());
             throw exception;

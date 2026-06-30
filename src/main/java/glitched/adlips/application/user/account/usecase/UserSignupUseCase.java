@@ -25,19 +25,22 @@ public class UserSignupUseCase {
     private final UserRepositoryPort userRepository;
     private final UserAuthProviderRepositoryPort authProviderRepository;
     private final ProfileRepositoryPort profileRepository;
+    private final RefreshTokenManager refreshTokenManager;
 
     public UserSignupUseCase(
             GoogleIdentityPort googleIdentityPort,
             AccessTokenPort accessTokenPort,
             UserRepositoryPort userRepository,
             UserAuthProviderRepositoryPort authProviderRepository,
-            ProfileRepositoryPort profileRepository
+            ProfileRepositoryPort profileRepository,
+            RefreshTokenManager refreshTokenManager
     ) {
         this.googleIdentityPort = googleIdentityPort;
         this.accessTokenPort = accessTokenPort;
         this.userRepository = userRepository;
         this.authProviderRepository = authProviderRepository;
         this.profileRepository = profileRepository;
+        this.refreshTokenManager = refreshTokenManager;
     }
 
     @Transactional
@@ -64,6 +67,7 @@ public class UserSignupUseCase {
         Profile profile = profileRepository.save(Profile.create(user.getId(), nickname));
         return new UserSignupResponse(
                 accessTokenPort.issue(user.getId()),
+                refreshTokenManager.issue(user.getId()),
                 "Bearer",
                 new UserResponse(user.getId(), profile.getNickname(), null)
         );

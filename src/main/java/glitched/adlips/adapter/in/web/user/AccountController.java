@@ -2,11 +2,14 @@ package glitched.adlips.adapter.in.web.user;
 
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.application.user.account.dto.request.GoogleLoginRequest;
+import glitched.adlips.application.user.account.dto.request.TokenRefreshRequest;
 import glitched.adlips.application.user.account.dto.request.UserSignupRequest;
 import glitched.adlips.application.user.account.dto.request.UserWithdrawRequest;
 import glitched.adlips.application.user.account.dto.response.GoogleLoginResponse;
+import glitched.adlips.application.user.account.dto.response.TokenRefreshResponse;
 import glitched.adlips.application.user.account.dto.response.UserSignupResponse;
 import glitched.adlips.application.user.account.usecase.GoogleLoginUseCase;
+import glitched.adlips.application.user.account.usecase.TokenRefreshUseCase;
 import glitched.adlips.application.user.account.usecase.UserSignupUseCase;
 import glitched.adlips.application.user.account.usecase.UserWithdrawUseCase;
 import org.springframework.http.HttpStatus;
@@ -23,17 +26,20 @@ import org.springframework.web.bind.annotation.RestController;
 public class AccountController {
     private final UserSignupUseCase userSignupUseCase;
     private final GoogleLoginUseCase googleLoginUseCase;
+    private final TokenRefreshUseCase tokenRefreshUseCase;
     private final UserWithdrawUseCase userWithdrawUseCase;
     private final AuthenticatedUserResolver authenticatedUserResolver;
 
     public AccountController(
             UserSignupUseCase userSignupUseCase,
             GoogleLoginUseCase googleLoginUseCase,
+            TokenRefreshUseCase tokenRefreshUseCase,
             UserWithdrawUseCase userWithdrawUseCase,
             AuthenticatedUserResolver authenticatedUserResolver
     ) {
         this.userSignupUseCase = userSignupUseCase;
         this.googleLoginUseCase = googleLoginUseCase;
+        this.tokenRefreshUseCase = tokenRefreshUseCase;
         this.userWithdrawUseCase = userWithdrawUseCase;
         this.authenticatedUserResolver = authenticatedUserResolver;
     }
@@ -51,6 +57,11 @@ public class AccountController {
                 "로그인에 성공했습니다.",
                 googleLoginUseCase.execute(request)
         );
+    }
+
+    @PostMapping("/auth/refresh")
+    public ApiResponse<TokenRefreshResponse> refresh(@RequestBody TokenRefreshRequest request) {
+        return ApiResponse.success("토큰이 재발급되었습니다.", tokenRefreshUseCase.execute(request));
     }
 
     @DeleteMapping("/users/me")

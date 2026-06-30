@@ -13,10 +13,16 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class UserWithdrawUseCase {
     private final UserRepositoryPort userRepository;
+    private final RefreshTokenManager refreshTokenManager;
     private final Clock clock;
 
-    public UserWithdrawUseCase(UserRepositoryPort userRepository, Clock clock) {
+    public UserWithdrawUseCase(
+            UserRepositoryPort userRepository,
+            RefreshTokenManager refreshTokenManager,
+            Clock clock
+    ) {
         this.userRepository = userRepository;
+        this.refreshTokenManager = refreshTokenManager;
         this.clock = clock;
     }
 
@@ -29,5 +35,6 @@ public class UserWithdrawUseCase {
                         "존재하지 않는 사용자입니다."
                 ));
         userRepository.save(user.withdraw(LocalDateTime.now(clock)));
+        refreshTokenManager.revokeAll(user.getId());
     }
 }

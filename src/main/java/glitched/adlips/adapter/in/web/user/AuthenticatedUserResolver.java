@@ -3,6 +3,7 @@ package glitched.adlips.adapter.in.web.user;
 import glitched.adlips.application.user.account.port.out.AccessTokenPort;
 import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
+import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -10,9 +11,14 @@ public class AuthenticatedUserResolver {
     private static final String BEARER_PREFIX = "Bearer ";
 
     private final AccessTokenPort accessTokenPort;
+    private final UserRepositoryPort userRepository;
 
-    public AuthenticatedUserResolver(AccessTokenPort accessTokenPort) {
+    public AuthenticatedUserResolver(
+            AccessTokenPort accessTokenPort,
+            UserRepositoryPort userRepository
+    ) {
         this.accessTokenPort = accessTokenPort;
+        this.userRepository = userRepository;
     }
 
     public Long requireUserId(String authorizationHeader) {
@@ -23,7 +29,11 @@ public class AuthenticatedUserResolver {
         if (token.isEmpty()) {
             throw unauthorized();
         }
-        return accessTokenPort.verify(token);
+        Long userId = accessTokenPort.verify(token);
+        return userRepository.findById(userId)
+                .filter(user -> user.isActive())
+                .map(user -> userId)
+                .orElseThrow(this::unauthorized);
     }
 
     private UserApplicationException unauthorized() {

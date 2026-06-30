@@ -26,6 +26,9 @@ public class HmacAccessTokenAdapter implements AccessTokenPort {
             @Value("${app.auth.token-validity-seconds}") long validitySeconds,
             Clock clock
     ) {
+        if (secret == null || secret.length() < 32) {
+            throw new IllegalStateException("APP_AUTH_TOKEN_SECRET은 32자 이상이어야 합니다.");
+        }
         this.secret = secret.getBytes(StandardCharsets.UTF_8);
         this.validitySeconds = validitySeconds;
         this.clock = clock;

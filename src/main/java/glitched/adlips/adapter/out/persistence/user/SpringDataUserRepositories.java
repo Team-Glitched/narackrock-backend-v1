@@ -4,11 +4,16 @@ import glitched.adlips.domain.user.AuthProvider;
 import glitched.adlips.domain.user.Profile;
 import glitched.adlips.domain.user.User;
 import glitched.adlips.domain.user.UserAuthProvider;
+import glitched.adlips.domain.user.UserRefreshToken;
+import jakarta.persistence.LockModeType;
 import java.util.Optional;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
@@ -38,4 +43,12 @@ interface SpringDataUserAuthProviderRepository extends JpaRepository<UserAuthPro
             AuthProvider provider,
             String providerUserId
     );
+}
+
+interface SpringDataUserRefreshTokenRepository extends JpaRepository<UserRefreshToken, Long> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select token from UserRefreshToken token where token.tokenHash = :tokenHash")
+    Optional<UserRefreshToken> findByTokenHashForUpdate(@Param("tokenHash") String tokenHash);
+
+    List<UserRefreshToken> findAllByUserIdAndRevokedAtIsNull(Long userId);
 }

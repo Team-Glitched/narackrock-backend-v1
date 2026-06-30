@@ -3,6 +3,7 @@ package glitched.adlips.application.user.common;
 public enum UserErrorCode {
     VALIDATION_ERROR,
     AUTH_FAILED_GOOGLE,
+    INVALID_REFRESH_TOKEN,
     SIGNUP_REQUIRED,
     DUPLICATE_NICKNAME,
     ALREADY_REGISTERED,

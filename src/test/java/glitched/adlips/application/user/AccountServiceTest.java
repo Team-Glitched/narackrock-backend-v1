@@ -174,6 +174,13 @@ class AccountServiceTest {
         }
 
         @Override
+        public boolean existsByNicknameAndUserIdNot(String nickname, Long userId) {
+            return values.values().stream().anyMatch(
+                    profile -> !profile.getUserId().equals(userId) && profile.getNickname().equals(nickname)
+            );
+        }
+
+        @Override
         public Profile save(Profile profile) {
             values.put(profile.getUserId(), profile);
             return profile;

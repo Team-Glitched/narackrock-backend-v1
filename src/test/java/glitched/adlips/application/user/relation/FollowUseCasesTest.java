@@ -26,22 +26,28 @@ import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class FollowServiceTest {
+class FollowUseCasesTest {
 
     private SocialStore store;
-    private FollowService service;
+    private FollowCreateUseCase followCreateUseCase;
+    private FollowCancelUseCase followCancelUseCase;
+    private FollowingGetListUseCase followingGetListUseCase;
+    private FollowerGetListUseCase followerGetListUseCase;
 
     @BeforeEach
     void setUp() {
         store = new SocialStore();
-        service = new FollowService(store, store, store, store, new EmptyMedia());
+        followCreateUseCase = new FollowCreateUseCase(store, store, store);
+        followCancelUseCase = new FollowCancelUseCase(store, store, store);
+        followingGetListUseCase = new FollowingGetListUseCase(store, store, store, new EmptyMedia());
+        followerGetListUseCase = new FollowerGetListUseCase(store, store, store, new EmptyMedia());
         store.addUser(1L, "me", 0);
         store.addUser(2L, "target", 4);
     }
 
     @Test
     void followsUserAndUpdatesBothCounters() {
-        FollowResult result = service.follow(1L, 2L);
+        FollowResult result = followCreateUseCase.execute(1L, 2L);
 
         assertTrue(result.isFollowing());
         assertEquals(5, result.targetFollowerCount());
@@ -53,7 +59,7 @@ class FollowServiceTest {
     void rejectsFollowingSelf() {
         UserApplicationException exception = assertThrows(
                 UserApplicationException.class,
-                () -> service.follow(1L, 1L)
+                () -> followCreateUseCase.execute(1L, 1L)
         );
 
         assertEquals(UserErrorCode.CANNOT_FOLLOW_SELF, exception.getErrorCode());
@@ -61,11 +67,11 @@ class FollowServiceTest {
 
     @Test
     void rejectsDuplicateFollow() {
-        service.follow(1L, 2L);
+        followCreateUseCase.execute(1L, 2L);
 
         UserApplicationException exception = assertThrows(
                 UserApplicationException.class,
-                () -> service.follow(1L, 2L)
+                () -> followCreateUseCase.execute(1L, 2L)
         );
 
         assertEquals(UserErrorCode.ALREADY_FOLLOWING, exception.getErrorCode());
@@ -73,9 +79,9 @@ class FollowServiceTest {
 
     @Test
     void unfollowsUserAndDecreasesBothCounters() {
-        service.follow(1L, 2L);
+        followCreateUseCase.execute(1L, 2L);
 
-        FollowResult result = service.unfollow(1L, 2L);
+        FollowResult result = followCancelUseCase.execute(1L, 2L);
 
         assertFalse(result.isFollowing());
         assertEquals(4, result.targetFollowerCount());
@@ -88,8 +94,8 @@ class FollowServiceTest {
         store.save(1L, 2L);
         store.save(3L, 1L);
 
-        List<UserCard> following = service.getRelations(1L, RelationType.FOLLOWING);
-        List<UserCard> followers = service.getRelations(1L, RelationType.FOLLOWERS);
+        List<UserCard> following = followingGetListUseCase.execute(1L);
+        List<UserCard> followers = followerGetListUseCase.execute(1L);
 
         assertEquals(List.of(2L), following.stream().map(UserCard::userId).toList());
         assertEquals(List.of(3L), followers.stream().map(UserCard::userId).toList());

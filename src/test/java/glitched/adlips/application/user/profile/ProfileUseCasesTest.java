@@ -25,13 +25,16 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class ProfileServiceTest {
+class ProfileUseCasesTest {
 
     private InMemoryUsers users;
     private InMemoryProfiles profiles;
     private InMemoryMedia media;
     private RecordingStorage storage;
-    private ProfileService service;
+    private ProfileGetUseCase profileGetUseCase;
+    private ProfileUpdateUseCase profileUpdateUseCase;
+    private ProfileImageUpdateUseCase profileImageUpdateUseCase;
+    private ProfileShareUseCase profileShareUseCase;
 
     @BeforeEach
     void setUp() {
@@ -66,9 +69,10 @@ class ProfileServiceTest {
         };
         ProfileLinkPort links = userId -> "https://app.example.com/users/profiles/" + userId;
         Clock clock = Clock.fixed(Instant.parse("2026-06-30T00:00:00Z"), ZoneOffset.UTC);
-        service = new ProfileService(
-                users, profiles, media, follows, storage, links, clock
-        );
+        profileGetUseCase = new ProfileGetUseCase(users, profiles, media, follows);
+        profileUpdateUseCase = new ProfileUpdateUseCase(users, profiles, clock);
+        profileImageUpdateUseCase = new ProfileImageUpdateUseCase(users, profiles, media, storage);
+        profileShareUseCase = new ProfileShareUseCase(users, profiles, links);
 
         users.save(User.create("user@example.com").withId(1L));
         profiles.save(Profile.create(1L, "guitar_moon"));
@@ -76,7 +80,7 @@ class ProfileServiceTest {
 
     @Test
     void returnsProfileWithEmptyActivitiesUntilActivityPortsAreConnected() {
-        ProfileView result = service.getProfile(1L, 1L);
+        ProfileView result = profileGetUseCase.execute(1L, 1L);
 
         assertEquals("guitar_moon", result.nickname());
         assertEquals(0, result.relations().followerCount());
@@ -91,7 +95,7 @@ class ProfileServiceTest {
 
         UserApplicationException exception = assertThrows(
                 UserApplicationException.class,
-                () -> service.getProfile(1L, 2L)
+                () -> profileGetUseCase.execute(1L, 2L)
         );
 
         assertEquals(UserErrorCode.PRIVATE_PROFILE, exception.getErrorCode());
@@ -101,7 +105,7 @@ class ProfileServiceTest {
     void updatesOnlyProvidedProfileFields() {
         profiles.save(Profile.restore(1L, "guitar_moon", null, "old", "기타", false, 0, 0, null));
 
-        ProfileUpdateResult result = service.updateProfile(
+        ProfileUpdateResult result = profileUpdateUseCase.execute(
                 1L,
                 new UpdateProfileCommand("new_nickname", null, "new explanation")
         );
@@ -118,7 +122,7 @@ class ProfileServiceTest {
 
         UserApplicationException exception = assertThrows(
                 UserApplicationException.class,
-                () -> service.updateProfile(1L, new UpdateProfileCommand("taken", null, null))
+                () -> profileUpdateUseCase.execute(1L, new UpdateProfileCommand("taken", null, null))
         );
 
         assertEquals(UserErrorCode.DUPLICATE_NICKNAME, exception.getErrorCode());
@@ -128,7 +132,7 @@ class ProfileServiceTest {
     void storesProfileImageAndReturnsLocalUrl() {
         byte[] image = new byte[]{1, 2, 3};
 
-        ProfileImageResult result = service.updateProfileImage(
+        ProfileImageResult result = profileImageUpdateUseCase.execute(
                 1L,
                 new ProfileImageCommand("avatar.png", "image/png", image)
         );
@@ -142,7 +146,7 @@ class ProfileServiceTest {
     void rejectsUnsupportedProfileImage() {
         UserApplicationException exception = assertThrows(
                 UserApplicationException.class,
-                () -> service.updateProfileImage(
+                () -> profileImageUpdateUseCase.execute(
                         1L,
                         new ProfileImageCommand("avatar.txt", "text/plain", new byte[]{1})
                 )
@@ -153,7 +157,7 @@ class ProfileServiceTest {
 
     @Test
     void createsProfileShareLinkForExistingUser() {
-        ProfileShareResult result = service.shareProfile(1L);
+        ProfileShareResult result = profileShareUseCase.execute(1L);
 
         assertEquals(1L, result.userId());
         assertEquals("https://app.example.com/users/profiles/1", result.shareUrl());

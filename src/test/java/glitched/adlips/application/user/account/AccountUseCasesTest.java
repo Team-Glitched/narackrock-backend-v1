@@ -26,12 +26,14 @@ import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class AccountServiceTest {
+class AccountUseCasesTest {
 
     private InMemoryUserRepository users;
     private InMemoryAuthProviderRepository authProviders;
     private InMemoryProfileRepository profiles;
-    private AccountService accountService;
+    private UserSignupUseCase userSignupUseCase;
+    private GoogleLoginUseCase googleLoginUseCase;
+    private UserWithdrawUseCase userWithdrawUseCase;
 
     @BeforeEach
     void setUp() {
@@ -51,14 +53,14 @@ class AccountServiceTest {
             }
         };
         Clock clock = Clock.fixed(Instant.parse("2026-06-30T00:00:00Z"), ZoneOffset.UTC);
-        accountService = new AccountService(
-                google, accessTokens, users, authProviders, profiles, clock
-        );
+        userSignupUseCase = new UserSignupUseCase(google, accessTokens, users, authProviders, profiles);
+        googleLoginUseCase = new GoogleLoginUseCase(google, accessTokens, users, authProviders, profiles);
+        userWithdrawUseCase = new UserWithdrawUseCase(users, clock);
     }
 
     @Test
     void signsUpGoogleUserAndCreatesProfile() {
-        AuthResult result = accountService.signup(new SignupCommand("valid-token", "guitar_moon"));
+        AuthResult result = userSignupUseCase.execute(new SignupCommand("valid-token", "guitar_moon"));
 
         assertEquals("access-1", result.accessToken());
         assertEquals("Bearer", result.tokenType());
@@ -76,7 +78,7 @@ class AccountServiceTest {
 
         UserApplicationException exception = assertThrows(
                 UserApplicationException.class,
-                () -> accountService.signup(new SignupCommand("valid-token", "guitar_moon"))
+                () -> userSignupUseCase.execute(new SignupCommand("valid-token", "guitar_moon"))
         );
 
         assertEquals(UserErrorCode.DUPLICATE_NICKNAME, exception.getErrorCode());
@@ -86,7 +88,7 @@ class AccountServiceTest {
     void requiresSignupWhenGoogleAccountIsUnknown() {
         UserApplicationException exception = assertThrows(
                 UserApplicationException.class,
-                () -> accountService.login(new LoginCommand("valid-token"))
+                () -> googleLoginUseCase.execute(new LoginCommand("valid-token"))
         );
 
         assertEquals(UserErrorCode.SIGNUP_REQUIRED, exception.getErrorCode());
@@ -98,7 +100,7 @@ class AccountServiceTest {
         profiles.save(Profile.create(user.getId(), "guitar_moon"));
         authProviders.save(UserAuthProvider.google(user.getId(), "google-sub", true));
 
-        AuthResult result = accountService.login(new LoginCommand("valid-token"));
+        AuthResult result = googleLoginUseCase.execute(new LoginCommand("valid-token"));
 
         assertEquals("access-1", result.accessToken());
         assertEquals("guitar_moon", result.user().nickname());
@@ -108,7 +110,7 @@ class AccountServiceTest {
     void withdrawsAuthenticatedUser() {
         User user = users.save(User.create("user@example.com"));
 
-        accountService.withdraw(user.getId());
+        userWithdrawUseCase.execute(user.getId());
 
         User withdrawn = users.findById(user.getId()).orElseThrow();
         assertEquals(LocalDateTime.of(2026, 6, 30, 0, 0), withdrawn.getDeletedAt());

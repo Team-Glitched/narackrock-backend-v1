@@ -2,12 +2,15 @@ package glitched.adlips.config;
 
 import glitched.adlips.application.user.AccountService;
 import glitched.adlips.application.user.ProfileService;
+import glitched.adlips.application.user.FollowService;
+import glitched.adlips.application.user.UserDiscoveryService;
 import glitched.adlips.application.user.port.out.AccessTokenPort;
 import glitched.adlips.application.user.port.out.FileStoragePort;
 import glitched.adlips.application.user.port.out.FollowRepositoryPort;
 import glitched.adlips.application.user.port.out.GoogleIdentityPort;
 import glitched.adlips.application.user.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.user.port.out.ProfileLinkPort;
+import glitched.adlips.application.user.port.out.ProfileQueryPort;
 import glitched.adlips.application.user.port.out.ProfileRepositoryPort;
 import glitched.adlips.application.user.port.out.TransactionPort;
 import glitched.adlips.application.user.port.out.UserAuthProviderRepositoryPort;
@@ -64,6 +67,38 @@ public class UserApplicationConfiguration {
                 profileLinkPort,
                 transactionPort,
                 clock
+        );
+    }
+
+    @Bean
+    FollowService followService(
+            UserRepositoryPort userRepositoryPort,
+            ProfileRepositoryPort profileRepositoryPort,
+            ProfileQueryPort profileQueryPort,
+            FollowRepositoryPort followRepositoryPort,
+            MediaFileRepositoryPort mediaFileRepositoryPort,
+            TransactionPort transactionPort
+    ) {
+        return new FollowService(
+                userRepositoryPort,
+                profileRepositoryPort,
+                profileQueryPort,
+                followRepositoryPort,
+                mediaFileRepositoryPort,
+                transactionPort
+        );
+    }
+
+    @Bean
+    UserDiscoveryService userDiscoveryService(
+            ProfileQueryPort profileQueryPort,
+            FollowRepositoryPort followRepositoryPort,
+            MediaFileRepositoryPort mediaFileRepositoryPort
+    ) {
+        return new UserDiscoveryService(
+                profileQueryPort,
+                followRepositoryPort,
+                mediaFileRepositoryPort
         );
     }
 }

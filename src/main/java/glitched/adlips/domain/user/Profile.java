@@ -145,6 +145,26 @@ public class Profile extends BaseUpdatedEntity {
         return this;
     }
 
+    public Profile increaseFollowerCount() {
+        followerCount++;
+        return this;
+    }
+
+    public Profile decreaseFollowerCount() {
+        followerCount = Math.max(0, followerCount - 1);
+        return this;
+    }
+
+    public Profile increaseFollowingCount() {
+        followingCount++;
+        return this;
+    }
+
+    public Profile decreaseFollowingCount() {
+        followingCount = Math.max(0, followingCount - 1);
+        return this;
+    }
+
     private static String requireNickname(String nickname) {
         if (nickname == null || nickname.isBlank()) {
             throw new IllegalArgumentException("닉네임은 필수입니다.");

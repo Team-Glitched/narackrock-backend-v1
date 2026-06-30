@@ -17,4 +17,11 @@ public class ShortParticipant extends BaseTimeEntity {
     private String role;
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
+
+    protected ShortParticipant() {}
+
+    public Long getId() { return id; }
+    public ShortForm getShorts() { return shorts; }
+    public User getUser() { return user; }
+    public String getRole() { return role; }
 }

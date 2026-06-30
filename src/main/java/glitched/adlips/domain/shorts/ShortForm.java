@@ -4,6 +4,7 @@ import glitched.adlips.domain.project.Project;
 import glitched.adlips.domain.user.User;
 import glitched.adlips.global.entity.BaseCreatedEntity;
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "shorts")
@@ -30,4 +31,19 @@ public class ShortForm extends BaseCreatedEntity {
     private int dislikeCount = 0;
     @Column(name = "pr_count", nullable = false)
     private int prCount = 0;
+
+    protected ShortForm() {}
+
+    public Long getId() { return id; }
+    public User getUser() { return user; }
+    public Project getProject() { return project; }
+    public String getTitle() { return title; }
+    public String getAlbumImage() { return albumImage; }
+    public String getMediaUrl() { return mediaUrl; }
+    public ShortStatus getStatus() { return status; }
+    public int getViewCount() { return viewCount; }
+    public int getLikeCount() { return likeCount; }
+    public int getDislikeCount() { return dislikeCount; }
+    public int getPrCount() { return prCount; }
+    public LocalDateTime getCreatedAt() { return createdAt; }
 }

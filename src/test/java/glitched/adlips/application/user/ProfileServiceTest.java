@@ -18,6 +18,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Supplier;
@@ -38,7 +39,31 @@ class ProfileServiceTest {
         profiles = new InMemoryProfiles();
         media = new InMemoryMedia();
         storage = new RecordingStorage();
-        FollowRepositoryPort follows = (followerId, followingId) -> false;
+        FollowRepositoryPort follows = new FollowRepositoryPort() {
+            @Override
+            public boolean exists(Long followerId, Long followingId) {
+                return false;
+            }
+
+            @Override
+            public void save(Long followerId, Long followingId) {
+            }
+
+            @Override
+            public boolean delete(Long followerId, Long followingId) {
+                return false;
+            }
+
+            @Override
+            public List<Long> findFollowingIds(Long userId) {
+                return List.of();
+            }
+
+            @Override
+            public List<Long> findFollowerIds(Long userId) {
+                return List.of();
+            }
+        };
         ProfileLinkPort links = userId -> "https://app.example.com/users/profiles/" + userId;
         TransactionPort transactions = new TransactionPort() {
             @Override

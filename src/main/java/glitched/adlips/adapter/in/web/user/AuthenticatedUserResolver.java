@@ -1,8 +1,8 @@
 package glitched.adlips.adapter.in.web.user;
 
-import glitched.adlips.application.user.UserApplicationException;
-import glitched.adlips.application.user.UserErrorCode;
-import glitched.adlips.application.user.port.out.AccessTokenPort;
+import glitched.adlips.application.user.account.port.out.AccessTokenPort;
+import glitched.adlips.application.user.common.UserApplicationException;
+import glitched.adlips.application.user.common.UserErrorCode;
 import org.springframework.stereotype.Component;
 
 @Component

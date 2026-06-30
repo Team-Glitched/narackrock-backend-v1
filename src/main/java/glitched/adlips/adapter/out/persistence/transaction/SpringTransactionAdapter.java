@@ -1,6 +1,6 @@
 package glitched.adlips.adapter.out.persistence.transaction;
 
-import glitched.adlips.application.user.port.out.TransactionPort;
+import glitched.adlips.application.user.common.port.out.TransactionPort;
 import java.util.function.Supplier;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.PlatformTransactionManager;

@@ -1,13 +1,13 @@
 package glitched.adlips.adapter.in.web.user;
 
 import glitched.adlips.adapter.in.web.ApiResponse;
-import glitched.adlips.application.user.FollowResult;
-import glitched.adlips.application.user.FollowService;
-import glitched.adlips.application.user.RecommendationResult;
-import glitched.adlips.application.user.RelationType;
-import glitched.adlips.application.user.UserCard;
-import glitched.adlips.application.user.UserDiscoveryService;
-import glitched.adlips.application.user.UserSearchResult;
+import glitched.adlips.application.user.relation.FollowResult;
+import glitched.adlips.application.user.relation.FollowService;
+import glitched.adlips.application.user.relation.RecommendationResult;
+import glitched.adlips.application.user.relation.RelationType;
+import glitched.adlips.application.user.relation.UserCard;
+import glitched.adlips.application.user.relation.UserDiscoveryService;
+import glitched.adlips.application.user.relation.UserSearchResult;
 import java.util.List;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;

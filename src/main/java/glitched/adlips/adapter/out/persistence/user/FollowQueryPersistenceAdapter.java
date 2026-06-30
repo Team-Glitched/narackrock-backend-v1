@@ -1,6 +1,6 @@
 package glitched.adlips.adapter.out.persistence.user;
 
-import glitched.adlips.application.user.port.out.FollowRepositoryPort;
+import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
 import glitched.adlips.domain.user.Follow;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;

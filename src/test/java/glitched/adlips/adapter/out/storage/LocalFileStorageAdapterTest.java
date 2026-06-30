@@ -3,8 +3,8 @@ package glitched.adlips.adapter.out.storage;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import glitched.adlips.application.user.ProfileImageCommand;
-import glitched.adlips.application.user.port.out.FileStoragePort.StoredFile;
+import glitched.adlips.application.user.profile.ProfileImageCommand;
+import glitched.adlips.application.user.profile.port.out.FileStoragePort.StoredFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import org.junit.jupiter.api.Test;

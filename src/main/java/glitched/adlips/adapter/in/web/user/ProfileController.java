@@ -1,13 +1,13 @@
 package glitched.adlips.adapter.in.web.user;
 
 import glitched.adlips.adapter.in.web.ApiResponse;
-import glitched.adlips.application.user.ProfileImageCommand;
-import glitched.adlips.application.user.ProfileImageResult;
-import glitched.adlips.application.user.ProfileService;
-import glitched.adlips.application.user.ProfileShareResult;
-import glitched.adlips.application.user.ProfileUpdateResult;
-import glitched.adlips.application.user.ProfileView;
-import glitched.adlips.application.user.UpdateProfileCommand;
+import glitched.adlips.application.user.profile.ProfileImageCommand;
+import glitched.adlips.application.user.profile.ProfileImageResult;
+import glitched.adlips.application.user.profile.ProfileService;
+import glitched.adlips.application.user.profile.ProfileShareResult;
+import glitched.adlips.application.user.profile.ProfileUpdateResult;
+import glitched.adlips.application.user.profile.ProfileView;
+import glitched.adlips.application.user.profile.UpdateProfileCommand;
 import java.io.IOException;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;

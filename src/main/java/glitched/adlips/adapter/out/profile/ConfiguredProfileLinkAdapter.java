@@ -1,6 +1,6 @@
 package glitched.adlips.adapter.out.profile;
 
-import glitched.adlips.application.user.port.out.ProfileLinkPort;
+import glitched.adlips.application.user.profile.port.out.ProfileLinkPort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 

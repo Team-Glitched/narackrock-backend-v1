@@ -1,10 +1,10 @@
 package glitched.adlips.adapter.in.web.user;
 
 import glitched.adlips.adapter.in.web.ApiResponse;
-import glitched.adlips.application.user.AccountService;
-import glitched.adlips.application.user.AuthResult;
-import glitched.adlips.application.user.LoginCommand;
-import glitched.adlips.application.user.SignupCommand;
+import glitched.adlips.application.user.account.AccountService;
+import glitched.adlips.application.user.account.AuthResult;
+import glitched.adlips.application.user.account.LoginCommand;
+import glitched.adlips.application.user.account.SignupCommand;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;

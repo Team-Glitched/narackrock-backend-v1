@@ -1,6 +1,6 @@
 package glitched.adlips.adapter.out.persistence.media;
 
-import glitched.adlips.application.user.port.out.MediaFileRepositoryPort;
+import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.domain.media.MediaFile;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;

@@ -1,14 +1,14 @@
 package glitched.adlips.adapter.out.persistence.user;
 
-import glitched.adlips.application.user.port.out.ProfileRepositoryPort;
-import glitched.adlips.application.user.port.out.ProfileQueryPort;
-import glitched.adlips.application.user.port.out.UserAuthProviderRepositoryPort;
-import glitched.adlips.application.user.port.out.UserRepositoryPort;
+import glitched.adlips.application.user.account.port.out.UserAuthProviderRepositoryPort;
+import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
+import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
+import glitched.adlips.application.user.relation.port.out.ProfileQueryPort;
 import glitched.adlips.domain.user.AuthProvider;
 import glitched.adlips.domain.user.Profile;
 import glitched.adlips.domain.user.User;
 import glitched.adlips.domain.user.UserAuthProvider;
-import glitched.adlips.application.user.PageResult;
+import glitched.adlips.application.user.relation.PageResult;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;

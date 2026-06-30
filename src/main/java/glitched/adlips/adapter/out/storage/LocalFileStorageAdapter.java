@@ -1,7 +1,7 @@
 package glitched.adlips.adapter.out.storage;
 
-import glitched.adlips.application.user.ProfileImageCommand;
-import glitched.adlips.application.user.port.out.FileStoragePort;
+import glitched.adlips.application.user.profile.ProfileImageCommand;
+import glitched.adlips.application.user.profile.port.out.FileStoragePort;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;

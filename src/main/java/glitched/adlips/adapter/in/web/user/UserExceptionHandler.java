@@ -1,8 +1,8 @@
 package glitched.adlips.adapter.in.web.user;
 
 import glitched.adlips.adapter.in.web.ApiErrorResponse;
-import glitched.adlips.application.user.UserApplicationException;
-import glitched.adlips.application.user.UserErrorCode;
+import glitched.adlips.application.user.common.UserApplicationException;
+import glitched.adlips.application.user.common.UserErrorCode;
 import java.util.Map;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

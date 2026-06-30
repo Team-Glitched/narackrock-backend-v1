@@ -7,10 +7,22 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
+import glitched.adlips.application.user.profile.dto.request.UserProfileGetRequest;
+import glitched.adlips.application.user.profile.dto.request.UserProfileImageUpdateRequest;
+import glitched.adlips.application.user.profile.dto.request.UserProfileShareRequest;
+import glitched.adlips.application.user.profile.dto.request.UserProfileUpdateRequest;
+import glitched.adlips.application.user.profile.dto.response.UserProfileGetResponse;
+import glitched.adlips.application.user.profile.dto.response.UserProfileImageUpdateResponse;
+import glitched.adlips.application.user.profile.dto.response.UserProfileShareResponse;
+import glitched.adlips.application.user.profile.dto.response.UserProfileUpdateResponse;
 import glitched.adlips.application.user.profile.port.out.FileStoragePort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileLinkPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
+import glitched.adlips.application.user.profile.usecase.ProfileGetUseCase;
+import glitched.adlips.application.user.profile.usecase.ProfileImageUpdateUseCase;
+import glitched.adlips.application.user.profile.usecase.ProfileShareUseCase;
+import glitched.adlips.application.user.profile.usecase.ProfileUpdateUseCase;
 import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
 import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.user.Profile;
@@ -80,7 +92,7 @@ class ProfileUseCasesTest {
 
     @Test
     void returnsProfileWithEmptyActivitiesUntilActivityPortsAreConnected() {
-        ProfileView result = profileGetUseCase.execute(1L, 1L);
+        UserProfileGetResponse result = profileGetUseCase.execute(new UserProfileGetRequest(1L, 1L));
 
         assertEquals("guitar_moon", result.nickname());
         assertEquals(0, result.relations().followerCount());
@@ -95,7 +107,7 @@ class ProfileUseCasesTest {
 
         UserApplicationException exception = assertThrows(
                 UserApplicationException.class,
-                () -> profileGetUseCase.execute(1L, 2L)
+                () -> profileGetUseCase.execute(new UserProfileGetRequest(1L, 2L))
         );
 
         assertEquals(UserErrorCode.PRIVATE_PROFILE, exception.getErrorCode());
@@ -105,9 +117,8 @@ class ProfileUseCasesTest {
     void updatesOnlyProvidedProfileFields() {
         profiles.save(Profile.restore(1L, "guitar_moon", null, "old", "기타", false, 0, 0, null));
 
-        ProfileUpdateResult result = profileUpdateUseCase.execute(
-                1L,
-                new UpdateProfileCommand("new_nickname", null, "new explanation")
+        UserProfileUpdateResponse result = profileUpdateUseCase.execute(
+                new UserProfileUpdateRequest(1L, "new_nickname", null, "new explanation")
         );
 
         assertEquals("new_nickname", result.nickname());
@@ -122,7 +133,9 @@ class ProfileUseCasesTest {
 
         UserApplicationException exception = assertThrows(
                 UserApplicationException.class,
-                () -> profileUpdateUseCase.execute(1L, new UpdateProfileCommand("taken", null, null))
+                () -> profileUpdateUseCase.execute(
+                        new UserProfileUpdateRequest(1L, "taken", null, null)
+                )
         );
 
         assertEquals(UserErrorCode.DUPLICATE_NICKNAME, exception.getErrorCode());
@@ -132,9 +145,8 @@ class ProfileUseCasesTest {
     void storesProfileImageAndReturnsLocalUrl() {
         byte[] image = new byte[]{1, 2, 3};
 
-        ProfileImageResult result = profileImageUpdateUseCase.execute(
-                1L,
-                new ProfileImageCommand("avatar.png", "image/png", image)
+        UserProfileImageUpdateResponse result = profileImageUpdateUseCase.execute(
+                new UserProfileImageUpdateRequest(1L, "avatar.png", "image/png", image)
         );
 
         assertEquals("http://localhost:8080/files/profile-image.png", result.profileImageUrl());
@@ -147,8 +159,9 @@ class ProfileUseCasesTest {
         UserApplicationException exception = assertThrows(
                 UserApplicationException.class,
                 () -> profileImageUpdateUseCase.execute(
-                        1L,
-                        new ProfileImageCommand("avatar.txt", "text/plain", new byte[]{1})
+                        new UserProfileImageUpdateRequest(
+                                1L, "avatar.txt", "text/plain", new byte[]{1}
+                        )
                 )
         );
 
@@ -157,7 +170,7 @@ class ProfileUseCasesTest {
 
     @Test
     void createsProfileShareLinkForExistingUser() {
-        ProfileShareResult result = profileShareUseCase.execute(1L);
+        UserProfileShareResponse result = profileShareUseCase.execute(new UserProfileShareRequest(1L));
 
         assertEquals(1L, result.userId());
         assertEquals("https://app.example.com/users/profiles/1", result.shareUrl());
@@ -231,7 +244,7 @@ class ProfileUseCasesTest {
         private byte[] lastContent;
 
         @Override
-        public StoredFile store(ProfileImageCommand image) {
+        public StoredFile store(UserProfileImageUpdateRequest image) {
             lastContent = image.content();
             return new StoredFile(
                     "profiles/profile-image.png",

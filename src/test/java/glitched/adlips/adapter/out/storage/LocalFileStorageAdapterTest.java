@@ -3,7 +3,7 @@ package glitched.adlips.adapter.out.storage;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-import glitched.adlips.application.user.profile.ProfileImageCommand;
+import glitched.adlips.application.user.profile.dto.request.UserProfileImageUpdateRequest;
 import glitched.adlips.application.user.profile.port.out.FileStoragePort.StoredFile;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -23,7 +23,9 @@ class LocalFileStorageAdapterTest {
         );
         byte[] content = new byte[]{4, 5, 6};
 
-        StoredFile stored = adapter.store(new ProfileImageCommand("avatar.png", "image/png", content));
+        StoredFile stored = adapter.store(
+                new UserProfileImageUpdateRequest(1L, "avatar.png", "image/png", content)
+        );
 
         Path savedPath = tempDirectory.resolve(stored.storageKey());
         assertTrue(Files.exists(savedPath));

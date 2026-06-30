@@ -6,6 +6,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import glitched.adlips.application.user.relation.FollowUseCasesTest.EmptyMedia;
 import glitched.adlips.application.user.relation.FollowUseCasesTest.SocialStore;
+import glitched.adlips.application.user.relation.dto.request.RecommendedUserGetListRequest;
+import glitched.adlips.application.user.relation.dto.request.UserSearchRequest;
+import glitched.adlips.application.user.relation.dto.response.RecommendedUserGetListResponse;
+import glitched.adlips.application.user.relation.dto.response.UserSearchResponse;
+import glitched.adlips.application.user.relation.model.RecommendType;
+import glitched.adlips.application.user.relation.usecase.RecommendedUserGetListUseCase;
+import glitched.adlips.application.user.relation.usecase.UserSearchUseCase;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -32,7 +39,7 @@ class UserDiscoveryUseCasesTest {
     void searchesProfilesAndMarksFollowingState() {
         store.save(1L, 2L);
 
-        UserSearchResult result = userSearchUseCase.execute(1L, "기타", 0, 20);
+        UserSearchResponse result = userSearchUseCase.execute(new UserSearchRequest(1L, "기타", 0, 20));
 
         assertEquals("기타", result.searchKeyword());
         assertEquals(4, result.totalResultCount());
@@ -48,7 +55,9 @@ class UserDiscoveryUseCasesTest {
         store.save(1L, 2L);
         store.save(2L, 3L);
 
-        RecommendationResult result = recommendedUserGetListUseCase.execute(1L, 0, 20);
+        RecommendedUserGetListResponse result = recommendedUserGetListUseCase.execute(
+                new RecommendedUserGetListRequest(1L, 0, 20)
+        );
 
         assertFalse(result.fallbackTriggered());
         assertEquals(1, result.totalCount());
@@ -58,7 +67,9 @@ class UserDiscoveryUseCasesTest {
 
     @Test
     void fallsBackToPopularUsersWhenPersonalizedCandidatesAreEmpty() {
-        RecommendationResult result = recommendedUserGetListUseCase.execute(1L, 0, 20);
+        RecommendedUserGetListResponse result = recommendedUserGetListUseCase.execute(
+                new RecommendedUserGetListRequest(1L, 0, 20)
+        );
 
         assertTrue(result.fallbackTriggered());
         assertEquals(4L, result.recommendedUsers().getFirst().userId());

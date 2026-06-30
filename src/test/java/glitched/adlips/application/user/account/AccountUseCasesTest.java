@@ -5,9 +5,18 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import glitched.adlips.application.user.account.dto.request.GoogleLoginRequest;
+import glitched.adlips.application.user.account.dto.request.UserSignupRequest;
+import glitched.adlips.application.user.account.dto.request.UserWithdrawRequest;
+import glitched.adlips.application.user.account.dto.response.GoogleIdentityResponse;
+import glitched.adlips.application.user.account.dto.response.GoogleLoginResponse;
+import glitched.adlips.application.user.account.dto.response.UserSignupResponse;
 import glitched.adlips.application.user.account.port.out.AccessTokenPort;
 import glitched.adlips.application.user.account.port.out.GoogleIdentityPort;
 import glitched.adlips.application.user.account.port.out.UserAuthProviderRepositoryPort;
+import glitched.adlips.application.user.account.usecase.GoogleLoginUseCase;
+import glitched.adlips.application.user.account.usecase.UserSignupUseCase;
+import glitched.adlips.application.user.account.usecase.UserWithdrawUseCase;
 import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
@@ -40,7 +49,7 @@ class AccountUseCasesTest {
         users = new InMemoryUserRepository();
         authProviders = new InMemoryAuthProviderRepository();
         profiles = new InMemoryProfileRepository();
-        GoogleIdentityPort google = token -> new GoogleIdentity("google-sub", "user@example.com", true);
+        GoogleIdentityPort google = token -> new GoogleIdentityResponse("google-sub", "user@example.com", true);
         AccessTokenPort accessTokens = new AccessTokenPort() {
             @Override
             public String issue(Long userId) {
@@ -60,7 +69,9 @@ class AccountUseCasesTest {
 
     @Test
     void signsUpGoogleUserAndCreatesProfile() {
-        AuthResult result = userSignupUseCase.execute(new SignupCommand("valid-token", "guitar_moon"));
+        UserSignupResponse result = userSignupUseCase.execute(
+                new UserSignupRequest("valid-token", "guitar_moon")
+        );
 
         assertEquals("access-1", result.accessToken());
         assertEquals("Bearer", result.tokenType());
@@ -78,7 +89,7 @@ class AccountUseCasesTest {
 
         UserApplicationException exception = assertThrows(
                 UserApplicationException.class,
-                () -> userSignupUseCase.execute(new SignupCommand("valid-token", "guitar_moon"))
+                () -> userSignupUseCase.execute(new UserSignupRequest("valid-token", "guitar_moon"))
         );
 
         assertEquals(UserErrorCode.DUPLICATE_NICKNAME, exception.getErrorCode());
@@ -88,7 +99,7 @@ class AccountUseCasesTest {
     void requiresSignupWhenGoogleAccountIsUnknown() {
         UserApplicationException exception = assertThrows(
                 UserApplicationException.class,
-                () -> googleLoginUseCase.execute(new LoginCommand("valid-token"))
+                () -> googleLoginUseCase.execute(new GoogleLoginRequest("valid-token"))
         );
 
         assertEquals(UserErrorCode.SIGNUP_REQUIRED, exception.getErrorCode());
@@ -100,7 +111,7 @@ class AccountUseCasesTest {
         profiles.save(Profile.create(user.getId(), "guitar_moon"));
         authProviders.save(UserAuthProvider.google(user.getId(), "google-sub", true));
 
-        AuthResult result = googleLoginUseCase.execute(new LoginCommand("valid-token"));
+        GoogleLoginResponse result = googleLoginUseCase.execute(new GoogleLoginRequest("valid-token"));
 
         assertEquals("access-1", result.accessToken());
         assertEquals("guitar_moon", result.user().nickname());
@@ -110,7 +121,7 @@ class AccountUseCasesTest {
     void withdrawsAuthenticatedUser() {
         User user = users.save(User.create("user@example.com"));
 
-        userWithdrawUseCase.execute(user.getId());
+        userWithdrawUseCase.execute(new UserWithdrawRequest(user.getId()));
 
         User withdrawn = users.findById(user.getId()).orElseThrow();
         assertEquals(LocalDateTime.of(2026, 6, 30, 0, 0), withdrawn.getDeletedAt());

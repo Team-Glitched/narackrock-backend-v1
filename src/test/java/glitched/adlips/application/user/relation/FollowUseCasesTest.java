@@ -10,8 +10,20 @@ import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
+import glitched.adlips.application.user.relation.dto.request.FollowCancelRequest;
+import glitched.adlips.application.user.relation.dto.request.FollowCreateRequest;
+import glitched.adlips.application.user.relation.dto.request.FollowerGetListRequest;
+import glitched.adlips.application.user.relation.dto.request.FollowingGetListRequest;
+import glitched.adlips.application.user.relation.dto.response.FollowCancelResponse;
+import glitched.adlips.application.user.relation.dto.response.FollowCreateResponse;
+import glitched.adlips.application.user.relation.dto.response.UserRelationResponse;
+import glitched.adlips.application.user.relation.model.PageResult;
 import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
 import glitched.adlips.application.user.relation.port.out.ProfileQueryPort;
+import glitched.adlips.application.user.relation.usecase.FollowCancelUseCase;
+import glitched.adlips.application.user.relation.usecase.FollowCreateUseCase;
+import glitched.adlips.application.user.relation.usecase.FollowerGetListUseCase;
+import glitched.adlips.application.user.relation.usecase.FollowingGetListUseCase;
 import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.user.Profile;
 import glitched.adlips.domain.user.User;
@@ -47,7 +59,7 @@ class FollowUseCasesTest {
 
     @Test
     void followsUserAndUpdatesBothCounters() {
-        FollowResult result = followCreateUseCase.execute(1L, 2L);
+        FollowCreateResponse result = followCreateUseCase.execute(new FollowCreateRequest(1L, 2L));
 
         assertTrue(result.isFollowing());
         assertEquals(5, result.targetFollowerCount());
@@ -59,7 +71,7 @@ class FollowUseCasesTest {
     void rejectsFollowingSelf() {
         UserApplicationException exception = assertThrows(
                 UserApplicationException.class,
-                () -> followCreateUseCase.execute(1L, 1L)
+                () -> followCreateUseCase.execute(new FollowCreateRequest(1L, 1L))
         );
 
         assertEquals(UserErrorCode.CANNOT_FOLLOW_SELF, exception.getErrorCode());
@@ -67,11 +79,11 @@ class FollowUseCasesTest {
 
     @Test
     void rejectsDuplicateFollow() {
-        followCreateUseCase.execute(1L, 2L);
+        followCreateUseCase.execute(new FollowCreateRequest(1L, 2L));
 
         UserApplicationException exception = assertThrows(
                 UserApplicationException.class,
-                () -> followCreateUseCase.execute(1L, 2L)
+                () -> followCreateUseCase.execute(new FollowCreateRequest(1L, 2L))
         );
 
         assertEquals(UserErrorCode.ALREADY_FOLLOWING, exception.getErrorCode());
@@ -79,9 +91,9 @@ class FollowUseCasesTest {
 
     @Test
     void unfollowsUserAndDecreasesBothCounters() {
-        followCreateUseCase.execute(1L, 2L);
+        followCreateUseCase.execute(new FollowCreateRequest(1L, 2L));
 
-        FollowResult result = followCancelUseCase.execute(1L, 2L);
+        FollowCancelResponse result = followCancelUseCase.execute(new FollowCancelRequest(1L, 2L));
 
         assertFalse(result.isFollowing());
         assertEquals(4, result.targetFollowerCount());
@@ -94,11 +106,15 @@ class FollowUseCasesTest {
         store.save(1L, 2L);
         store.save(3L, 1L);
 
-        List<UserCard> following = followingGetListUseCase.execute(1L);
-        List<UserCard> followers = followerGetListUseCase.execute(1L);
+        List<UserRelationResponse> following = followingGetListUseCase.execute(
+                new FollowingGetListRequest(1L)
+        );
+        List<UserRelationResponse> followers = followerGetListUseCase.execute(
+                new FollowerGetListRequest(1L)
+        );
 
-        assertEquals(List.of(2L), following.stream().map(UserCard::userId).toList());
-        assertEquals(List.of(3L), followers.stream().map(UserCard::userId).toList());
+        assertEquals(List.of(2L), following.stream().map(UserRelationResponse::userId).toList());
+        assertEquals(List.of(3L), followers.stream().map(UserRelationResponse::userId).toList());
     }
 
     static final class SocialStore implements

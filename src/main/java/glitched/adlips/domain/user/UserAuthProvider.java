@@ -5,15 +5,13 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Index;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import jakarta.persistence.UniqueConstraint;
+import java.util.Objects;
 
 @Entity
 @Table(
@@ -22,46 +20,63 @@ import jakarta.persistence.UniqueConstraint;
                 @UniqueConstraint(columnNames = {"provider", "provider_user_id"}),
                 @UniqueConstraint(columnNames = {"user_id", "provider"})
         },
-        indexes = {
-                @Index(columnList = "user_id")
-        }
+        indexes = @Index(columnList = "user_id")
 )
 public class UserAuthProvider extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "provider", nullable = false)
+    @Column(nullable = false)
     private AuthProvider provider;
 
     @Column(name = "provider_user_id", nullable = false)
     private String providerUserId;
 
     @Column(name = "email_verified", nullable = false)
-    private boolean emailVerified = false;
+    private boolean emailVerified;
 
     protected UserAuthProvider() {
     }
 
-    public UserAuthProvider(User user, AuthProvider provider, String providerUserId, boolean emailVerified) {
-        this.user = user;
-        this.provider = provider;
-        this.providerUserId = providerUserId;
+    private UserAuthProvider(
+            Long id,
+            Long userId,
+            AuthProvider provider,
+            String providerUserId,
+            boolean emailVerified
+    ) {
+        this.id = id;
+        this.userId = Objects.requireNonNull(userId);
+        this.provider = Objects.requireNonNull(provider);
+        this.providerUserId = requireText(providerUserId);
         this.emailVerified = emailVerified;
+    }
+
+    public static UserAuthProvider google(Long userId, String providerUserId, boolean emailVerified) {
+        return new UserAuthProvider(null, userId, AuthProvider.GOOGLE, providerUserId, emailVerified);
+    }
+
+    public static UserAuthProvider restore(
+            Long id,
+            Long userId,
+            AuthProvider provider,
+            String providerUserId,
+            boolean emailVerified
+    ) {
+        return new UserAuthProvider(id, userId, provider, providerUserId, emailVerified);
     }
 
     public Long getId() {
         return id;
     }
 
-    public User getUser() {
-        return user;
+    public Long getUserId() {
+        return userId;
     }
 
     public AuthProvider getProvider() {
@@ -74,5 +89,12 @@ public class UserAuthProvider extends BaseTimeEntity {
 
     public boolean isEmailVerified() {
         return emailVerified;
+    }
+
+    private static String requireText(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("인증 제공자 사용자 식별자는 필수입니다.");
+        }
+        return value;
     }
 }

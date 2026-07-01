@@ -51,11 +51,17 @@ class ShortsControllerTest {
     }
 
     @Test
+    void completionStatus_없으면_400을_반환한다() throws Exception {
+        mockMvc.perform(get("/api/v1/shorts"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void GET_shorts_미인증_요청시_200을_반환한다() throws Exception {
         when(getShortsUseCase.get(isNull(), eq(ShortsSource.SHORTS_FEED), eq(ShortStatus.COMPLETED), eq(20), isNull()))
                 .thenReturn(emptyShortsPage(20));
 
-        mockMvc.perform(get("/api/v1/shorts"))
+        mockMvc.perform(get("/api/v1/shorts").param("completionStatus", "COMPLETED"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("숏폼 목록 조회가 완료되었습니다."))
@@ -69,7 +75,7 @@ class ShortsControllerTest {
         when(getShortsUseCase.get(isNull(), eq(ShortsSource.SHORTS_FEED), eq(ShortStatus.COMPLETED), eq(20), isNull()))
                 .thenReturn(page);
 
-        mockMvc.perform(get("/api/v1/shorts"))
+        mockMvc.perform(get("/api/v1/shorts").param("completionStatus", "COMPLETED"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.items[0].shortId").value(12))
                 .andExpect(jsonPath("$.data.items[0].title").value("밤하늘 위 멜로디"))
@@ -86,7 +92,9 @@ class ShortsControllerTest {
         when(getShortsUseCase.get(eq(50L), any(), any(), anyInt(), isNull()))
                 .thenReturn(emptyShortsPage(20));
 
-        mockMvc.perform(get("/api/v1/shorts").param("cursor", "50"))
+        mockMvc.perform(get("/api/v1/shorts")
+                        .param("completionStatus", "COMPLETED")
+                        .param("cursor", "50"))
                 .andExpect(status().isOk());
 
         verify(getShortsUseCase).get(eq(50L), any(), any(), anyInt(), isNull());
@@ -97,18 +105,20 @@ class ShortsControllerTest {
         when(getShortsUseCase.get(isNull(), any(), any(), eq(5), isNull()))
                 .thenReturn(emptyShortsPage(5));
 
-        mockMvc.perform(get("/api/v1/shorts").param("size", "5"))
+        mockMvc.perform(get("/api/v1/shorts")
+                        .param("completionStatus", "COMPLETED")
+                        .param("size", "5"))
                 .andExpect(status().isOk());
 
         verify(getShortsUseCase).get(isNull(), any(), any(), eq(5), isNull());
     }
 
     @Test
-    void status_파라미터를_전달하면_유스케이스에_전달된다() throws Exception {
+    void completionStatus_IN_PROGRESS_전달하면_유스케이스에_전달된다() throws Exception {
         when(getShortsUseCase.get(isNull(), any(), eq(ShortStatus.IN_PROGRESS), anyInt(), isNull()))
                 .thenReturn(emptyShortsPage(20));
 
-        mockMvc.perform(get("/api/v1/shorts").param("status", "IN_PROGRESS"))
+        mockMvc.perform(get("/api/v1/shorts").param("completionStatus", "IN_PROGRESS"))
                 .andExpect(status().isOk());
 
         verify(getShortsUseCase).get(isNull(), any(), eq(ShortStatus.IN_PROGRESS), anyInt(), isNull());
@@ -120,20 +130,21 @@ class ShortsControllerTest {
         when(getShortsUseCase.get(isNull(), eq(ShortsSource.SHORTS_FEED), eq(ShortStatus.COMPLETED), eq(20), isNull()))
                 .thenReturn(page);
 
-        mockMvc.perform(get("/api/v1/shorts"))
+        mockMvc.perform(get("/api/v1/shorts").param("completionStatus", "COMPLETED"))
                 .andExpect(jsonPath("$.data.items[0].author.userId").value(123))
                 .andExpect(jsonPath("$.data.items[0].author.nickname").value("guitar_moon"));
     }
 
     @Test
-    void main_인증_토큰의_사용자_ID를_유스케이스에_전달한다() throws Exception {
-        when(authenticatedUserResolver.resolveOptionalUserId("Bearer main-token")).thenReturn(99L);
+    void 인증_토큰의_사용자_ID를_유스케이스에_전달한다() throws Exception {
+        when(authenticatedUserResolver.resolveOptionalUserId("Bearer token")).thenReturn(99L);
         when(getShortsUseCase.get(
                 isNull(), eq(ShortsSource.SHORTS_FEED), eq(ShortStatus.COMPLETED), eq(20), eq(99L)))
                 .thenReturn(emptyShortsPage(20));
 
         mockMvc.perform(get("/api/v1/shorts")
-                        .header("Authorization", "Bearer main-token"))
+                        .param("completionStatus", "COMPLETED")
+                        .header("Authorization", "Bearer token"))
                 .andExpect(status().isOk());
 
         verify(getShortsUseCase).get(

@@ -56,9 +56,10 @@ public class SignUpWithGoogleUseCase {
             throw new DuplicateNicknameException();
         }
 
-        User user = userRepository.save(new User(googleUser.email()));
-        profileRepository.save(new Profile(user, nickname));
-        authProviderRepository.save(new UserAuthProvider(user, AuthProvider.GOOGLE, googleUser.providerUserId(), googleUser.emailVerified()));
+        User user = userRepository.save(User.create(googleUser.email()));
+        profileRepository.save(Profile.create(user.getId(), nickname));
+        authProviderRepository.save(UserAuthProvider.google(
+                user.getId(), googleUser.providerUserId(), googleUser.emailVerified()));
 
         String token = tokenIssuer.issue(user.getId());
 

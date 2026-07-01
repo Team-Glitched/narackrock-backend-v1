@@ -3,7 +3,6 @@ package glitched.adlips.adapter.out.persistence;
 import glitched.adlips.application.exception.DuplicateNicknameException;
 import glitched.adlips.application.port.ProfileRepository;
 import glitched.adlips.domain.user.Profile;
-import java.util.List;
 import java.util.Optional;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
@@ -29,14 +28,6 @@ class ProfileRepositoryAdapter implements ProfileRepository {
     @Override
     public Optional<Profile> findByUserId(Long userId) {
         return jpaRepository.findById(userId);
-    }
-
-    @Override
-    public List<Profile> findByUserIds(List<Long> userIds) {
-        if (userIds.isEmpty()) {
-            return List.of();
-        }
-        return jpaRepository.findAllByIdIn(userIds);
     }
 
     @Override

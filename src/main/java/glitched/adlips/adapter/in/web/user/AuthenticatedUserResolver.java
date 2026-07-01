@@ -36,6 +36,17 @@ public class AuthenticatedUserResolver {
                 .orElseThrow(this::unauthorized);
     }
 
+    public Long resolveOptionalUserId(String authorizationHeader) {
+        if (authorizationHeader == null || authorizationHeader.isBlank()) {
+            return null;
+        }
+        try {
+            return requireUserId(authorizationHeader);
+        } catch (UserApplicationException exception) {
+            return null;
+        }
+    }
+
     private UserApplicationException unauthorized() {
         return new UserApplicationException(
                 UserErrorCode.UNAUTHORIZED_ACCESS,

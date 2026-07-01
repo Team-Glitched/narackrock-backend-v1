@@ -6,6 +6,7 @@ import glitched.adlips.adapter.in.web.dto.LoginResponse;
 import glitched.adlips.application.auth.AuthResult;
 import glitched.adlips.application.auth.GoogleLoginUseCase;
 import jakarta.validation.Valid;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@ConditionalOnProperty(name = "app.legacy-auth.enabled", havingValue = "true")
 @RequestMapping("/api/v1/auth")
 public class AuthController {
 

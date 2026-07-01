@@ -43,11 +43,11 @@ public class GoogleLoginUseCase {
                 .orElseThrow(SignupRequiredException::new);
 
         Profile profile = profileRepository
-                .findByUserId(authProvider.getUser().getId())
+                .findByUserId(authProvider.getUserId())
                 .orElseThrow(SignupRequiredException::new);
 
-        String token = tokenIssuer.issue(authProvider.getUser().getId());
+        String token = tokenIssuer.issue(authProvider.getUserId());
 
-        return new AuthResult(token, "Bearer", authProvider.getUser().getId(), profile.getNickname(), null);
+        return new AuthResult(token, "Bearer", authProvider.getUserId(), profile.getNickname(), null);
     }
 }

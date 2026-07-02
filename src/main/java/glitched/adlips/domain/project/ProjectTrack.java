@@ -118,4 +118,9 @@ public class ProjectTrack extends BaseTimeEntity {
     public void reject() {
         approvalStatus = ApprovalStatus.REJECTED;
     }
+
+    public void deleteForContribution() {
+        isDeleted = true;
+        mediaFileId = null;
+    }
 }

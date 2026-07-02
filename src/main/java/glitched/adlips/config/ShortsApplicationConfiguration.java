@@ -3,8 +3,10 @@ package glitched.adlips.config;
 import glitched.adlips.adapter.out.transaction.SpringTransactionRunner;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.shorts.GetShortsUseCase;
+import glitched.adlips.application.shorts.ToggleShortBookmarkUseCase;
 import glitched.adlips.application.shorts.ToggleShortDislikeUseCase;
 import glitched.adlips.application.shorts.ToggleShortLikeUseCase;
+import glitched.adlips.application.shorts.port.out.ShortBookmarkPort;
 import glitched.adlips.application.shorts.port.out.ShortReactionPort;
 import glitched.adlips.application.shorts.port.out.ShortsQueryPort;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -40,5 +42,13 @@ public class ShortsApplicationConfiguration {
             TransactionRunner transactionRunner
     ) {
         return new ToggleShortDislikeUseCase(shortReactionPort, transactionRunner);
+    }
+
+    @Bean
+    ToggleShortBookmarkUseCase toggleShortBookmarkUseCase(
+            ShortBookmarkPort shortBookmarkPort,
+            TransactionRunner transactionRunner
+    ) {
+        return new ToggleShortBookmarkUseCase(shortBookmarkPort, transactionRunner);
     }
 }

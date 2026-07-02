@@ -8,4 +8,5 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ProjectClipJpaRepository extends JpaRepository<ProjectClip, Long> {
     List<ProjectClip> findByTrackIdAndIsDeletedFalseOrderByStartTickAscIdAsc(Long trackId);
     long countByProjectIdAndApprovalStatusAndIsDeletedFalse(Long projectId, ApprovalStatus status);
+    long countByTrackIdInAndApprovalStatusAndIsDeletedFalse(List<Long> trackIds, ApprovalStatus status);
 }

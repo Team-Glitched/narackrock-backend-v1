@@ -137,4 +137,20 @@ public class Project extends BaseTimeEntity {
     public String getDisplayVersion() {
         return "v" + majorVersion + "." + minorVersion;
     }
+
+    public void startPublishing() {
+        if (deletedAt != null) {
+            throw new IllegalStateException("deleted project cannot be published");
+        }
+        status = ProjectStatus.IN_PROGRESS;
+    }
+
+    public void delete(LocalDateTime deletedAt) {
+        if (this.deletedAt != null) {
+            return;
+        }
+        this.deletedAt = Objects.requireNonNull(deletedAt, "deletedAt must not be null");
+        this.status = ProjectStatus.DELETED;
+        this.isPublic = false;
+    }
 }

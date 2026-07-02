@@ -103,4 +103,8 @@ public class ProjectTrack extends BaseTimeEntity {
         isDeleted = true;
         mediaFileId = null;
     }
+
+    public void approve() {
+        approvalStatus = ApprovalStatus.APPROVED;
+    }
 }

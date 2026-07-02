@@ -1,3 +1,3 @@
 package glitched.adlips.adapter.in.web.dto;
 
-public record ShortPlaybackRequest(double currentTime) {}
+public record ShortPlaybackRequest(Boolean isPlaying, Double currentTime) {}

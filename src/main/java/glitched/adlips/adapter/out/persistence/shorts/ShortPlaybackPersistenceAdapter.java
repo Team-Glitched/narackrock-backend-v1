@@ -1,6 +1,7 @@
 package glitched.adlips.adapter.out.persistence.shorts;
 
 import glitched.adlips.application.shorts.port.out.ShortPlaybackPort;
+import glitched.adlips.domain.shorts.ShortStatus;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -14,6 +15,9 @@ public class ShortPlaybackPersistenceAdapter implements ShortPlaybackPort {
 
     @Override
     public boolean existsActiveShort(Long shortId) {
-        return shortFormRepository.existsByIdAndDeletedAtIsNull(shortId);
+        return shortFormRepository.existsByIdAndStatusAndDeletedAtIsNull(
+                shortId,
+                ShortStatus.COMPLETED
+        );
     }
 }

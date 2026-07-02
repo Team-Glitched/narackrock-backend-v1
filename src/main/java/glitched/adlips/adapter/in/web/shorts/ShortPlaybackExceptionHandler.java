@@ -15,7 +15,7 @@ public class ShortPlaybackExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handle(ShortPlaybackApplicationException e) {
         HttpStatus status = switch (e.getErrorCode()) {
             case SHORT_NOT_FOUND -> HttpStatus.NOT_FOUND;
-            case INVALID_CURRENT_TIME -> HttpStatus.BAD_REQUEST;
+            case INVALID_PLAYBACK_STATE, INVALID_CURRENT_TIME -> HttpStatus.BAD_REQUEST;
         };
         return ResponseEntity.status(status)
                 .body(ApiErrorResponse.of(e.getErrorCode().name(), e.getMessage()));

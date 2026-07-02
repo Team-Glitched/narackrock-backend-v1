@@ -3,7 +3,7 @@ package glitched.adlips.adapter.in.web.dto;
 import glitched.adlips.application.shorts.ShortPlaybackResult;
 
 public record ShortPlaybackResponse(
-        long shortformId,
+        long shortId,
         boolean isPlaying,
         double pausedAt,
         String timestamp

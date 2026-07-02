@@ -15,17 +15,22 @@ public class ToggleShortPlaybackUseCase {
         this.clock = clock;
     }
 
-    public ShortPlaybackResult toggle(Long shortId, double currentTime) {
-        if (currentTime < 0) {
+    public ShortPlaybackResult toggle(Long shortId, Boolean isPlaying, Double currentTime) {
+        if (isPlaying == null) {
+            throw new ShortPlaybackApplicationException(
+                    ShortPlaybackErrorCode.INVALID_PLAYBACK_STATE,
+                    "isPlaying은 필수입니다.");
+        }
+        if (currentTime == null || !Double.isFinite(currentTime) || currentTime < 0) {
             throw new ShortPlaybackApplicationException(
                     ShortPlaybackErrorCode.INVALID_CURRENT_TIME,
-                    "currentTime은 0 이상의 숫자여야 합니다.");
+                    "currentTime은 0 이상의 유한한 숫자여야 합니다.");
         }
         if (!playbackPort.existsActiveShort(shortId)) {
             throw new ShortPlaybackApplicationException(
                     ShortPlaybackErrorCode.SHORT_NOT_FOUND,
                     "존재하지 않는 숏폼입니다.");
         }
-        return new ShortPlaybackResult(shortId, false, currentTime, Instant.now(clock));
+        return new ShortPlaybackResult(shortId, !isPlaying, currentTime, Instant.now(clock));
     }
 }

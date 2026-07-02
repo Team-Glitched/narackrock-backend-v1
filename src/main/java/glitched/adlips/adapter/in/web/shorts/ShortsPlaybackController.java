@@ -36,7 +36,11 @@ public class ShortsPlaybackController {
             @RequestBody ShortPlaybackRequest request
     ) {
         authenticatedUserResolver.requireUserId(authorization);
-        ShortPlaybackResult result = toggleShortPlaybackUseCase.toggle(shortId, request.currentTime());
+        ShortPlaybackResult result = toggleShortPlaybackUseCase.toggle(
+                shortId,
+                request.isPlaying(),
+                request.currentTime()
+        );
         return ResponseEntity.ok(ApiResponse.success("성공", ShortPlaybackResponse.from(result)));
     }
 }

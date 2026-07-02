@@ -25,4 +25,31 @@ public class Follow extends BaseCreatedEntity {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "following_id", nullable = false)
     private User following;
+
+    protected Follow() {
+    }
+
+    private Follow(User follower, User following) {
+        if (follower.getId().equals(following.getId())) {
+            throw new IllegalArgumentException("본인을 팔로우할 수 없습니다.");
+        }
+        this.follower = follower;
+        this.following = following;
+    }
+
+    public static Follow create(User follower, User following) {
+        return new Follow(follower, following);
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public User getFollower() {
+        return follower;
+    }
+
+    public User getFollowing() {
+        return following;
+    }
 }

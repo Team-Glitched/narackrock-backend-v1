@@ -34,25 +34,25 @@ class PersistenceConflictTranslationTest {
                 .willThrow(new DataIntegrityViolationException("duplicate email"));
         UserRepositoryAdapter adapter = new UserRepositoryAdapter(userJpaRepository);
 
-        assertThatThrownBy(() -> adapter.save(new User("user@gmail.com")))
+        assertThatThrownBy(() -> adapter.save(User.create("user@gmail.com")))
                 .isInstanceOf(AlreadyRegisteredException.class);
     }
 
     @Test
     void translatesDuplicateNicknameToDomainConflict() {
-        User user = new User("user@gmail.com");
+        User user = User.create("user@gmail.com").withId(1L);
         given(profileJpaRepository.saveAndFlush(any()))
                 .willThrow(new DataIntegrityViolationException("duplicate nickname"));
         ProfileRepositoryAdapter adapter = new ProfileRepositoryAdapter(profileJpaRepository);
 
-        assertThatThrownBy(() -> adapter.save(new Profile(user, "taken")))
+        assertThatThrownBy(() -> adapter.save(Profile.create(user.getId(), "taken")))
                 .isInstanceOf(DuplicateNicknameException.class);
     }
 
     @Test
     void translatesDuplicateGoogleProviderToAlreadyRegistered() {
-        User user = new User("user@gmail.com");
-        UserAuthProvider provider = new UserAuthProvider(user, AuthProvider.GOOGLE, "google-sub", true);
+        User user = User.create("user@gmail.com").withId(1L);
+        UserAuthProvider provider = UserAuthProvider.google(user.getId(), "google-sub", true);
         given(authProviderJpaRepository.saveAndFlush(any()))
                 .willThrow(new DataIntegrityViolationException("duplicate provider"));
         UserAuthProviderRepositoryAdapter adapter =

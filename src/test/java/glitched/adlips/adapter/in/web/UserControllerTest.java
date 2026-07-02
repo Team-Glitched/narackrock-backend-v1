@@ -20,7 +20,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-@WebMvcTest(UserController.class)
+@WebMvcTest(value = UserController.class, properties = "app.legacy-auth.enabled=true")
 @Import(SecurityConfig.class)
 class UserControllerTest {
 

@@ -30,4 +30,6 @@ public class Project extends BaseTimeEntity {
     private LocalDateTime publishedAt;
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+
+    public Long getId() { return id; }
 }

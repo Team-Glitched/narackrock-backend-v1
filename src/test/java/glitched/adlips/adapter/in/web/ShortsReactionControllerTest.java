@@ -5,6 +5,8 @@ import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.adapter.out.token.JwtTokenIssuerAdapter;
 import glitched.adlips.application.shorts.ShortDislikeResult;
 import glitched.adlips.application.shorts.ShortLikeResult;
+import glitched.adlips.application.shorts.ShortReactionApplicationException;
+import glitched.adlips.application.shorts.ShortReactionErrorCode;
 import glitched.adlips.application.shorts.ToggleShortDislikeUseCase;
 import glitched.adlips.application.shorts.ToggleShortLikeUseCase;
 import glitched.adlips.global.config.SecurityConfig;
@@ -105,5 +107,20 @@ class ShortsReactionControllerTest {
     void 싫어요_인증없는_요청시_401을_반환한다() throws Exception {
         mockMvc.perform(post("/api/v1/shorts/12/dislike"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 활성_숏폼이_없으면_404를_반환한다() throws Exception {
+        when(toggleShortLikeUseCase.toggle(eq(1L), eq(999L)))
+                .thenThrow(new ShortReactionApplicationException(
+                        ShortReactionErrorCode.SHORT_NOT_FOUND,
+                        "숏폼을 찾을 수 없습니다."));
+
+        mockMvc.perform(post("/api/v1/shorts/999/like")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorCode").value("SHORT_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("숏폼을 찾을 수 없습니다."));
     }
 }

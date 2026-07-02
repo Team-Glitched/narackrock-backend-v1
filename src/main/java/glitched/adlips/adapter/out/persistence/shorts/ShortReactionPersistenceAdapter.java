@@ -22,6 +22,11 @@ public class ShortReactionPersistenceAdapter implements ShortReactionPort {
     }
 
     @Override
+    public boolean lockActiveShort(Long shortId) {
+        return shortFormRepository.findActiveByIdForUpdate(shortId).isPresent();
+    }
+
+    @Override
     public Optional<ReactionType> findReaction(Long userId, Long shortId) {
         return reactionRepository
                 .findByUserIdAndTargetTypeAndTargetId(userId, ReactionTargetType.SHORT, shortId)

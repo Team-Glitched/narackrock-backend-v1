@@ -8,10 +8,22 @@ import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "reactions")
+@Table(
+        name = "reactions",
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_reactions_user_target",
+                columnNames = {"user_id", "target_type", "target_id"}
+        ),
+        indexes = @Index(
+                name = "idx_reactions_target_type",
+                columnList = "target_type, target_id, reaction_type"
+        )
+)
 public class Reaction extends BaseTimeEntity {
 
     @Id

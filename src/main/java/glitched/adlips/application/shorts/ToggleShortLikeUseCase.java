@@ -17,6 +17,7 @@ public class ToggleShortLikeUseCase {
 
     public ShortLikeResult toggle(Long userId, Long shortId) {
         return transactionRunner.required(() -> {
+            validateActiveShort(shortId);
             Optional<ReactionType> existing = reactionPort.findReaction(userId, shortId);
             boolean isLiked;
             if (existing.isEmpty()) {
@@ -35,5 +36,14 @@ public class ToggleShortLikeUseCase {
             }
             return new ShortLikeResult(shortId, isLiked, reactionPort.getLikeCount(shortId));
         });
+    }
+
+    private void validateActiveShort(Long shortId) {
+        if (!reactionPort.lockActiveShort(shortId)) {
+            throw new ShortReactionApplicationException(
+                    ShortReactionErrorCode.SHORT_NOT_FOUND,
+                    "숏폼을 찾을 수 없습니다."
+            );
+        }
     }
 }

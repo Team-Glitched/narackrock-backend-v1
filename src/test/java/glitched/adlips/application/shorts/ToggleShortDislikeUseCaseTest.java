@@ -13,6 +13,7 @@ import java.util.Optional;
 import java.util.function.Supplier;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -32,6 +33,7 @@ class ToggleShortDislikeUseCaseTest {
 
     @Test
     void 반응_없음_싫어요_추가() {
+        when(reactionPort.lockActiveShort(12L)).thenReturn(true);
         when(reactionPort.findReaction(1L, 12L)).thenReturn(Optional.empty());
         when(reactionPort.getDislikeCount(12L)).thenReturn(129);
 
@@ -46,6 +48,7 @@ class ToggleShortDislikeUseCaseTest {
 
     @Test
     void 이미_싫어요_상태_싫어요_취소() {
+        when(reactionPort.lockActiveShort(12L)).thenReturn(true);
         when(reactionPort.findReaction(1L, 12L)).thenReturn(Optional.of(ReactionType.DISLIKE));
         when(reactionPort.getDislikeCount(12L)).thenReturn(128);
 
@@ -60,6 +63,7 @@ class ToggleShortDislikeUseCaseTest {
 
     @Test
     void 좋아요_상태_싫어요로_전환() {
+        when(reactionPort.lockActiveShort(12L)).thenReturn(true);
         when(reactionPort.findReaction(1L, 12L)).thenReturn(Optional.of(ReactionType.LIKE));
         when(reactionPort.getDislikeCount(12L)).thenReturn(130);
 
@@ -70,5 +74,18 @@ class ToggleShortDislikeUseCaseTest {
         verify(reactionPort).adjustDislikeCount(12L, +1);
         verify(reactionPort, never()).deleteReaction(any(), any());
         assertThat(result.isDisliked()).isTrue();
+    }
+
+    @Test
+    void 활성_숏폼이_없으면_반응을_변경하지_않는다() {
+        when(reactionPort.lockActiveShort(12L)).thenReturn(false);
+
+        assertThatThrownBy(() -> useCase.toggle(1L, 12L))
+                .isInstanceOf(ShortReactionApplicationException.class)
+                .extracting("errorCode")
+                .isEqualTo(ShortReactionErrorCode.SHORT_NOT_FOUND);
+
+        verify(reactionPort, never()).findReaction(any(), any());
+        verify(reactionPort, never()).saveReaction(any(), any(), any());
     }
 }

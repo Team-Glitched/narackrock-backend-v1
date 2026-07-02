@@ -192,6 +192,11 @@ public class ProjectClip extends BaseTimeEntity {
         approvalStatus = ApprovalStatus.REJECTED;
     }
 
+    public void deleteForContribution() {
+        isDeleted = true;
+        track.invalidateRenderedMedia();
+    }
+
     private static void validateProjectAndTimeline(
             Project project, ProjectTrack track, int startTick, int durationTick) {
         Objects.requireNonNull(project, "project must not be null");

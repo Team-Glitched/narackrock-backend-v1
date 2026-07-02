@@ -51,9 +51,12 @@ class ShortsControllerTest {
     }
 
     @Test
-    void completionStatus_없으면_400을_반환한다() throws Exception {
+    void 상태_파라미터가_없으면_COMPLETED를_기본값으로_사용한다() throws Exception {
         mockMvc.perform(get("/api/v1/shorts"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk());
+
+        verify(getShortsUseCase).get(
+                isNull(), eq(ShortsSource.SHORTS_FEED), eq(ShortStatus.COMPLETED), eq(20), isNull());
     }
 
     @Test
@@ -119,6 +122,17 @@ class ShortsControllerTest {
                 .thenReturn(emptyShortsPage(20));
 
         mockMvc.perform(get("/api/v1/shorts").param("completionStatus", "IN_PROGRESS"))
+                .andExpect(status().isOk());
+
+        verify(getShortsUseCase).get(isNull(), any(), eq(ShortStatus.IN_PROGRESS), anyInt(), isNull());
+    }
+
+    @Test
+    void 기존_status_IN_PROGRESS도_유스케이스에_전달된다() throws Exception {
+        when(getShortsUseCase.get(isNull(), any(), eq(ShortStatus.IN_PROGRESS), anyInt(), isNull()))
+                .thenReturn(emptyShortsPage(20));
+
+        mockMvc.perform(get("/api/v1/shorts").param("status", "IN_PROGRESS"))
                 .andExpect(status().isOk());
 
         verify(getShortsUseCase).get(isNull(), any(), eq(ShortStatus.IN_PROGRESS), anyInt(), isNull());

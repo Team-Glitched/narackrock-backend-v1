@@ -35,13 +35,22 @@ public class ShortsController {
             @RequestParam(required = false) Long cursor,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "SHORTS_FEED") ShortsSource source,
-            @RequestParam ShortStatus completionStatus,
+            @RequestParam(required = false) ShortStatus completionStatus,
+            @RequestParam(name = "status", required = false) ShortStatus legacyStatus,
             @RequestHeader(value = "Authorization", required = false) String authorization
     ) {
         int clampedSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
         Long currentUserId = authenticatedUserResolver.resolveOptionalUserId(authorization);
-        ShortsPage page = getShortsUseCase.get(cursor, source, completionStatus, clampedSize, currentUserId);
+        ShortStatus status = resolveStatus(completionStatus, legacyStatus);
+        ShortsPage page = getShortsUseCase.get(cursor, source, status, clampedSize, currentUserId);
         return ResponseEntity.ok(ApiResponse.success(
                 "숏폼 목록 조회가 완료되었습니다.", ShortsResponse.from(page)));
+    }
+
+    private ShortStatus resolveStatus(ShortStatus completionStatus, ShortStatus legacyStatus) {
+        if (completionStatus != null) {
+            return completionStatus;
+        }
+        return legacyStatus != null ? legacyStatus : ShortStatus.COMPLETED;
     }
 }

@@ -76,7 +76,7 @@ class ShortsQueryPersistenceAdapterTest {
         jdbcTemplate.update("INSERT INTO shorts (id, user_id, title, media_file_id, status, view_count, like_count, dislike_count, comment_count, contribution_count, created_at) VALUES (11, 123, '작업 중인 곡', 101, 'IN_PROGRESS', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP)");
         jdbcTemplate.update("INSERT INTO shorts (id, user_id, title, album_image_file_id, media_file_id, status, view_count, like_count, dislike_count, comment_count, contribution_count, created_at) VALUES (12, 123, '밤하늘 위 멜로디', 102, 101, 'COMPLETED', 1200, 128, 4, 23, 5, CURRENT_TIMESTAMP)");
         jdbcTemplate.update("INSERT INTO shorts (id, user_id, title, media_file_id, status, view_count, like_count, dislike_count, comment_count, contribution_count, deleted_at, created_at) VALUES (13, 123, '삭제됨', 101, 'COMPLETED', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
-        jdbcTemplate.update("INSERT INTO reactions (user_id, target_type, target_id, reaction_type) VALUES (99, 'SHORT', 12, 'LIKE')");
+        jdbcTemplate.update("INSERT INTO reactions (user_id, target_type, target_id, reaction_type, created_at) VALUES (99, 'SHORT', 12, 'LIKE', CURRENT_TIMESTAMP)");
         jdbcTemplate.update("INSERT INTO shorts_bookmarks (user_id, shorts_id, created_at) VALUES (99, 12, CURRENT_TIMESTAMP)");
     }
 

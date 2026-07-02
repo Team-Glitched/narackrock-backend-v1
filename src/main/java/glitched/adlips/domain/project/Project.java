@@ -29,6 +29,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Project extends BaseTimeEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -79,7 +80,7 @@ public class Project extends BaseTimeEntity {
     private ProjectStatus status = ProjectStatus.DRAFT;
 
     @Column(name = "is_public", nullable = false)
-    private boolean isPublic = false;
+    private boolean isPublic;
 
     @Column(name = "published_at")
     private LocalDateTime publishedAt;
@@ -87,11 +88,25 @@ public class Project extends BaseTimeEntity {
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
-    public Project(User owner, String title, String description, Long albumImageFileId) {
-        this.owner = Objects.requireNonNull(owner, "owner must not be null");
-        this.title = Objects.requireNonNull(title, "title must not be null");
+    public Project(
+            User owner,
+            String title,
+            String description,
+            Long albumImageFileId
+    ) {
+        this.owner = Objects.requireNonNull(
+                owner,
+                "owner must not be null"
+        );
+        this.title = Objects.requireNonNull(
+                title,
+                "title must not be null"
+        );
         this.description = description;
-        this.albumImageFileId = Objects.requireNonNull(albumImageFileId, "albumImageFileId must not be null");
+        this.albumImageFileId = Objects.requireNonNull(
+                albumImageFileId,
+                "albumImageFileId must not be null"
+        );
     }
 
     public long getMaxTick() {
@@ -100,9 +115,14 @@ public class Project extends BaseTimeEntity {
 
     public int tickToMilliseconds(int tick) {
         if (tick < 0) {
-            throw new IllegalArgumentException("tick must not be negative");
+            throw new IllegalArgumentException(
+                    "tick must not be negative"
+            );
         }
-        return Math.toIntExact((long) tick * 60_000 / (bpm * ppq));
+
+        return Math.toIntExact(
+                (long) tick * 60_000 / (bpm * ppq)
+        );
     }
 
     public void increaseMajorVersion() {

@@ -55,8 +55,8 @@ class SignUpWithGoogleUseCaseTest {
 
     @Test
     void signUpSuccessfully() {
-        User savedUser = new User("user@gmail.com");
-        Profile savedProfile = new Profile(savedUser, "guitar_moon");
+        User savedUser = User.create("user@gmail.com").withId(1L);
+        Profile savedProfile = Profile.create(savedUser.getId(), "guitar_moon");
 
         given(tokenVerifier.verify("valid-token")).willReturn(new GoogleUserInfo("google-sub-123", "user@gmail.com", true));
         given(authProviderRepository.existsByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-123")).willReturn(false);
@@ -103,7 +103,7 @@ class SignUpWithGoogleUseCaseTest {
 
     @Test
     void throwsAlreadyRegisteredWhenEmailAccountExists() {
-        User existingUser = new User("user@gmail.com");
+        User existingUser = User.create("user@gmail.com");
         given(tokenVerifier.verify("valid-token"))
                 .willReturn(new GoogleUserInfo("google-sub-123", "user@gmail.com", true));
         given(authProviderRepository.existsByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-123"))

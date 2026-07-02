@@ -5,7 +5,7 @@ import glitched.adlips.global.entity.BaseTimeEntity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "shorts_participants", uniqueConstraints = @UniqueConstraint(columnNames = {"shorts_id", "user_id"}))
+@Table(name = "shorts_participants", uniqueConstraints = @UniqueConstraint(columnNames = {"shorts_id", "user_id", "role"}))
 public class ShortParticipant extends BaseTimeEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) @Column(name = "id")
     private Long id;
@@ -17,4 +17,11 @@ public class ShortParticipant extends BaseTimeEntity {
     private String role;
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
+
+    protected ShortParticipant() {}
+
+    public Long getId() { return id; }
+    public ShortForm getShorts() { return shorts; }
+    public User getUser() { return user; }
+    public String getRole() { return role; }
 }

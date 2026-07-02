@@ -53,9 +53,9 @@ class GoogleLoginUseCaseTest {
 
     @Test
     void loginSuccessfully() {
-        User user = new User("user@gmail.com");
-        UserAuthProvider provider = new UserAuthProvider(user, AuthProvider.GOOGLE, "google-sub-123", true);
-        Profile profile = new Profile(user, "guitar_moon");
+        User user = User.create("user@gmail.com").withId(1L);
+        UserAuthProvider provider = UserAuthProvider.google(user.getId(), "google-sub-123", true);
+        Profile profile = Profile.create(user.getId(), "guitar_moon");
 
         given(tokenVerifier.verify("valid-token")).willReturn(new GoogleUserInfo("google-sub-123", "user@gmail.com", true));
         given(authProviderRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-123"))
@@ -92,8 +92,8 @@ class GoogleLoginUseCaseTest {
 
     @Test
     void throwsSignupRequiredWhenProfileNotFound() {
-        User user = new User("user@gmail.com");
-        UserAuthProvider provider = new UserAuthProvider(user, AuthProvider.GOOGLE, "google-sub-123", true);
+        User user = User.create("user@gmail.com").withId(1L);
+        UserAuthProvider provider = UserAuthProvider.google(user.getId(), "google-sub-123", true);
 
         given(tokenVerifier.verify("valid-token")).willReturn(new GoogleUserInfo("google-sub-123", "user@gmail.com", true));
         given(authProviderRepository.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub-123"))

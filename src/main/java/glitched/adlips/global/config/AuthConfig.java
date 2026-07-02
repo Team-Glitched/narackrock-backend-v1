@@ -15,11 +15,13 @@ import glitched.adlips.application.port.UserAuthProviderRepository;
 import glitched.adlips.application.port.UserRepository;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
+@ConditionalOnProperty(name = "app.legacy-auth.enabled", havingValue = "true")
 public class AuthConfig {
 
     @Bean
@@ -45,7 +47,7 @@ public class AuthConfig {
         return new SpringTransactionRunner(transactionManager);
     }
 
-    @Bean
+    @Bean("legacyGoogleLoginUseCase")
     public GoogleLoginUseCase googleLoginUseCase(
             GoogleTokenVerifier tokenVerifier,
             UserAuthProviderRepository authProviderRepository,
@@ -62,7 +64,7 @@ public class AuthConfig {
         );
     }
 
-    @Bean
+    @Bean("legacySignUpWithGoogleUseCase")
     public SignUpWithGoogleUseCase signUpWithGoogleUseCase(
             GoogleTokenVerifier tokenVerifier,
             UserRepository userRepository,

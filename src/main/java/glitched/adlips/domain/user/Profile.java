@@ -1,41 +1,40 @@
 package glitched.adlips.domain.user;
 
 import glitched.adlips.global.entity.BaseUpdatedEntity;
-import jakarta.persistence.*;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.Id;
+import jakarta.persistence.Index;
+import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.Objects;
 
 @Entity
 @Table(name = "profiles", indexes = @Index(columnList = "nickname"))
 public class Profile extends BaseUpdatedEntity {
     @Id
     @Column(name = "user_id")
-    private Long id;
+    private Long userId;
 
-    @OneToOne(fetch = FetchType.LAZY, optional = false)
-    @MapsId
-    @JoinColumn(name = "user_id")
-    private User user;
-
-    @Column(name = "nickname", nullable = false, unique = true)
+    @Column(nullable = false, unique = true)
     private String nickname;
 
     @Column(name = "profile_image_file_id")
     private Long profileImageFileId;
 
-    @Column(name = "explanation")
     private String explanation;
 
     @Column(name = "primary_instrument")
     private String primaryInstrument;
 
     @Column(name = "is_private", nullable = false)
-    private boolean isPrivate = false;
+    private boolean privateProfile;
 
     @Column(name = "follower_count", nullable = false)
-    private int followerCount = 0;
+    private int followerCount;
 
     @Column(name = "following_count", nullable = false)
-    private int followingCount = 0;
+    private int followingCount;
 
     @Column(name = "nickname_updated_at")
     private LocalDateTime nicknameUpdatedAt;
@@ -43,17 +42,51 @@ public class Profile extends BaseUpdatedEntity {
     protected Profile() {
     }
 
-    public Profile(User user, String nickname) {
-        this.user = user;
-        this.nickname = nickname;
+    private Profile(
+            Long userId,
+            String nickname,
+            Long profileImageFileId,
+            String explanation,
+            String primaryInstrument,
+            boolean privateProfile,
+            int followerCount,
+            int followingCount,
+            LocalDateTime nicknameUpdatedAt
+    ) {
+        this.userId = Objects.requireNonNull(userId, "사용자 식별자는 필수입니다.");
+        this.nickname = requireNickname(nickname);
+        this.profileImageFileId = profileImageFileId;
+        this.explanation = explanation;
+        this.primaryInstrument = primaryInstrument;
+        this.privateProfile = privateProfile;
+        this.followerCount = requireNonNegative(followerCount);
+        this.followingCount = requireNonNegative(followingCount);
+        this.nicknameUpdatedAt = nicknameUpdatedAt;
     }
 
-    public Long getId() {
-        return id;
+    public static Profile create(Long userId, String nickname) {
+        return new Profile(userId, nickname, null, null, null, false, 0, 0, null);
     }
 
-    public User getUser() {
-        return user;
+    public static Profile restore(
+            Long userId,
+            String nickname,
+            Long profileImageFileId,
+            String explanation,
+            String primaryInstrument,
+            boolean privateProfile,
+            int followerCount,
+            int followingCount,
+            LocalDateTime nicknameUpdatedAt
+    ) {
+        return new Profile(
+                userId, nickname, profileImageFileId, explanation, primaryInstrument,
+                privateProfile, followerCount, followingCount, nicknameUpdatedAt
+        );
+    }
+
+    public Long getUserId() {
+        return userId;
     }
 
     public String getNickname() {
@@ -73,7 +106,7 @@ public class Profile extends BaseUpdatedEntity {
     }
 
     public boolean isPrivate() {
-        return isPrivate;
+        return privateProfile;
     }
 
     public int getFollowerCount() {
@@ -86,5 +119,68 @@ public class Profile extends BaseUpdatedEntity {
 
     public LocalDateTime getNicknameUpdatedAt() {
         return nicknameUpdatedAt;
+    }
+
+    public Profile update(
+            String nickname,
+            String primaryInstrument,
+            String explanation,
+            LocalDateTime changedAt
+    ) {
+        if (nickname != null && !this.nickname.equals(nickname.trim())) {
+            this.nickname = requireNickname(nickname);
+            this.nicknameUpdatedAt = Objects.requireNonNull(changedAt);
+        }
+        if (primaryInstrument != null) {
+            this.primaryInstrument = normalizeOptional(primaryInstrument);
+        }
+        if (explanation != null) {
+            this.explanation = normalizeOptional(explanation);
+        }
+        return this;
+    }
+
+    public Profile changeProfileImage(Long mediaFileId) {
+        this.profileImageFileId = Objects.requireNonNull(mediaFileId);
+        return this;
+    }
+
+    public Profile increaseFollowerCount() {
+        followerCount++;
+        return this;
+    }
+
+    public Profile decreaseFollowerCount() {
+        followerCount = Math.max(0, followerCount - 1);
+        return this;
+    }
+
+    public Profile increaseFollowingCount() {
+        followingCount++;
+        return this;
+    }
+
+    public Profile decreaseFollowingCount() {
+        followingCount = Math.max(0, followingCount - 1);
+        return this;
+    }
+
+    private static String requireNickname(String nickname) {
+        if (nickname == null || nickname.isBlank()) {
+            throw new IllegalArgumentException("닉네임은 필수입니다.");
+        }
+        return nickname.trim();
+    }
+
+    private static int requireNonNegative(int count) {
+        if (count < 0) {
+            throw new IllegalArgumentException("관계 수는 음수일 수 없습니다.");
+        }
+        return count;
+    }
+
+    private static String normalizeOptional(String value) {
+        String normalized = value.trim();
+        return normalized.isEmpty() ? null : normalized;
     }
 }

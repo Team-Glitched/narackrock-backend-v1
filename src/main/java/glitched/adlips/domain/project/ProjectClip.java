@@ -177,6 +177,21 @@ public class ProjectClip extends BaseTimeEntity {
         track.invalidateRenderedMedia();
     }
 
+    public void submitForReview() {
+        if (approvalStatus != ApprovalStatus.DRAFT) {
+            throw new IllegalStateException("only draft clip can be submitted");
+        }
+        approvalStatus = ApprovalStatus.PENDING;
+    }
+
+    public void approve() {
+        approvalStatus = ApprovalStatus.APPROVED;
+    }
+
+    public void reject() {
+        approvalStatus = ApprovalStatus.REJECTED;
+    }
+
     private static void validateProjectAndTimeline(
             Project project, ProjectTrack track, int startTick, int durationTick) {
         Objects.requireNonNull(project, "project must not be null");

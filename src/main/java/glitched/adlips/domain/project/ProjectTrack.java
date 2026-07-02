@@ -121,4 +121,15 @@ public class ProjectTrack extends BaseTimeEntity {
     public void approve() {
         approvalStatus = ApprovalStatus.APPROVED;
     }
+
+    public void submitForReview() {
+        if (approvalStatus != ApprovalStatus.DRAFT) {
+            throw new IllegalStateException("only draft track can be submitted");
+        }
+        approvalStatus = ApprovalStatus.PENDING;
+    }
+
+    public void reject() {
+        approvalStatus = ApprovalStatus.REJECTED;
+    }
 }

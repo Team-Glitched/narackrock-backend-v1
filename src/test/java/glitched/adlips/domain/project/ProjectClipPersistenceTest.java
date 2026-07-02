@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-@SpringBootTest
+@SpringBootTest(properties = "app.auth.token-secret=test-only-secret-value-32-characters")
 @Transactional
 class ProjectClipPersistenceTest {
 
@@ -20,7 +20,7 @@ class ProjectClipPersistenceTest {
 
     @Test
     void persistsAndRestoresStructuredMidiNotesAsJson() {
-        User owner = new User("midi-owner@example.com");
+        User owner = User.create("midi-owner@example.com");
         Project project = new Project(owner, "MIDI 곡", "설명", 701L);
         ProjectTrack track = new ProjectTrack(project, owner, "피아노", "PIANO", 0);
         MidiNote note = new MidiNote(

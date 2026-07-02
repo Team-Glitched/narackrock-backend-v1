@@ -75,7 +75,7 @@ class ProjectDomainMappingTest {
     @Test
     void initializesAProjectWithTheErdAndApiDefaults() {
         Project project = new Project(
-                new User("composer@example.com"), "새 프로젝트", "설명", 701L);
+                User.create("composer@example.com"), "새 프로젝트", "설명", 701L);
 
         assertThat(project.getTitle()).isEqualTo("새 프로젝트");
         assertThat(project.getBpm()).isEqualTo(120);

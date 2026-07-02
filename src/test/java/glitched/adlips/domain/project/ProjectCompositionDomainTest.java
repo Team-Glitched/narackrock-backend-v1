@@ -11,7 +11,7 @@ import org.junit.jupiter.api.Test;
 
 class ProjectCompositionDomainTest {
 
-    private final User owner = new User("owner@example.com");
+    private final User owner = User.create("owner@example.com");
 
     @Test
     void calculatesMaxTickFromDurationBpmAndPpq() {

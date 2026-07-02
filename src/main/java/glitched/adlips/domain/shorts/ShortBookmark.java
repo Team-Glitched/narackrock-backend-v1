@@ -6,7 +6,14 @@ import glitched.adlips.global.entity.BaseCreatedEntity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "shorts_bookmarks", uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "shorts_id"}))
+@Table(
+        name = "shorts_bookmarks",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "shorts_id"}),
+        indexes = @Index(
+                name = "idx_shorts_bookmarks_user_folder",
+                columnList = "user_id, folder_id"
+        )
+)
 public class ShortBookmark extends BaseCreatedEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) @Column(name = "id") private Long id;
     @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "user_id", nullable = false) private User user;

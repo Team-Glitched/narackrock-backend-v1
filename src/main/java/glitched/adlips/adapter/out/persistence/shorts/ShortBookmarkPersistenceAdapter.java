@@ -7,9 +7,19 @@ import org.springframework.stereotype.Repository;
 public class ShortBookmarkPersistenceAdapter implements ShortBookmarkPort {
 
     private final ShortBookmarkJpaRepository bookmarkRepository;
+    private final ShortFormJpaRepository shortFormRepository;
 
-    public ShortBookmarkPersistenceAdapter(ShortBookmarkJpaRepository bookmarkRepository) {
+    public ShortBookmarkPersistenceAdapter(
+            ShortBookmarkJpaRepository bookmarkRepository,
+            ShortFormJpaRepository shortFormRepository
+    ) {
         this.bookmarkRepository = bookmarkRepository;
+        this.shortFormRepository = shortFormRepository;
+    }
+
+    @Override
+    public boolean lockActiveShort(Long shortId) {
+        return shortFormRepository.findActiveByIdForUpdate(shortId).isPresent();
     }
 
     @Override

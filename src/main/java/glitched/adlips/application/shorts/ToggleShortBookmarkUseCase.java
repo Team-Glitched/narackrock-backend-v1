@@ -15,6 +15,7 @@ public class ToggleShortBookmarkUseCase {
 
     public ShortBookmarkResult toggle(Long userId, Long shortId) {
         return transactionRunner.required(() -> {
+            validateActiveShort(shortId);
             boolean current = bookmarkPort.isBookmarked(userId, shortId);
             if (current) {
                 bookmarkPort.deleteBookmark(userId, shortId);
@@ -24,5 +25,14 @@ public class ToggleShortBookmarkUseCase {
                 return new ShortBookmarkResult(shortId, true);
             }
         });
+    }
+
+    private void validateActiveShort(Long shortId) {
+        if (!bookmarkPort.lockActiveShort(shortId)) {
+            throw new ShortBookmarkApplicationException(
+                    ShortBookmarkErrorCode.SHORT_NOT_FOUND,
+                    "숏폼을 찾을 수 없습니다."
+            );
+        }
     }
 }

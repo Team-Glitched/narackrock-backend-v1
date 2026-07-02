@@ -4,6 +4,8 @@ import glitched.adlips.adapter.in.web.shorts.ShortsBookmarkController;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.adapter.out.token.JwtTokenIssuerAdapter;
 import glitched.adlips.application.shorts.ShortBookmarkResult;
+import glitched.adlips.application.shorts.ShortBookmarkApplicationException;
+import glitched.adlips.application.shorts.ShortBookmarkErrorCode;
 import glitched.adlips.application.shorts.ToggleShortBookmarkUseCase;
 import glitched.adlips.global.config.SecurityConfig;
 import org.junit.jupiter.api.BeforeEach;
@@ -67,5 +69,20 @@ class ShortsBookmarkControllerTest {
     void 북마크_인증없는_요청시_401을_반환한다() throws Exception {
         mockMvc.perform(post("/api/v1/shorts/12/bookmark"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 활성_숏폼이_없으면_404를_반환한다() throws Exception {
+        when(toggleShortBookmarkUseCase.toggle(eq(1L), eq(999L)))
+                .thenThrow(new ShortBookmarkApplicationException(
+                        ShortBookmarkErrorCode.SHORT_NOT_FOUND,
+                        "숏폼을 찾을 수 없습니다."));
+
+        mockMvc.perform(post("/api/v1/shorts/999/bookmark")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorCode").value("SHORT_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("숏폼을 찾을 수 없습니다."));
     }
 }

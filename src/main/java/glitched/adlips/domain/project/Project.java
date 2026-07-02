@@ -144,4 +144,13 @@ public class Project extends BaseTimeEntity {
         }
         status = ProjectStatus.IN_PROGRESS;
     }
+
+    public void delete(LocalDateTime deletedAt) {
+        if (this.deletedAt != null) {
+            return;
+        }
+        this.deletedAt = Objects.requireNonNull(deletedAt, "deletedAt must not be null");
+        this.status = ProjectStatus.DELETED;
+        this.isPublic = false;
+    }
 }

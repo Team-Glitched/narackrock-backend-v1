@@ -19,7 +19,7 @@ public class ProjectExceptionHandler {
     private HttpStatus statusOf(ProjectErrorCode code) {
         return switch (code) {
             case PROJECT_NOT_FOUND, TRACK_NOT_FOUND, MEDIA_FILE_NOT_FOUND -> HttpStatus.NOT_FOUND;
-            case PROJECT_ACCESS_DENIED, TRACK_DELETE_DENIED, MEDIA_FILE_ACCESS_DENIED -> HttpStatus.FORBIDDEN;
+            case PROJECT_ACCESS_DENIED, TRACK_EDIT_DENIED, TRACK_DELETE_DENIED, MEDIA_FILE_ACCESS_DENIED -> HttpStatus.FORBIDDEN;
             case MEDIA_FILE_NOT_READY, TRACK_HAS_PENDING_CONTRIBUTION, EXPORT_TARGET_NOT_FOUND -> HttpStatus.CONFLICT;
             default -> HttpStatus.BAD_REQUEST;
         };

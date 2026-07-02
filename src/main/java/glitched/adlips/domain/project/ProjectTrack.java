@@ -93,6 +93,20 @@ public class ProjectTrack extends BaseTimeEntity {
         this.mediaFileId = null;
     }
 
+    public void changeVolume(int volume) {
+        if (volume < 0 || volume > 100) {
+            throw new IllegalArgumentException("volume must be between 0 and 100");
+        }
+        if (this.volume == volume) {
+            return;
+        }
+        if (approvalStatus == ApprovalStatus.APPROVED) {
+            project.increaseMinorVersion();
+        }
+        this.volume = volume;
+        invalidateRenderedMedia();
+    }
+
     public void delete() {
         if (isDeleted) {
             return;

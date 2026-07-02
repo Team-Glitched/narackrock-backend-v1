@@ -6,9 +6,12 @@ import glitched.adlips.application.shorts.GetShortsUseCase;
 import glitched.adlips.application.shorts.ToggleShortBookmarkUseCase;
 import glitched.adlips.application.shorts.ToggleShortDislikeUseCase;
 import glitched.adlips.application.shorts.ToggleShortLikeUseCase;
+import glitched.adlips.application.shorts.ToggleShortPlaybackUseCase;
 import glitched.adlips.application.shorts.port.out.ShortBookmarkPort;
+import glitched.adlips.application.shorts.port.out.ShortPlaybackPort;
 import glitched.adlips.application.shorts.port.out.ShortReactionPort;
 import glitched.adlips.application.shorts.port.out.ShortsQueryPort;
+import java.time.Clock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -50,5 +53,13 @@ public class ShortsApplicationConfiguration {
             TransactionRunner transactionRunner
     ) {
         return new ToggleShortBookmarkUseCase(shortBookmarkPort, transactionRunner);
+    }
+
+    @Bean
+    ToggleShortPlaybackUseCase toggleShortPlaybackUseCase(
+            ShortPlaybackPort shortPlaybackPort,
+            Clock clock
+    ) {
+        return new ToggleShortPlaybackUseCase(shortPlaybackPort, clock);
     }
 }

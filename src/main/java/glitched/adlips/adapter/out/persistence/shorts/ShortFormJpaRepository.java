@@ -34,4 +34,6 @@ interface ShortFormJpaRepository extends JpaRepository<ShortForm, Long> {
 
     @Query("SELECT s.dislikeCount FROM ShortForm s WHERE s.id = :shortId")
     Integer getDislikeCount(@Param("shortId") Long shortId);
+
+    boolean existsByIdAndDeletedAtIsNull(Long id);
 }

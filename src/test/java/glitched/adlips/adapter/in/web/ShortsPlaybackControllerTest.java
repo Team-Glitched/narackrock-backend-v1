@@ -7,6 +7,7 @@ import glitched.adlips.application.shorts.ShortPlaybackApplicationException;
 import glitched.adlips.application.shorts.ShortPlaybackErrorCode;
 import glitched.adlips.application.shorts.ShortPlaybackResult;
 import glitched.adlips.application.shorts.ToggleShortPlaybackUseCase;
+import glitched.adlips.application.user.account.port.out.AccessTokenPort;
 import glitched.adlips.global.config.SecurityConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -34,12 +35,14 @@ class ShortsPlaybackControllerTest {
 
     @MockitoBean ToggleShortPlaybackUseCase toggleShortPlaybackUseCase;
     @MockitoBean AuthenticatedUserResolver authenticatedUserResolver;
+    @MockitoBean AccessTokenPort accessTokenPort;
 
     String validToken;
 
     @BeforeEach
     void setUp() {
         validToken = jwtTokenIssuerAdapter.issue(1L);
+        when(accessTokenPort.verify(validToken)).thenReturn(1L);
         when(authenticatedUserResolver.requireUserId("Bearer " + validToken)).thenReturn(1L);
     }
 

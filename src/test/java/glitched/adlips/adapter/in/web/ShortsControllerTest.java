@@ -6,6 +6,7 @@ import glitched.adlips.application.shorts.GetShortsUseCase;
 import glitched.adlips.application.shorts.ShortSummary;
 import glitched.adlips.application.shorts.ShortsPage;
 import glitched.adlips.application.shorts.ShortsSource;
+import glitched.adlips.application.user.account.port.out.AccessTokenPort;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.domain.shorts.ShortStatus;
 import java.time.LocalDateTime;
@@ -37,6 +38,7 @@ class ShortsControllerTest {
     @Autowired MockMvc mockMvc;
     @MockitoBean GetShortsUseCase getShortsUseCase;
     @MockitoBean AuthenticatedUserResolver authenticatedUserResolver;
+    @MockitoBean AccessTokenPort accessTokenPort;
 
     @BeforeEach
     void setUpDefaultPage() {

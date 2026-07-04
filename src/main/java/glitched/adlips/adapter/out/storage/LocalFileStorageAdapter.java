@@ -62,11 +62,13 @@ public class LocalFileStorageAdapter implements FileStoragePort {
         }
     }
 
-    public void put(String storageKey, byte[] content) {
+    public void put(String storageKey, byte[] content, String contentType) {
         Path target = resolve(storageKey);
         try {
             Files.createDirectories(target.getParent());
             Files.write(target, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            Files.writeString(metadataPath(target), contentType,
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
         } catch (IOException exception) {
             throw new IllegalStateException("로컬 파일 저장에 실패했습니다.", exception);
         }
@@ -84,6 +86,14 @@ public class LocalFileStorageAdapter implements FileStoragePort {
         }
     }
 
+    public String contentType(String storageKey) {
+        try {
+            return Files.readString(metadataPath(resolve(storageKey)));
+        } catch (IOException exception) {
+            throw new IllegalStateException("로컬 파일 형식 확인에 실패했습니다.", exception);
+        }
+    }
+
     public String publicUrl(String storageKey) {
         return publicBaseUrl + "/" + storageKey;
     }
@@ -98,6 +108,10 @@ public class LocalFileStorageAdapter implements FileStoragePort {
             throw new IllegalArgumentException("유효하지 않은 파일 경로입니다.");
         }
         return target;
+    }
+
+    private Path metadataPath(Path target) {
+        return target.resolveSibling(target.getFileName() + ".content-type");
     }
 
     private static String stripTrailingSlash(String value) {

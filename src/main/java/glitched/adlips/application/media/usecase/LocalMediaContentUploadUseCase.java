@@ -44,6 +44,6 @@ public class LocalMediaContentUploadUseCase {
             throw new MediaApplicationException(
                     MediaErrorCode.MEDIA_MIME_TYPE_MISMATCH, "업로드 파일 형식이 요청한 형식과 일치하지 않습니다.");
         }
-        storage.put(media.getStorageKey(), content);
+        storage.put(media.getStorageKey(), content, contentType);
     }
 }

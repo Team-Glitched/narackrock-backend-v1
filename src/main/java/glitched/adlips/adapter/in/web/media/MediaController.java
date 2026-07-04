@@ -3,8 +3,11 @@ package glitched.adlips.adapter.in.web.media;
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.application.media.dto.request.MediaUploadSessionCreateRequest;
+import glitched.adlips.application.media.dto.request.MediaUploadCompleteRequest;
+import glitched.adlips.application.media.dto.response.MediaUploadCompleteResponse;
 import glitched.adlips.application.media.dto.response.MediaUploadSessionCreateResponse;
 import glitched.adlips.application.media.usecase.LocalMediaContentUploadUseCase;
+import glitched.adlips.application.media.usecase.MediaUploadCompleteUseCase;
 import glitched.adlips.application.media.usecase.MediaUploadSessionCreateUseCase;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,14 +24,27 @@ import org.springframework.web.bind.annotation.RestController;
 public class MediaController {
     private final MediaUploadSessionCreateUseCase createUseCase;
     private final LocalMediaContentUploadUseCase contentUploadUseCase;
+    private final MediaUploadCompleteUseCase completeUseCase;
     private final AuthenticatedUserResolver userResolver;
 
     public MediaController(MediaUploadSessionCreateUseCase createUseCase,
                            LocalMediaContentUploadUseCase contentUploadUseCase,
+                           MediaUploadCompleteUseCase completeUseCase,
                            AuthenticatedUserResolver userResolver) {
         this.createUseCase = createUseCase;
         this.contentUploadUseCase = contentUploadUseCase;
+        this.completeUseCase = completeUseCase;
         this.userResolver = userResolver;
+    }
+
+    @PostMapping("/{mediaFileId}/complete")
+    public ApiResponse<MediaUploadCompleteResponse> complete(
+            @PathVariable Long mediaFileId,
+            @RequestHeader("Authorization") String authorization) {
+        var response = completeUseCase.execute(
+                new MediaUploadCompleteRequest(
+                        mediaFileId, userResolver.requireUserId(authorization)));
+        return ApiResponse.success("파일 업로드 완료 처리가 접수되었습니다.", response);
     }
 
     @PostMapping("/upload-sessions")

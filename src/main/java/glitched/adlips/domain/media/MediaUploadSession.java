@@ -65,4 +65,8 @@ public class MediaUploadSession extends BaseCreatedEntity {
     public boolean isExpiredAt(LocalDateTime time) {
         return !expiresAt.isAfter(time);
     }
+
+    public void complete(LocalDateTime time) {
+        completedAt = Objects.requireNonNull(time);
+    }
 }

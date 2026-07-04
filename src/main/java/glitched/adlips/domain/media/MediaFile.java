@@ -90,6 +90,29 @@ public final class MediaFile {
         );
     }
 
+    public MediaFile processing() {
+        if (status != MediaFileStatus.UPLOADING) {
+            throw new IllegalStateException("업로드 중인 파일만 처리할 수 있습니다.");
+        }
+        return withStatus(MediaFileStatus.PROCESSING, fileUrl);
+    }
+
+    public MediaFile ready(String fileUrl) {
+        if (status != MediaFileStatus.PROCESSING) {
+            throw new IllegalStateException("처리 중인 파일만 완료할 수 있습니다.");
+        }
+        return withStatus(MediaFileStatus.READY, requireText(fileUrl));
+    }
+
+    public MediaFile failed() {
+        return withStatus(MediaFileStatus.FAILED, fileUrl);
+    }
+
+    private MediaFile withStatus(MediaFileStatus status, String fileUrl) {
+        return new MediaFile(id, ownerId, fileUrl, storageKey, originalFilename,
+                fileType, mimeType, fileSize, status);
+    }
+
     public Long getId() {
         return id;
     }

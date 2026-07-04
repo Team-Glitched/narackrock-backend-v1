@@ -41,6 +41,7 @@ public class ProjectExceptionHandler {
                     CONTRIBUTION_REVIEW_DENIED -> HttpStatus.FORBIDDEN;
 
             case MEDIA_FILE_NOT_READY,
+                    TRACK_INSTRUMENT_NOT_SET,
                     TRACK_HAS_PENDING_CONTRIBUTION,
                     EXPORT_TARGET_NOT_FOUND,
                     CONTRIBUTION_VERSION_CONFLICT,

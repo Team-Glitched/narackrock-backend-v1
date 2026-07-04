@@ -1,6 +1,7 @@
 package glitched.adlips.adapter.out.persistence.shorts;
 
 import glitched.adlips.domain.shorts.ShortForm;
+import glitched.adlips.domain.shorts.ShortStatus;
 import jakarta.persistence.LockModeType;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -34,4 +35,6 @@ interface ShortFormJpaRepository extends JpaRepository<ShortForm, Long> {
 
     @Query("SELECT s.dislikeCount FROM ShortForm s WHERE s.id = :shortId")
     Integer getDislikeCount(@Param("shortId") Long shortId);
+
+    boolean existsByIdAndStatusAndDeletedAtIsNull(Long id, ShortStatus status);
 }

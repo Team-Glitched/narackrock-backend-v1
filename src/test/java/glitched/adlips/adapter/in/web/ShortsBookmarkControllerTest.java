@@ -7,6 +7,7 @@ import glitched.adlips.application.shorts.ShortBookmarkResult;
 import glitched.adlips.application.shorts.ShortBookmarkApplicationException;
 import glitched.adlips.application.shorts.ShortBookmarkErrorCode;
 import glitched.adlips.application.shorts.ToggleShortBookmarkUseCase;
+import glitched.adlips.application.user.account.port.out.AccessTokenPort;
 import glitched.adlips.global.config.SecurityConfig;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -31,12 +32,14 @@ class ShortsBookmarkControllerTest {
 
     @MockitoBean ToggleShortBookmarkUseCase toggleShortBookmarkUseCase;
     @MockitoBean AuthenticatedUserResolver authenticatedUserResolver;
+    @MockitoBean AccessTokenPort accessTokenPort;
 
     String validToken;
 
     @BeforeEach
     void setUp() {
         validToken = jwtTokenIssuerAdapter.issue(1L);
+        when(accessTokenPort.verify(validToken)).thenReturn(1L);
         when(authenticatedUserResolver.requireUserId("Bearer " + validToken)).thenReturn(1L);
     }
 

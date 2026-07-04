@@ -10,6 +10,7 @@ import glitched.adlips.application.auth.AuthResult;
 import glitched.adlips.application.auth.GoogleLoginUseCase;
 import glitched.adlips.application.exception.AuthFailedException;
 import glitched.adlips.application.exception.SignupRequiredException;
+import glitched.adlips.application.user.account.port.out.AccessTokenPort;
 import glitched.adlips.global.config.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,6 +29,9 @@ class AuthControllerTest {
 
     @MockitoBean
     private GoogleLoginUseCase loginUseCase;
+
+    @MockitoBean
+    private AccessTokenPort accessTokenPort;
 
     @Test
     void loginSuccessfully() throws Exception {

@@ -7,6 +7,7 @@ import static org.mockito.Mockito.when;
 
 import glitched.adlips.adapter.out.persistence.project.ProjectClipJpaRepository;
 import glitched.adlips.application.project.dto.request.MidiClipSaveRequest;
+import glitched.adlips.application.project.dto.request.MidiNoteRequest;
 import glitched.adlips.application.project.usecase.MidiClipSaveUseCase;
 import glitched.adlips.domain.project.MidiNote;
 import glitched.adlips.domain.project.Project;
@@ -32,7 +33,7 @@ class MidiClipSaveUseCaseTest {
         ProjectClipJpaRepository clips = mock(ProjectClipJpaRepository.class);
         when(clips.findByIdAndIsDeletedFalse(1003L)).thenReturn(Optional.of(clip));
         when(clips.save(any(ProjectClip.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        MidiNote note = new MidiNote(60, 0, 480, 100, "DELAY", Map.of("delayMs", 250));
+        MidiNoteRequest note = new MidiNoteRequest(60, 0, 480, 100, "DELAY", Map.of("delayMs", 250));
         Clock clock = Clock.fixed(Instant.parse("2026-07-05T10:00:00Z"), ZoneOffset.UTC);
 
         var response = new MidiClipSaveUseCase(clips, clock)
@@ -41,6 +42,7 @@ class MidiClipSaveUseCaseTest {
         assertThat(response.noteCount()).isEqualTo(1);
         assertThat(response.trackMediaFileId()).isNull();
         assertThat(response.updatedAt()).isEqualTo("2026-07-05T10:00:00");
-        assertThat(clip.getMidiNotes()).containsExactly(note);
+        assertThat(clip.getMidiNotes()).containsExactly(
+                new MidiNote(60, 0, 480, 100, "DELAY", Map.of("delayMs", 250)));
     }
 }

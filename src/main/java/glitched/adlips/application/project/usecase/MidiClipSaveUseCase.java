@@ -5,13 +5,14 @@ import glitched.adlips.application.project.ProjectApplicationException;
 import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.MidiClipSaveRequest;
 import glitched.adlips.application.project.dto.response.MidiClipSaveResponse;
+import glitched.adlips.application.project.dto.request.MidiNoteRequest;
 import glitched.adlips.domain.project.ApprovalStatus;
 import glitched.adlips.domain.project.ClipType;
+import glitched.adlips.domain.project.MidiNote;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -54,7 +55,8 @@ public class MidiClipSaveUseCase {
         }
         validateRange(request.startTick(), request.durationTick(), clip.getProject().getMaxTick());
         try {
-            clip.updateMidi(request.startTick(), request.durationTick(), List.copyOf(request.midiNotes()));
+            clip.updateMidi(request.startTick(), request.durationTick(),
+                    request.midiNotes().stream().map(this::toDomain).toList());
         } catch (IllegalArgumentException exception) {
             throw error(ProjectErrorCode.INVALID_MIDI_NOTE_DATA, "올바르지 않은 MIDI 노트 데이터입니다.");
         }
@@ -63,6 +65,11 @@ public class MidiClipSaveUseCase {
                 .format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss"));
         return new MidiClipSaveResponse(
                 request.clipId(), clip.getMidiNotes().size(), clip.getTrack().getMediaFileId(), updatedAt);
+    }
+
+    private MidiNote toDomain(MidiNoteRequest note) {
+        return new MidiNote(note.pitch(), note.startTick(), note.durationTick(), note.velocity(),
+                note.effectType(), note.effectParams());
     }
 
     private void validateRange(int startTick, int durationTick, long maxTick) {

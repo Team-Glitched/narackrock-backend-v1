@@ -26,7 +26,7 @@ public final class MediaFile {
     ) {
         this.id = id;
         this.ownerId = Objects.requireNonNull(ownerId);
-        this.fileUrl = fileUrl;
+        this.fileUrl = status == MediaFileStatus.READY ? requireText(fileUrl) : fileUrl;
         this.storageKey = requireText(storageKey);
         this.originalFilename = originalFilename;
         this.fileType = Objects.requireNonNull(fileType);

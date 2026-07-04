@@ -26,7 +26,7 @@ public final class MediaFile {
     ) {
         this.id = id;
         this.ownerId = Objects.requireNonNull(ownerId);
-        this.fileUrl = requireText(fileUrl);
+        this.fileUrl = fileUrl;
         this.storageKey = requireText(storageKey);
         this.originalFilename = originalFilename;
         this.fileType = Objects.requireNonNull(fileType);
@@ -46,6 +46,23 @@ public final class MediaFile {
         return new MediaFile(
                 null, ownerId, fileUrl, storageKey, originalFilename,
                 MediaFileType.IMAGE, mimeType, fileSize, MediaFileStatus.READY
+        );
+    }
+
+    public static MediaFile uploading(
+            Long ownerId,
+            String storageKey,
+            String originalFilename,
+            MediaFileType fileType,
+            String mimeType,
+            long fileSize
+    ) {
+        if (fileSize <= 0) {
+            throw new IllegalArgumentException("파일 크기는 0보다 커야 합니다.");
+        }
+        return new MediaFile(
+                null, ownerId, null, storageKey, originalFilename,
+                fileType, mimeType, fileSize, MediaFileStatus.UPLOADING
         );
     }
 

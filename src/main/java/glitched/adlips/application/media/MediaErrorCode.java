@@ -1,0 +1,12 @@
+package glitched.adlips.application.media;
+
+public enum MediaErrorCode {
+    VALIDATION_ERROR,
+    MEDIA_FILE_NOT_FOUND,
+    MEDIA_FILE_ACCESS_DENIED,
+    MEDIA_FILE_NOT_READY,
+    UPLOAD_SESSION_EXPIRED,
+    UPLOADED_OBJECT_NOT_FOUND,
+    MEDIA_MIME_TYPE_MISMATCH,
+    MEDIA_FILE_SIZE_MISMATCH
+}

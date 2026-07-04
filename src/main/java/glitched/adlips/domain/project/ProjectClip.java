@@ -169,6 +169,9 @@ public class ProjectClip extends BaseTimeEntity {
         validateProjectAndTimeline(project, track, startTick, durationTick);
         List<MidiNote> notes = List.copyOf(Objects.requireNonNull(midiNotes, "midiNotes must not be null"));
         validateMidiNotes(notes, durationTick);
+        if (approvalStatus == ApprovalStatus.APPROVED) {
+            project.increaseMinorVersion();
+        }
         this.startTick = startTick;
         this.durationTick = durationTick;
         this.startTimeMs = project.tickToMilliseconds(startTick);

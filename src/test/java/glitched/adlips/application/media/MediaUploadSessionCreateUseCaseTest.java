@@ -37,4 +37,20 @@ class MediaUploadSessionCreateUseCaseTest {
         assertThat(response.uploadUrl()).isEqualTo("http://localhost:8080/api/v1/media/501/content");
         assertThat(response.expiresAt()).isEqualTo("2026-07-05T10:15:00");
     }
+
+    @Test
+    void acceptsBrowserWaveMimeType() {
+        MediaFileRepositoryPort mediaFiles = mock(MediaFileRepositoryPort.class);
+        MediaUploadSessionJpaRepository sessions = mock(MediaUploadSessionJpaRepository.class);
+        when(mediaFiles.save(any(MediaFile.class))).thenAnswer(
+                invocation -> invocation.<MediaFile>getArgument(0).withId(502L));
+        when(sessions.save(any(MediaUploadSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = new MediaUploadSessionCreateUseCase(
+                mediaFiles, sessions, Clock.systemUTC(), "http://localhost:8080")
+                .execute(new MediaUploadSessionCreateRequest(
+                        1L, MediaFileType.AUDIO, "recording.wav", "audio/wave", 100L));
+
+        assertThat(response.mediaFileId()).isEqualTo(502L);
+    }
 }

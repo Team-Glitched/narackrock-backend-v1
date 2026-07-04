@@ -1,0 +1,40 @@
+package glitched.adlips.application.media;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
+import glitched.adlips.adapter.out.persistence.media.MediaUploadSessionJpaRepository;
+import glitched.adlips.application.media.dto.request.MediaUploadSessionCreateRequest;
+import glitched.adlips.application.media.dto.response.MediaUploadSessionCreateResponse;
+import glitched.adlips.application.media.usecase.MediaUploadSessionCreateUseCase;
+import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
+import glitched.adlips.domain.media.MediaFile;
+import glitched.adlips.domain.media.MediaFileType;
+import glitched.adlips.domain.media.MediaUploadSession;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import org.junit.jupiter.api.Test;
+
+class MediaUploadSessionCreateUseCaseTest {
+    @Test
+    void createsUploadingMediaAndPutSession() {
+        MediaFileRepositoryPort mediaFiles = mock(MediaFileRepositoryPort.class);
+        MediaUploadSessionJpaRepository sessions = mock(MediaUploadSessionJpaRepository.class);
+        when(mediaFiles.save(any(MediaFile.class))).thenAnswer(invocation -> invocation.<MediaFile>getArgument(0).withId(501L));
+        when(sessions.save(any(MediaUploadSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        Clock clock = Clock.fixed(Instant.parse("2026-07-05T10:00:00Z"), ZoneOffset.UTC);
+
+        MediaUploadSessionCreateResponse response = new MediaUploadSessionCreateUseCase(
+                mediaFiles, sessions, clock, "http://localhost:8080")
+                .execute(new MediaUploadSessionCreateRequest(
+                        1L, MediaFileType.AUDIO, "guitar.wav", "audio/wav", 10_240_000L));
+
+        assertThat(response.mediaFileId()).isEqualTo(501L);
+        assertThat(response.method()).isEqualTo("PUT");
+        assertThat(response.uploadUrl()).isEqualTo("http://localhost:8080/api/v1/media/501/content");
+        assertThat(response.expiresAt()).isEqualTo("2026-07-05T10:15:00");
+    }
+}

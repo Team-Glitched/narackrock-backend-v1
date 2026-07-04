@@ -1,6 +1,7 @@
 package glitched.adlips.global.config;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -44,6 +45,23 @@ class SecurityConfigTest {
     void rejectsProtectedRequestWithoutToken() throws Exception {
         mockMvc.perform(get("/protected"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void allowsConfiguredFrontendCorsPreflight() throws Exception {
+        mockMvc.perform(options("/api/v1/media/upload-sessions")
+                        .header("Origin", "http://localhost:5173")
+                        .header("Access-Control-Request-Method", "POST")
+                        .header("Access-Control-Request-Headers", "authorization,content-type"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header()
+                        .string("Access-Control-Allow-Origin", "http://localhost:5173"));
+    }
+
+    @Test
+    void allowsLocalFileGetWithoutToken() throws Exception {
+        mockMvc.perform(get("/files/missing.wav"))
+                .andExpect(status().isNotFound());
     }
 
     @RestController

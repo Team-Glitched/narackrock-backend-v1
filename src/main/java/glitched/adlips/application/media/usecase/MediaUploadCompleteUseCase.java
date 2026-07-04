@@ -47,6 +47,9 @@ public class MediaUploadCompleteUseCase {
         if (!media.getOwnerId().equals(request.userId())) {
             throw error(MediaErrorCode.MEDIA_FILE_ACCESS_DENIED, "해당 미디어 파일에 접근할 권한이 없습니다.");
         }
+        if (media.getStatus() == MediaFileStatus.READY) {
+            return new MediaUploadCompleteResponse(media.getId(), MediaFileStatus.READY.name());
+        }
         if (media.getStatus() != MediaFileStatus.UPLOADING) {
             throw error(MediaErrorCode.MEDIA_FILE_NOT_READY, "업로드 완료 처리할 수 없는 파일 상태입니다.");
         }
@@ -77,7 +80,7 @@ public class MediaUploadCompleteUseCase {
         mediaFiles.save(processing.ready(storage.publicUrl(media.getStorageKey())));
         session.complete(now);
         sessions.save(session);
-        return new MediaUploadCompleteResponse(media.getId(), MediaFileStatus.PROCESSING.name());
+        return new MediaUploadCompleteResponse(media.getId(), MediaFileStatus.READY.name());
     }
 
     private void fail(MediaFile media) {

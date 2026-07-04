@@ -39,19 +39,19 @@ class MediaControllerTest {
     }
 
     @Test
-    void returnsProcessingForUploadCompletion() {
+    void returnsReadyForUploadCompletion() {
         MediaUploadSessionCreateUseCase createUseCase = mock(MediaUploadSessionCreateUseCase.class);
         LocalMediaContentUploadUseCase uploadUseCase = mock(LocalMediaContentUploadUseCase.class);
         MediaUploadCompleteUseCase completeUseCase = mock(MediaUploadCompleteUseCase.class);
         AuthenticatedUserResolver resolver = mock(AuthenticatedUserResolver.class);
         when(resolver.requireUserId("Bearer token")).thenReturn(1L);
         when(completeUseCase.execute(any())).thenReturn(
-                new MediaUploadCompleteResponse(501L, "PROCESSING"));
+                new MediaUploadCompleteResponse(501L, "READY"));
 
         var result = new MediaController(createUseCase, uploadUseCase, completeUseCase, resolver)
                 .complete(501L, "Bearer token");
 
-        assertThat(result.data().status()).isEqualTo("PROCESSING");
-        assertThat(result.message()).isEqualTo("파일 업로드 완료 처리가 접수되었습니다.");
+        assertThat(result.data().status()).isEqualTo("READY");
+        assertThat(result.message()).isEqualTo("파일 업로드가 완료되었습니다.");
     }
 }

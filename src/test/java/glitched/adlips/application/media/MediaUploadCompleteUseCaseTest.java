@@ -42,8 +42,24 @@ class MediaUploadCompleteUseCaseTest {
         var response = new MediaUploadCompleteUseCase(mediaFiles, sessions, storage, clock)
                 .execute(new MediaUploadCompleteRequest(501L, 1L));
 
-        assertThat(response.status()).isEqualTo("PROCESSING");
+        assertThat(response.status()).isEqualTo("READY");
         verify(mediaFiles).save(org.mockito.ArgumentMatchers.argThat(
                 saved -> saved.getStatus() == MediaFileStatus.READY && saved.getFileUrl() != null));
+    }
+
+    @Test
+    void returnsReadyWhenCompletionIsRetried() {
+        MediaFileRepositoryPort mediaFiles = mock(MediaFileRepositoryPort.class);
+        MediaUploadSessionJpaRepository sessions = mock(MediaUploadSessionJpaRepository.class);
+        LocalFileStorageAdapter storage = mock(LocalFileStorageAdapter.class);
+        MediaFile ready = MediaFile.restore(501L, 1L, "http://localhost/files/guitar.wav",
+                "media/1/guitar.wav", "guitar.wav", MediaFileType.AUDIO, "audio/wav", 100L,
+                MediaFileStatus.READY);
+        when(mediaFiles.findById(501L)).thenReturn(Optional.of(ready));
+
+        var response = new MediaUploadCompleteUseCase(mediaFiles, sessions, storage, Clock.systemUTC())
+                .execute(new MediaUploadCompleteRequest(501L, 1L));
+
+        assertThat(response.status()).isEqualTo("READY");
     }
 }

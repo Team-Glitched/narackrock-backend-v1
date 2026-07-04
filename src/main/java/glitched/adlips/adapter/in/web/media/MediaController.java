@@ -44,7 +44,7 @@ public class MediaController {
         var response = completeUseCase.execute(
                 new MediaUploadCompleteRequest(
                         mediaFileId, userResolver.requireUserId(authorization)));
-        return ApiResponse.success("파일 업로드 완료 처리가 접수되었습니다.", response);
+        return ApiResponse.success("파일 업로드가 완료되었습니다.", response);
     }
 
     @PostMapping("/upload-sessions")

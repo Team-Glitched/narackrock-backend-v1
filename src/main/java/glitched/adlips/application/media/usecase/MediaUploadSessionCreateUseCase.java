@@ -25,7 +25,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class MediaUploadSessionCreateUseCase {
     private static final long MAX_FILE_SIZE = 100L * 1024 * 1024;
     private static final Map<MediaFileType, Set<String>> ALLOWED_MIME_TYPES = Map.of(
-            MediaFileType.AUDIO, Set.of("audio/wav", "audio/x-wav", "audio/mpeg", "audio/mp4", "audio/flac"),
+            MediaFileType.AUDIO, Set.of(
+                    "audio/wav", "audio/x-wav", "audio/wave", "audio/mpeg", "audio/mp4", "audio/flac"),
             MediaFileType.IMAGE, Set.of("image/jpeg", "image/png", "image/webp", "image/gif"),
             MediaFileType.VIDEO, Set.of("video/mp4", "video/webm")
     );

@@ -52,6 +52,6 @@ class MediaControllerTest {
                 .complete(501L, "Bearer token");
 
         assertThat(result.data().status()).isEqualTo("READY");
-        assertThat(result.message()).isEqualTo("파일 업로드 완료 처리가 접수되었습니다.");
+        assertThat(result.message()).isEqualTo("파일 업로드가 완료되었습니다.");
     }
 }

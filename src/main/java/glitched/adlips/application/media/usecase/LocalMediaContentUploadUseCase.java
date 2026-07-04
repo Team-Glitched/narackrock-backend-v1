@@ -5,6 +5,7 @@ import glitched.adlips.adapter.out.storage.LocalFileStorageAdapter;
 import glitched.adlips.application.media.MediaApplicationException;
 import glitched.adlips.application.media.MediaErrorCode;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
+import glitched.adlips.domain.media.MediaFileStatus;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
@@ -32,6 +33,10 @@ public class LocalMediaContentUploadUseCase {
         if (!media.getOwnerId().equals(userId)) {
             throw new MediaApplicationException(
                     MediaErrorCode.MEDIA_FILE_ACCESS_DENIED, "해당 미디어 파일에 접근할 권한이 없습니다.");
+        }
+        if (media.getStatus() != MediaFileStatus.UPLOADING) {
+            throw new MediaApplicationException(
+                    MediaErrorCode.MEDIA_FILE_NOT_READY, "업로드할 수 없는 파일 상태입니다.");
         }
         var session = sessions.findFirstByMediaFileIdOrderByCreatedAtDesc(mediaFileId)
                 .orElseThrow(() -> new MediaApplicationException(

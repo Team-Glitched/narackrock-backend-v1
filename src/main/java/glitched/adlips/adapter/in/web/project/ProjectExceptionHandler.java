@@ -31,10 +31,13 @@ public class ProjectExceptionHandler {
         return switch (code) {
             case PROJECT_NOT_FOUND,
                     TRACK_NOT_FOUND,
+                    CLIP_NOT_FOUND,
                     MEDIA_FILE_NOT_FOUND,
                     CONTRIBUTION_NOT_FOUND -> HttpStatus.NOT_FOUND;
 
             case PROJECT_ACCESS_DENIED,
+                    CLIP_NOT_OWNED,
+                    CLIP_NOT_EDITABLE,
                     TRACK_EDIT_DENIED,
                     TRACK_DELETE_DENIED,
                     MEDIA_FILE_ACCESS_DENIED,

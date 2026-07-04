@@ -40,7 +40,7 @@ public class MediaUploadCompleteUseCase {
         this.clock = clock;
     }
 
-    @Transactional
+    @Transactional(noRollbackFor = MediaApplicationException.class)
     public MediaUploadCompleteResponse execute(MediaUploadCompleteRequest request) {
         MediaFile media = mediaFiles.findById(request.mediaFileId())
                 .orElseThrow(() -> error(MediaErrorCode.MEDIA_FILE_NOT_FOUND, "존재하지 않는 미디어 파일입니다."));

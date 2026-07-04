@@ -10,6 +10,7 @@ import glitched.adlips.adapter.out.persistence.project.ProjectJpaRepository;
 import glitched.adlips.adapter.out.persistence.project.ProjectMemberJpaRepository;
 import glitched.adlips.adapter.out.persistence.project.ProjectTrackJpaRepository;
 import glitched.adlips.application.project.dto.request.MidiClipCreateRequest;
+import glitched.adlips.application.project.dto.request.MidiNoteRequest;
 import glitched.adlips.application.project.usecase.MidiClipCreateUseCase;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.domain.project.MidiNote;
@@ -41,14 +42,15 @@ class MidiClipCreateUseCaseTest {
         when(tracks.findByIdAndIsDeletedFalse(103L)).thenReturn(Optional.of(track));
         when(users.findById(1L)).thenReturn(Optional.of(owner));
         when(clips.save(any(ProjectClip.class))).thenAnswer(invocation -> invocation.getArgument(0));
-        MidiNote note = new MidiNote(60, 0, 480, 100, "DELAY", Map.of("delayMs", 250));
+        MidiNoteRequest note = new MidiNoteRequest(60, 0, 480, 100, "DELAY", Map.of("delayMs", 250));
 
         var response = new MidiClipCreateUseCase(projects, members, tracks, clips, users)
                 .execute(new MidiClipCreateRequest(10L, 103L, 1L, 0, 1920, List.of(note)));
 
         assertThat(response.clipType().name()).isEqualTo("MIDI");
         assertThat(response.instrument()).isEqualTo("PIANO");
-        assertThat(response.midiNotes()).containsExactly(note);
+        assertThat(response.midiNotes()).containsExactly(
+                new MidiNote(60, 0, 480, 100, "DELAY", Map.of("delayMs", 250)));
         assertThat(response.durationMs()).isEqualTo(2000);
     }
 }

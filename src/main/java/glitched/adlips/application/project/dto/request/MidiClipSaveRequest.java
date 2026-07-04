@@ -2,9 +2,8 @@ package glitched.adlips.application.project.dto.request;
 
 import java.util.List;
 
-public record MidiClipCreateRequest(
-        Long projectId,
-        Long trackId,
+public record MidiClipSaveRequest(
+        Long clipId,
         Long userId,
         int startTick,
         int durationTick,

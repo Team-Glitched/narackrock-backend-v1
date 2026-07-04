@@ -8,10 +8,11 @@ import glitched.adlips.application.project.ProjectApplicationException;
 import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.MidiClipCreateRequest;
 import glitched.adlips.application.project.dto.response.MidiClipCreateResponse;
+import glitched.adlips.application.project.dto.request.MidiNoteRequest;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.domain.project.ProjectClip;
 import glitched.adlips.domain.project.ProjectMemberRole;
-import java.util.List;
+import glitched.adlips.domain.project.MidiNote;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -61,7 +62,7 @@ public class MidiClipCreateUseCase {
         try {
             clip = clips.save(ProjectClip.createMidi(
                     project, track, user, request.startTick(), request.durationTick(),
-                    List.copyOf(request.midiNotes()), sortOrder));
+                    request.midiNotes().stream().map(this::toDomain).toList(), sortOrder));
         } catch (IllegalArgumentException exception) {
             throw error(ProjectErrorCode.INVALID_MIDI_NOTE_DATA, "MIDI 노트 데이터가 올바르지 않습니다.");
         }
@@ -69,6 +70,11 @@ public class MidiClipCreateUseCase {
                 request.projectId(), request.trackId(), clip.getId(), clip.getClipType(), clip.getSourceType(),
                 track.getInstrument(), clip.getStartTick(), clip.getDurationTick(), clip.getStartTimeMs(),
                 clip.getDurationMs(), clip.getMidiNotes(), clip.getApprovalStatus(), track.getMediaFileId());
+    }
+
+    private MidiNote toDomain(MidiNoteRequest note) {
+        return new MidiNote(note.pitch(), note.startTick(), note.durationTick(), note.velocity(),
+                note.effectType(), note.effectParams());
     }
 
     private void validateRange(int startTick, int durationTick, long maxTick) {

@@ -1,5 +1,6 @@
 package glitched.adlips.adapter.in.web;
 
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -8,6 +9,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import glitched.adlips.adapter.in.web.shorts.ShortsCompositionController;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.adapter.out.token.JwtTokenIssuerAdapter;
+import glitched.adlips.application.project.ProjectApplicationException;
+import glitched.adlips.application.project.ProjectErrorCode;
+import glitched.adlips.application.project.usecase.ProjectMemberJoinUseCase;
 import glitched.adlips.application.shorts.ShortsCompositionApplicationException;
 import glitched.adlips.application.shorts.ShortsCompositionEntryUseCase;
 import glitched.adlips.application.shorts.ShortsCompositionErrorCode;
@@ -31,6 +35,7 @@ class ShortsCompositionControllerTest {
     @Autowired JwtTokenIssuerAdapter jwtTokenIssuerAdapter;
 
     @MockitoBean ShortsCompositionEntryUseCase shortsCompositionEntryUseCase;
+    @MockitoBean ProjectMemberJoinUseCase projectMemberJoinUseCase;
     @MockitoBean AuthenticatedUserResolver authenticatedUserResolver;
     @MockitoBean AccessTokenPort accessTokenPort;
 
@@ -58,6 +63,8 @@ class ShortsCompositionControllerTest {
                 .andExpect(jsonPath("$.data.compositionUrl").value("/composition/projects/8"))
                 .andExpect(jsonPath("$.data.title").value("밤하늘 위 멜로디"))
                 .andExpect(jsonPath("$.data.status").value("IN_PROGRESS"));
+
+        verify(projectMemberJoinUseCase).execute(8L, 1L);
     }
 
     @Test
@@ -85,6 +92,21 @@ class ShortsCompositionControllerTest {
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
                 .andExpect(jsonPath("$.errorCode").value("PROJECT_NOT_LINKED"));
+    }
+
+    @Test
+    void 참여자_등록에_실패하면_403을_반환한다() throws Exception {
+        when(shortsCompositionEntryUseCase.execute(12L)).thenReturn(new ShortsCompositionQueryItem(
+                12L, 8L, "밤하늘 위 멜로디", ProjectStatus.IN_PROGRESS, null));
+        org.mockito.Mockito.doThrow(new ProjectApplicationException(
+                        ProjectErrorCode.PROJECT_ACCESS_DENIED, "참여할 권한이 없습니다."))
+                .when(projectMemberJoinUseCase).execute(8L, 1L);
+
+        mockMvc.perform(get("/api/v1/shorts/12/composition")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorCode").value("PROJECT_ACCESS_DENIED"));
     }
 
     @Test

@@ -3,6 +3,7 @@ package glitched.adlips.adapter.in.web.shorts;
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.adapter.in.web.dto.ShortsCompositionResponse;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
+import glitched.adlips.application.project.usecase.ProjectMemberJoinUseCase;
 import glitched.adlips.application.shorts.ShortsCompositionEntryUseCase;
 import glitched.adlips.application.shorts.port.out.ShortsCompositionQueryItem;
 import org.springframework.http.ResponseEntity;
@@ -17,13 +18,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class ShortsCompositionController {
 
     private final ShortsCompositionEntryUseCase shortsCompositionEntryUseCase;
+    private final ProjectMemberJoinUseCase projectMemberJoinUseCase;
     private final AuthenticatedUserResolver authenticatedUserResolver;
 
     public ShortsCompositionController(
             ShortsCompositionEntryUseCase shortsCompositionEntryUseCase,
+            ProjectMemberJoinUseCase projectMemberJoinUseCase,
             AuthenticatedUserResolver authenticatedUserResolver
     ) {
         this.shortsCompositionEntryUseCase = shortsCompositionEntryUseCase;
+        this.projectMemberJoinUseCase = projectMemberJoinUseCase;
         this.authenticatedUserResolver = authenticatedUserResolver;
     }
 
@@ -32,8 +36,9 @@ public class ShortsCompositionController {
             @PathVariable Long shortId,
             @RequestHeader("Authorization") String authorization
     ) {
-        authenticatedUserResolver.requireUserId(authorization);
+        Long userId = authenticatedUserResolver.requireUserId(authorization);
         ShortsCompositionQueryItem item = shortsCompositionEntryUseCase.execute(shortId);
+        projectMemberJoinUseCase.execute(item.projectId(), userId);
         return ResponseEntity.ok(ApiResponse.success(
                 "작곡 화면 진입 정보 조회가 완료되었습니다.",
                 ShortsCompositionResponse.from(item)));

@@ -1,5 +1,6 @@
 package glitched.adlips.adapter.out.persistence.shorts;
 
+import glitched.adlips.application.shorts.port.out.ShortsCompositionQueryItem;
 import glitched.adlips.domain.shorts.ShortForm;
 import glitched.adlips.domain.shorts.ShortStatus;
 import jakarta.persistence.LockModeType;
@@ -11,6 +12,15 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 interface ShortFormJpaRepository extends JpaRepository<ShortForm, Long> {
+
+    @Query("""
+            SELECT new glitched.adlips.application.shorts.port.out.ShortsCompositionQueryItem(
+                s.id, p.id, p.title, p.status, p.deletedAt)
+            FROM ShortForm s
+            LEFT JOIN s.project p
+            WHERE s.id = :shortId AND s.deletedAt IS NULL
+            """)
+    Optional<ShortsCompositionQueryItem> findCompositionInfo(@Param("shortId") Long shortId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

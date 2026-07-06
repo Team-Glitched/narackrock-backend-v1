@@ -6,6 +6,10 @@ import java.util.Optional;
 public interface ProfileRepositoryPort {
     Optional<Profile> findByUserId(Long userId);
 
+    default Optional<Profile> findByUserIdForUpdate(Long userId) {
+        return findByUserId(userId);
+    }
+
     boolean existsByNickname(String nickname);
 
     boolean existsByNicknameAndUserIdNot(String nickname, Long userId);

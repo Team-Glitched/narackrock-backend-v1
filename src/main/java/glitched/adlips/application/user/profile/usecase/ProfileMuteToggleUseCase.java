@@ -18,7 +18,7 @@ public class ProfileMuteToggleUseCase {
 
     @Transactional
     public boolean execute(Long userId) {
-        Profile profile = profileRepository.findByUserId(userId)
+        Profile profile = profileRepository.findByUserIdForUpdate(userId)
                 .orElseThrow(() -> new UserApplicationException(
                         UserErrorCode.PROFILE_NOT_FOUND, "존재하지 않는 사용자 프로필입니다."));
         Profile saved = profileRepository.save(profile.toggleMuted());

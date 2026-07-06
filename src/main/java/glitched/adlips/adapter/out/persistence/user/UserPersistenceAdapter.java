@@ -58,6 +58,11 @@ public class UserPersistenceAdapter implements
     }
 
     @Override
+    public Optional<Profile> findByUserIdForUpdate(Long userId) {
+        return profileRepository.findByUserIdForUpdate(userId);
+    }
+
+    @Override
     public boolean existsByNickname(String nickname) {
         return profileRepository.existsByNickname(nickname);
     }

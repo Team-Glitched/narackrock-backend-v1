@@ -33,7 +33,8 @@ class ShortsComposersPersistenceAdapterTest {
 
         insertShort(201L, "IN_PROGRESS", null);
         insertShort(202L, "IN_PROGRESS", null);
-        insertShort(203L, "COMPLETED", "CURRENT_TIMESTAMP");
+        insertShort(203L, "COMPLETED", null);
+        insertShort(204L, "COMPLETED", "CURRENT_TIMESTAMP");
 
         insertParticipant(201L, 3L, "기타", "메인 기타 리프를 만들었습니다.");
         insertParticipant(201L, 7L, "보컬", "후렴 멜로디와 보컬 라인을 추가했습니다.");
@@ -75,7 +76,12 @@ class ShortsComposersPersistenceAdapterTest {
 
     @Test
     void 완료_상태여도_삭제되지_않았으면_활성_상태다() {
-        assertThat(adapter.existsActiveShort(203L)).isFalse();
+        assertThat(adapter.existsActiveShort(203L)).isTrue();
+    }
+
+    @Test
+    void 삭제된_숏폼은_비활성_상태다() {
+        assertThat(adapter.existsActiveShort(204L)).isFalse();
     }
 
     @Test

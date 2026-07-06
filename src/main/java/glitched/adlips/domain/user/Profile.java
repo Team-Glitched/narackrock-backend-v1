@@ -39,6 +39,9 @@ public class Profile extends BaseUpdatedEntity {
     @Column(name = "nickname_updated_at")
     private LocalDateTime nicknameUpdatedAt;
 
+    @Column(name = "is_muted", nullable = false, columnDefinition = "boolean default false")
+    private boolean isMuted = false;
+
     protected Profile() {
     }
 
@@ -121,6 +124,10 @@ public class Profile extends BaseUpdatedEntity {
         return nicknameUpdatedAt;
     }
 
+    public boolean isMuted() {
+        return isMuted;
+    }
+
     public Profile update(
             String nickname,
             String primaryInstrument,
@@ -162,6 +169,11 @@ public class Profile extends BaseUpdatedEntity {
 
     public Profile decreaseFollowingCount() {
         followingCount = Math.max(0, followingCount - 1);
+        return this;
+    }
+
+    public Profile toggleMuted() {
+        this.isMuted = !this.isMuted;
         return this;
     }
 

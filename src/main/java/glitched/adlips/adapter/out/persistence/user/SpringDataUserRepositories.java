@@ -22,6 +22,10 @@ interface SpringDataUserRepository extends JpaRepository<User, Long> {
 }
 
 interface SpringDataProfileRepository extends JpaRepository<Profile, Long> {
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select profile from Profile profile where profile.userId = :userId")
+    Optional<Profile> findByUserIdForUpdate(@Param("userId") Long userId);
+
     boolean existsByNickname(String nickname);
 
     boolean existsByNicknameAndUserIdNot(String nickname, Long userId);

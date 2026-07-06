@@ -27,9 +27,10 @@ class ShortsCompositionPersistenceAdapterTest {
         jdbcTemplate.update("INSERT INTO users (id, email, role, created_at) VALUES (902, 'composition@test.com', 'USER', CURRENT_TIMESTAMP)");
         insertProject(8L, "밤하늘 위 멜로디", "IN_PROGRESS", null);
         insertProject(9L, "삭제된 곡", "IN_PROGRESS", "CURRENT_TIMESTAMP");
-        insertShort(201L, 8L);
-        insertShort(202L, null);
-        insertShort(203L, 9L);
+        insertShort(201L, 8L, "COMPLETED");
+        insertShort(202L, null, "COMPLETED");
+        insertShort(203L, 9L, "COMPLETED");
+        insertShort(204L, 8L, "IN_PROGRESS");
     }
 
     @Test
@@ -70,6 +71,11 @@ class ShortsCompositionPersistenceAdapterTest {
         assertThat(adapter.findByShortId(999L)).isEmpty();
     }
 
+    @Test
+    void 아직_완료되지_않은_숏폼은_조회하지_않는다() {
+        assertThat(adapter.findByShortId(204L)).isEmpty();
+    }
+
     private void insertProject(long id, String title, String status, String deletedAtExpression) {
         String deletedAt = deletedAtExpression == null ? "NULL" : deletedAtExpression;
         jdbcTemplate.update("""
@@ -82,14 +88,14 @@ class ShortsCompositionPersistenceAdapterTest {
         entityManager.clear();
     }
 
-    private void insertShort(long id, Long projectId) {
+    private void insertShort(long id, Long projectId, String status) {
         jdbcTemplate.update("""
                 INSERT INTO shorts (
                     id, user_id, project_id, title, media_file_id, status,
                     view_count, like_count, dislike_count, comment_count, contribution_count,
                     created_at
-                ) VALUES (?, 902, ?, 'test', 1, 'IN_PROGRESS', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP)
-                """, id, projectId);
+                ) VALUES (?, 902, ?, 'test', 1, ?, 0, 0, 0, 0, 0, CURRENT_TIMESTAMP)
+                """, id, projectId, status);
         entityManager.clear();
     }
 }

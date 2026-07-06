@@ -18,7 +18,9 @@ interface ShortFormJpaRepository extends JpaRepository<ShortForm, Long> {
                 s.id, p.id, p.title, p.status, p.deletedAt)
             FROM ShortForm s
             LEFT JOIN s.project p
-            WHERE s.id = :shortId AND s.deletedAt IS NULL
+            WHERE s.id = :shortId
+              AND s.status = glitched.adlips.domain.shorts.ShortStatus.COMPLETED
+              AND s.deletedAt IS NULL
             """)
     Optional<ShortsCompositionQueryItem> findCompositionInfo(@Param("shortId") Long shortId);
 

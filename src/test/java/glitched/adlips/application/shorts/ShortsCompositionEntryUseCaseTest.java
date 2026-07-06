@@ -2,8 +2,12 @@ package glitched.adlips.application.shorts;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import glitched.adlips.application.port.TransactionRunner;
+import glitched.adlips.application.project.usecase.ProjectMemberJoinUseCase;
 import glitched.adlips.application.shorts.port.out.ShortsCompositionQueryItem;
 import glitched.adlips.application.shorts.port.out.ShortsCompositionQueryPort;
 import glitched.adlips.domain.project.ProjectStatus;
@@ -19,12 +23,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 class ShortsCompositionEntryUseCaseTest {
 
     @Mock ShortsCompositionQueryPort queryPort;
+    @Mock ProjectMemberJoinUseCase projectMemberJoinUseCase;
+    @Mock TransactionRunner transactionRunner;
 
     ShortsCompositionEntryUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new ShortsCompositionEntryUseCase(queryPort);
+        when(transactionRunner.required(any())).thenAnswer(invocation ->
+                invocation.<java.util.function.Supplier<?>>getArgument(0).get());
+        useCase = new ShortsCompositionEntryUseCase(
+                queryPort, projectMemberJoinUseCase, transactionRunner);
     }
 
     @Test
@@ -33,16 +42,17 @@ class ShortsCompositionEntryUseCaseTest {
                 12L, 8L, "밤하늘 위 멜로디", ProjectStatus.IN_PROGRESS, null);
         when(queryPort.findByShortId(12L)).thenReturn(Optional.of(item));
 
-        ShortsCompositionQueryItem result = useCase.execute(12L);
+        ShortsCompositionQueryItem result = useCase.execute(12L, 3L);
 
         assertThat(result).isEqualTo(item);
+        verify(projectMemberJoinUseCase).execute(8L, 3L);
     }
 
     @Test
     void 숏폼이_없으면_SHORT_NOT_FOUND_예외가_발생한다() {
         when(queryPort.findByShortId(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.execute(999L))
+        assertThatThrownBy(() -> useCase.execute(999L, 3L))
                 .isInstanceOf(ShortsCompositionApplicationException.class)
                 .extracting("errorCode")
                 .isEqualTo(ShortsCompositionErrorCode.SHORT_NOT_FOUND);
@@ -54,7 +64,7 @@ class ShortsCompositionEntryUseCaseTest {
                 12L, null, null, null, null);
         when(queryPort.findByShortId(12L)).thenReturn(Optional.of(item));
 
-        assertThatThrownBy(() -> useCase.execute(12L))
+        assertThatThrownBy(() -> useCase.execute(12L, 3L))
                 .isInstanceOf(ShortsCompositionApplicationException.class)
                 .extracting("errorCode")
                 .isEqualTo(ShortsCompositionErrorCode.PROJECT_NOT_LINKED);
@@ -66,7 +76,7 @@ class ShortsCompositionEntryUseCaseTest {
                 12L, 8L, "밤하늘 위 멜로디", ProjectStatus.IN_PROGRESS, LocalDateTime.now());
         when(queryPort.findByShortId(12L)).thenReturn(Optional.of(item));
 
-        assertThatThrownBy(() -> useCase.execute(12L))
+        assertThatThrownBy(() -> useCase.execute(12L, 3L))
                 .isInstanceOf(ShortsCompositionApplicationException.class)
                 .extracting("errorCode")
                 .isEqualTo(ShortsCompositionErrorCode.PROJECT_NOT_LINKED);

@@ -11,7 +11,6 @@ import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.adapter.out.token.JwtTokenIssuerAdapter;
 import glitched.adlips.application.project.ProjectApplicationException;
 import glitched.adlips.application.project.ProjectErrorCode;
-import glitched.adlips.application.project.usecase.ProjectMemberJoinUseCase;
 import glitched.adlips.application.shorts.ShortsCompositionApplicationException;
 import glitched.adlips.application.shorts.ShortsCompositionEntryUseCase;
 import glitched.adlips.application.shorts.ShortsCompositionErrorCode;
@@ -35,7 +34,6 @@ class ShortsCompositionControllerTest {
     @Autowired JwtTokenIssuerAdapter jwtTokenIssuerAdapter;
 
     @MockitoBean ShortsCompositionEntryUseCase shortsCompositionEntryUseCase;
-    @MockitoBean ProjectMemberJoinUseCase projectMemberJoinUseCase;
     @MockitoBean AuthenticatedUserResolver authenticatedUserResolver;
     @MockitoBean AccessTokenPort accessTokenPort;
 
@@ -50,7 +48,7 @@ class ShortsCompositionControllerTest {
 
     @Test
     void 유효한_요청시_200과_작곡_진입_정보를_반환한다() throws Exception {
-        when(shortsCompositionEntryUseCase.execute(12L)).thenReturn(new ShortsCompositionQueryItem(
+        when(shortsCompositionEntryUseCase.execute(12L, 1L)).thenReturn(new ShortsCompositionQueryItem(
                 12L, 8L, "밤하늘 위 멜로디", ProjectStatus.IN_PROGRESS, null));
 
         mockMvc.perform(get("/api/v1/shorts/12/composition")
@@ -64,12 +62,12 @@ class ShortsCompositionControllerTest {
                 .andExpect(jsonPath("$.data.title").value("밤하늘 위 멜로디"))
                 .andExpect(jsonPath("$.data.status").value("IN_PROGRESS"));
 
-        verify(projectMemberJoinUseCase).execute(8L, 1L);
+        verify(shortsCompositionEntryUseCase).execute(12L, 1L);
     }
 
     @Test
     void 존재하지_않는_숏폼이면_404를_반환한다() throws Exception {
-        when(shortsCompositionEntryUseCase.execute(999L)).thenThrow(
+        when(shortsCompositionEntryUseCase.execute(999L, 1L)).thenThrow(
                 new ShortsCompositionApplicationException(
                         ShortsCompositionErrorCode.SHORT_NOT_FOUND, "숏폼을 찾을 수 없습니다."));
 
@@ -83,7 +81,7 @@ class ShortsCompositionControllerTest {
 
     @Test
     void 연결된_프로젝트가_없으면_404를_반환한다() throws Exception {
-        when(shortsCompositionEntryUseCase.execute(12L)).thenThrow(
+        when(shortsCompositionEntryUseCase.execute(12L, 1L)).thenThrow(
                 new ShortsCompositionApplicationException(
                         ShortsCompositionErrorCode.PROJECT_NOT_LINKED, "연결된 작곡 프로젝트를 찾을 수 없습니다."));
 
@@ -96,11 +94,9 @@ class ShortsCompositionControllerTest {
 
     @Test
     void 참여자_등록에_실패하면_403을_반환한다() throws Exception {
-        when(shortsCompositionEntryUseCase.execute(12L)).thenReturn(new ShortsCompositionQueryItem(
-                12L, 8L, "밤하늘 위 멜로디", ProjectStatus.IN_PROGRESS, null));
-        org.mockito.Mockito.doThrow(new ProjectApplicationException(
-                        ProjectErrorCode.PROJECT_ACCESS_DENIED, "참여할 권한이 없습니다."))
-                .when(projectMemberJoinUseCase).execute(8L, 1L);
+        when(shortsCompositionEntryUseCase.execute(12L, 1L)).thenThrow(
+                new ProjectApplicationException(
+                        ProjectErrorCode.PROJECT_ACCESS_DENIED, "참여할 권한이 없습니다."));
 
         mockMvc.perform(get("/api/v1/shorts/12/composition")
                         .header("Authorization", "Bearer " + validToken))

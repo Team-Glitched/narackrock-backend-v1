@@ -12,12 +12,33 @@ import glitched.adlips.application.project.port.out.ProjectMemberJoinPort;
 import glitched.adlips.application.project.usecase.ProjectMemberJoinUseCase;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.domain.project.Project;
+import glitched.adlips.domain.project.ProjectStatus;
 import glitched.adlips.domain.user.User;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
 
 class ProjectMemberJoinUseCaseTest {
+
+    @Test
+    void 완료된_프로젝트에는_멤버로_참여할_수_없다() {
+        ProjectMemberJoinPort members = mock(ProjectMemberJoinPort.class);
+        UserRepositoryPort users = mock(UserRepositoryPort.class);
+        Project project = mock(Project.class);
+        when(project.getStatus()).thenReturn(ProjectStatus.COMPLETED);
+        when(members.findActiveProjectForUpdate(8L)).thenReturn(Optional.of(project));
+        ProjectMemberJoinUseCase useCase = new ProjectMemberJoinUseCase(members, users);
+
+        assertThatThrownBy(() -> useCase.execute(8L, 1L))
+                .isInstanceOf(ProjectApplicationException.class)
+                .hasMessage("완료된 프로젝트에는 참여할 수 없습니다.")
+                .extracting("errorCode")
+                .isEqualTo(ProjectErrorCode.PROJECT_ACCESS_DENIED);
+
+        verify(members, never()).existsByProjectIdAndUserId(any(), any());
+        verify(members, never()).saveEditor(any(), any());
+        verify(users, never()).findById(any());
+    }
 
     @Test
     void 프로젝트를_잠근_뒤_이미_멤버면_아무것도_하지_않는다() {

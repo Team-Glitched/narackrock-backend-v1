@@ -2,7 +2,10 @@ package glitched.adlips.config;
 
 import glitched.adlips.adapter.out.transaction.SpringTransactionRunner;
 import glitched.adlips.application.port.TransactionRunner;
+import glitched.adlips.application.project.port.out.ProjectMemberJoinPort;
+import glitched.adlips.application.project.usecase.ProjectMemberJoinUseCase;
 import glitched.adlips.application.shorts.GetShortsUseCase;
+import glitched.adlips.application.shorts.ShortsCompositionEntryUseCase;
 import glitched.adlips.application.shorts.ToggleShortBookmarkUseCase;
 import glitched.adlips.application.shorts.ToggleShortDislikeUseCase;
 import glitched.adlips.application.shorts.ToggleShortLikeUseCase;
@@ -10,7 +13,9 @@ import glitched.adlips.application.shorts.ToggleShortPlaybackUseCase;
 import glitched.adlips.application.shorts.port.out.ShortBookmarkPort;
 import glitched.adlips.application.shorts.port.out.ShortPlaybackPort;
 import glitched.adlips.application.shorts.port.out.ShortReactionPort;
+import glitched.adlips.application.shorts.port.out.ShortsCompositionQueryPort;
 import glitched.adlips.application.shorts.port.out.ShortsQueryPort;
+import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import java.time.Clock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -61,5 +66,23 @@ public class ShortsApplicationConfiguration {
             Clock clock
     ) {
         return new ToggleShortPlaybackUseCase(shortPlaybackPort, clock);
+    }
+
+    @Bean
+    ShortsCompositionEntryUseCase shortsCompositionEntryUseCase(
+            ShortsCompositionQueryPort shortsCompositionQueryPort,
+            ProjectMemberJoinUseCase projectMemberJoinUseCase,
+            TransactionRunner transactionRunner
+    ) {
+        return new ShortsCompositionEntryUseCase(
+                shortsCompositionQueryPort, projectMemberJoinUseCase, transactionRunner);
+    }
+
+    @Bean
+    ProjectMemberJoinUseCase projectMemberJoinUseCase(
+            ProjectMemberJoinPort projectMemberJoinPort,
+            UserRepositoryPort userRepositoryPort
+    ) {
+        return new ProjectMemberJoinUseCase(projectMemberJoinPort, userRepositoryPort);
     }
 }

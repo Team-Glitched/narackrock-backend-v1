@@ -7,6 +7,7 @@ import glitched.adlips.domain.report.ReportTargetType;
 import glitched.adlips.domain.user.User;
 import jakarta.persistence.EntityManager;
 import java.util.Optional;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -38,10 +39,14 @@ public class ShortReportPersistenceAdapter implements ShortReportPort {
     }
 
     @Override
-    public Long save(Long reporterId, Long shortId, String reason, String description) {
+    public Optional<Long> save(Long reporterId, Long shortId, String reason, String description) {
         User reporter = entityManager.getReference(User.class, reporterId);
-        Report saved = reportRepository.save(
-                new Report(reporter, ReportTargetType.SHORT, shortId, reason, description));
-        return saved.getId();
+        try {
+            Report saved = reportRepository.saveAndFlush(
+                    new Report(reporter, ReportTargetType.SHORT, shortId, reason, description));
+            return Optional.of(saved.getId());
+        } catch (DataIntegrityViolationException exception) {
+            return Optional.empty();
+        }
     }
 }

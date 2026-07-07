@@ -103,6 +103,20 @@ class ShortReportControllerTest {
     }
 
     @Test
+    void 신고_사유가_공백이면_400을_반환한다() throws Exception {
+        when(submitShortReportUseCase.execute(12L, 1L, "  ", "설명")).thenThrow(
+                new ShortReportApplicationException(
+                        ShortReportErrorCode.VALIDATION_ERROR, "신고 사유를 입력해 주세요."));
+
+        mockMvc.perform(post("/api/v1/shorts/12/reports")
+                        .header("Authorization", "Bearer " + validToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"  \",\"description\":\"설명\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
+    }
+
+    @Test
     void 인증없는_요청시_401을_반환한다() throws Exception {
         mockMvc.perform(post("/api/v1/shorts/12/reports")
                         .contentType(MediaType.APPLICATION_JSON)

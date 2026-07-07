@@ -10,6 +10,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -19,7 +20,11 @@ import java.util.Objects;
 
 @Entity
 @Table(name = "reports",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"reporter_id", "target_type", "target_id"}))
+        uniqueConstraints = @UniqueConstraint(columnNames = {"reporter_id", "target_type", "target_id"}),
+        indexes = {
+                @Index(name = "idx_reports_status_created_at", columnList = "status, created_at"),
+                @Index(name = "idx_reports_target", columnList = "target_type, target_id")
+        })
 public class Report extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -61,8 +66,16 @@ public class Report extends BaseTimeEntity {
         this.reporter = Objects.requireNonNull(reporter, "reporter must not be null");
         this.targetType = Objects.requireNonNull(targetType, "targetType must not be null");
         this.targetId = Objects.requireNonNull(targetId, "targetId must not be null");
-        this.reason = Objects.requireNonNull(reason, "reason must not be null");
+        this.reason = requireReason(reason);
         this.description = description;
+    }
+
+    private static String requireReason(String reason) {
+        Objects.requireNonNull(reason, "reason must not be null");
+        if (reason.isBlank()) {
+            throw new IllegalArgumentException("reason must not be blank");
+        }
+        return reason;
     }
 
     public Long getId() {

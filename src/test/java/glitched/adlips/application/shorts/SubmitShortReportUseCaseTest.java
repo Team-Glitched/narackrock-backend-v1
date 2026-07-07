@@ -19,7 +19,8 @@ class SubmitShortReportUseCaseTest {
         ShortReportPort port = mock(ShortReportPort.class);
         when(port.findActiveShortOwnerId(12L)).thenReturn(Optional.of(99L));
         when(port.existsByReporterAndShort(1L, 12L)).thenReturn(false);
-        when(port.save(1L, 12L, "COPYRIGHT", "저작권 침해가 의심됩니다.")).thenReturn(31L);
+        when(port.save(1L, 12L, "COPYRIGHT", "저작권 침해가 의심됩니다."))
+                .thenReturn(Optional.of(31L));
         SubmitShortReportUseCase useCase = new SubmitShortReportUseCase(port);
 
         ShortReportResult result = useCase.execute(12L, 1L, "COPYRIGHT", "저작권 침해가 의심됩니다.");
@@ -71,6 +72,20 @@ class SubmitShortReportUseCaseTest {
                 .isEqualTo(ShortReportErrorCode.ALREADY_REPORTED);
 
         verify(port, never()).save(any(), any(), any(), any());
+    }
+
+    @Test
+    void 중복_확인_직후_동시_신고가_저장되면_ALREADY_REPORTED_예외가_발생한다() {
+        ShortReportPort port = mock(ShortReportPort.class);
+        when(port.findActiveShortOwnerId(12L)).thenReturn(Optional.of(99L));
+        when(port.existsByReporterAndShort(1L, 12L)).thenReturn(false);
+        when(port.save(1L, 12L, "COPYRIGHT", "설명")).thenReturn(Optional.empty());
+        SubmitShortReportUseCase useCase = new SubmitShortReportUseCase(port);
+
+        assertThatThrownBy(() -> useCase.execute(12L, 1L, "COPYRIGHT", "설명"))
+                .isInstanceOf(ShortReportApplicationException.class)
+                .extracting("errorCode")
+                .isEqualTo(ShortReportErrorCode.ALREADY_REPORTED);
     }
 
     @Test

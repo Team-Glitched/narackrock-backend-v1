@@ -1,7 +1,6 @@
 package glitched.adlips.adapter.out.persistence.shorts;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import glitched.adlips.adapter.out.persistence.report.ReportJpaRepository;
 import jakarta.persistence.EntityManager;
@@ -9,7 +8,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.jdbc.core.JdbcTemplate;
 
 @DataJpaTest
@@ -54,7 +52,8 @@ class ShortReportPersistenceAdapterTest {
 
     @Test
     void 저장하면_생성된_id를_반환하고_이후_중복_조회에서_true를_반환한다() {
-        Long reportId = adapter.save(1L, 201L, "COPYRIGHT", "저작권 침해가 의심됩니다.");
+        Long reportId = adapter.save(1L, 201L, "COPYRIGHT", "저작권 침해가 의심됩니다.")
+                .orElseThrow();
         entityManager.flush();
 
         assertThat(reportId).isNotNull();
@@ -62,14 +61,10 @@ class ShortReportPersistenceAdapterTest {
     }
 
     @Test
-    void 같은_신고자와_숏폼_조합으로_두_번_저장하면_유니크_제약_위반이_발생한다() {
+    void 같은_신고자와_숏폼_조합으로_두_번_저장하면_빈_값을_반환한다() {
         adapter.save(1L, 201L, "COPYRIGHT", "첫 번째 신고");
-        entityManager.flush();
 
-        assertThatThrownBy(() -> {
-            adapter.save(1L, 201L, "SPAM", "두 번째 신고");
-            entityManager.flush();
-        }).isInstanceOf(DataIntegrityViolationException.class);
+        assertThat(adapter.save(1L, 201L, "SPAM", "두 번째 신고")).isEmpty();
     }
 
     private void insertShort(long id, long ownerId, String deletedAtExpression) {

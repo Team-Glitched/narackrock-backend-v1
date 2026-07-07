@@ -7,5 +7,5 @@ public interface ShortReportPort {
 
     boolean existsByReporterAndShort(Long reporterId, Long shortId);
 
-    Long save(Long reporterId, Long shortId, String reason, String description);
+    Optional<Long> save(Long reporterId, Long shortId, String reason, String description);
 }

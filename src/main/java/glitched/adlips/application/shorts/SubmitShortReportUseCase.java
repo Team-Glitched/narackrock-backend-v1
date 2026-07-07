@@ -26,7 +26,9 @@ public class SubmitShortReportUseCase {
             throw new ShortReportApplicationException(
                     ShortReportErrorCode.ALREADY_REPORTED, "이미 신고한 숏폼입니다.");
         }
-        Long reportId = port.save(reporterId, shortId, reason.trim(), normalize(description));
+        Long reportId = port.save(reporterId, shortId, reason.trim(), normalize(description))
+                .orElseThrow(() -> new ShortReportApplicationException(
+                        ShortReportErrorCode.ALREADY_REPORTED, "이미 신고한 숏폼입니다."));
         return new ShortReportResult(reportId, shortId);
     }
 

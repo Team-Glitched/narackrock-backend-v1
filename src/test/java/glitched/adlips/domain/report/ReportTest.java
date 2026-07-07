@@ -46,4 +46,12 @@ class ReportTest {
         assertThatThrownBy(() -> new Report(reporter, ReportTargetType.SHORT, 12L, null, "설명"))
                 .isInstanceOf(NullPointerException.class);
     }
+
+    @Test
+    void reason이_공백이면_예외가_발생한다() {
+        User reporter = User.create("reporter@example.com").withId(1L);
+
+        assertThatThrownBy(() -> new Report(reporter, ReportTargetType.SHORT, 12L, "  ", "설명"))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }

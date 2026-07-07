@@ -5,6 +5,7 @@ import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.project.port.out.ProjectMemberJoinPort;
 import glitched.adlips.application.project.usecase.ProjectMemberJoinUseCase;
 import glitched.adlips.application.shorts.GetShortsComposersUseCase;
+import glitched.adlips.application.shorts.GetShortsCompositionDetailUseCase;
 import glitched.adlips.application.shorts.GetShortsUseCase;
 import glitched.adlips.application.shorts.ShortsCompositionEntryUseCase;
 import glitched.adlips.application.shorts.SubmitShortReportUseCase;
@@ -17,6 +18,7 @@ import glitched.adlips.application.shorts.port.out.ShortPlaybackPort;
 import glitched.adlips.application.shorts.port.out.ShortReactionPort;
 import glitched.adlips.application.shorts.port.out.ShortReportPort;
 import glitched.adlips.application.shorts.port.out.ShortsComposersQueryPort;
+import glitched.adlips.application.shorts.port.out.ShortsCompositionDetailQueryPort;
 import glitched.adlips.application.shorts.port.out.ShortsCompositionQueryPort;
 import glitched.adlips.application.shorts.port.out.ShortsQueryPort;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
@@ -100,5 +102,14 @@ public class ShortsApplicationConfiguration {
     @Bean
     SubmitShortReportUseCase submitShortReportUseCase(ShortReportPort shortReportPort) {
         return new SubmitShortReportUseCase(shortReportPort);
+    }
+
+    @Bean
+    GetShortsCompositionDetailUseCase getShortsCompositionDetailUseCase(
+            ShortsCompositionDetailQueryPort shortsCompositionDetailQueryPort,
+            ShortsComposersQueryPort shortsComposersQueryPort
+    ) {
+        return new GetShortsCompositionDetailUseCase(
+                shortsCompositionDetailQueryPort, shortsComposersQueryPort);
     }
 }

@@ -54,4 +54,7 @@ interface ShortFormJpaRepository extends JpaRepository<ShortForm, Long> {
 
     @Query("SELECT s.user.id FROM ShortForm s WHERE s.id = :shortId AND s.deletedAt IS NULL")
     Optional<Long> findActiveOwnerId(@Param("shortId") Long shortId);
+
+    @Query("SELECT s.title FROM ShortForm s WHERE s.id = :shortId AND s.deletedAt IS NULL")
+    Optional<String> findActiveTitle(@Param("shortId") Long shortId);
 }

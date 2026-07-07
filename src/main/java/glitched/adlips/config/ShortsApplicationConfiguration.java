@@ -6,6 +6,7 @@ import glitched.adlips.application.project.port.out.ProjectMemberJoinPort;
 import glitched.adlips.application.project.usecase.ProjectMemberJoinUseCase;
 import glitched.adlips.application.shorts.GetShortsComposersUseCase;
 import glitched.adlips.application.shorts.GetShortsCompositionDetailUseCase;
+import glitched.adlips.application.shorts.GetShortsShareUseCase;
 import glitched.adlips.application.shorts.GetShortsUseCase;
 import glitched.adlips.application.shorts.ShortsCompositionEntryUseCase;
 import glitched.adlips.application.shorts.ToggleShortBookmarkUseCase;
@@ -19,6 +20,8 @@ import glitched.adlips.application.shorts.port.out.ShortsComposersQueryPort;
 import glitched.adlips.application.shorts.port.out.ShortsCompositionDetailQueryPort;
 import glitched.adlips.application.shorts.port.out.ShortsCompositionQueryPort;
 import glitched.adlips.application.shorts.port.out.ShortsQueryPort;
+import glitched.adlips.application.shorts.port.out.ShortsShareLinkPort;
+import glitched.adlips.application.shorts.port.out.ShortsSharePort;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import java.time.Clock;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -104,5 +107,13 @@ public class ShortsApplicationConfiguration {
     ) {
         return new GetShortsCompositionDetailUseCase(
                 shortsCompositionDetailQueryPort, shortsComposersQueryPort);
+    }
+
+    @Bean
+    GetShortsShareUseCase getShortsShareUseCase(
+            ShortsSharePort shortsSharePort,
+            ShortsShareLinkPort shortsShareLinkPort
+    ) {
+        return new GetShortsShareUseCase(shortsSharePort, shortsShareLinkPort);
     }
 }

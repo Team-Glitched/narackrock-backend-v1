@@ -7,6 +7,7 @@ import glitched.adlips.application.project.usecase.ProjectMemberJoinUseCase;
 import glitched.adlips.application.shorts.GetShortsComposersUseCase;
 import glitched.adlips.application.shorts.GetShortsUseCase;
 import glitched.adlips.application.shorts.ShortsCompositionEntryUseCase;
+import glitched.adlips.application.shorts.SubmitShortReportUseCase;
 import glitched.adlips.application.shorts.ToggleShortBookmarkUseCase;
 import glitched.adlips.application.shorts.ToggleShortDislikeUseCase;
 import glitched.adlips.application.shorts.ToggleShortLikeUseCase;
@@ -14,6 +15,7 @@ import glitched.adlips.application.shorts.ToggleShortPlaybackUseCase;
 import glitched.adlips.application.shorts.port.out.ShortBookmarkPort;
 import glitched.adlips.application.shorts.port.out.ShortPlaybackPort;
 import glitched.adlips.application.shorts.port.out.ShortReactionPort;
+import glitched.adlips.application.shorts.port.out.ShortReportPort;
 import glitched.adlips.application.shorts.port.out.ShortsComposersQueryPort;
 import glitched.adlips.application.shorts.port.out.ShortsCompositionQueryPort;
 import glitched.adlips.application.shorts.port.out.ShortsQueryPort;
@@ -93,5 +95,10 @@ public class ShortsApplicationConfiguration {
             ShortsComposersQueryPort shortsComposersQueryPort
     ) {
         return new GetShortsComposersUseCase(shortsComposersQueryPort);
+    }
+
+    @Bean
+    SubmitShortReportUseCase submitShortReportUseCase(ShortReportPort shortReportPort) {
+        return new SubmitShortReportUseCase(shortReportPort);
     }
 }

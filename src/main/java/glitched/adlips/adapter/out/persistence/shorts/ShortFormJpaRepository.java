@@ -51,4 +51,7 @@ interface ShortFormJpaRepository extends JpaRepository<ShortForm, Long> {
     boolean existsByIdAndStatusAndDeletedAtIsNull(Long id, ShortStatus status);
 
     boolean existsByIdAndDeletedAtIsNull(Long id);
+
+    @Query("SELECT s.user.id FROM ShortForm s WHERE s.id = :shortId AND s.deletedAt IS NULL")
+    Optional<Long> findActiveOwnerId(@Param("shortId") Long shortId);
 }

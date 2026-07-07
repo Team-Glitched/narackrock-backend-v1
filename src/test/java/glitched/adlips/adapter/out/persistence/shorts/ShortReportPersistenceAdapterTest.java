@@ -3,8 +3,8 @@ package glitched.adlips.adapter.out.persistence.shorts;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import glitched.adlips.adapter.out.persistence.report.ReportJpaRepository;
 import jakarta.persistence.EntityManager;
-import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +16,7 @@ import org.springframework.jdbc.core.JdbcTemplate;
 class ShortReportPersistenceAdapterTest {
 
     @Autowired ShortFormJpaRepository shortFormRepository;
-    @Autowired ShortReportJpaRepository shortReportRepository;
+    @Autowired ReportJpaRepository reportRepository;
     @Autowired EntityManager entityManager;
     @Autowired JdbcTemplate jdbcTemplate;
 
@@ -24,7 +24,7 @@ class ShortReportPersistenceAdapterTest {
 
     @BeforeEach
     void setUp() {
-        adapter = new ShortReportPersistenceAdapter(shortFormRepository, shortReportRepository, entityManager);
+        adapter = new ShortReportPersistenceAdapter(shortFormRepository, reportRepository, entityManager);
 
         jdbcTemplate.update("INSERT INTO users (id, email, role, created_at) VALUES (1, 'reporter@test.com', 'USER', CURRENT_TIMESTAMP)");
         jdbcTemplate.update("INSERT INTO users (id, email, role, created_at) VALUES (99, 'owner@test.com', 'USER', CURRENT_TIMESTAMP)");

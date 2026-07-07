@@ -1,8 +1,9 @@
 package glitched.adlips.adapter.out.persistence.shorts;
 
+import glitched.adlips.adapter.out.persistence.report.ReportJpaRepository;
 import glitched.adlips.application.shorts.port.out.ShortReportPort;
-import glitched.adlips.domain.shorts.ShortForm;
-import glitched.adlips.domain.shorts.ShortReport;
+import glitched.adlips.domain.report.Report;
+import glitched.adlips.domain.report.ReportTargetType;
 import glitched.adlips.domain.user.User;
 import jakarta.persistence.EntityManager;
 import java.util.Optional;
@@ -12,16 +13,16 @@ import org.springframework.stereotype.Repository;
 public class ShortReportPersistenceAdapter implements ShortReportPort {
 
     private final ShortFormJpaRepository shortFormRepository;
-    private final ShortReportJpaRepository shortReportRepository;
+    private final ReportJpaRepository reportRepository;
     private final EntityManager entityManager;
 
     public ShortReportPersistenceAdapter(
             ShortFormJpaRepository shortFormRepository,
-            ShortReportJpaRepository shortReportRepository,
+            ReportJpaRepository reportRepository,
             EntityManager entityManager
     ) {
         this.shortFormRepository = shortFormRepository;
-        this.shortReportRepository = shortReportRepository;
+        this.reportRepository = reportRepository;
         this.entityManager = entityManager;
     }
 
@@ -32,14 +33,15 @@ public class ShortReportPersistenceAdapter implements ShortReportPort {
 
     @Override
     public boolean existsByReporterAndShort(Long reporterId, Long shortId) {
-        return shortReportRepository.existsByReporterIdAndShortsId(reporterId, shortId);
+        return reportRepository.existsByReporterIdAndTargetTypeAndTargetId(
+                reporterId, ReportTargetType.SHORT, shortId);
     }
 
     @Override
     public Long save(Long reporterId, Long shortId, String reason, String description) {
         User reporter = entityManager.getReference(User.class, reporterId);
-        ShortForm shorts = entityManager.getReference(ShortForm.class, shortId);
-        ShortReport saved = shortReportRepository.save(new ShortReport(reporter, shorts, reason, description));
+        Report saved = reportRepository.save(
+                new Report(reporter, ReportTargetType.SHORT, shortId, reason, description));
         return saved.getId();
     }
 }

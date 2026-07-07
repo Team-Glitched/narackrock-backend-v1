@@ -6,8 +6,8 @@ import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.application.shorts.GetShortsShareUseCase;
 import glitched.adlips.application.shorts.ShortsShareResult;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,7 +27,7 @@ public class ShortsShareController {
         this.authenticatedUserResolver = authenticatedUserResolver;
     }
 
-    @GetMapping("/{shortId}/share")
+    @PostMapping("/{shortId}/share")
     public ResponseEntity<ApiResponse<ShortsShareResponse>> getShareLink(
             @PathVariable Long shortId,
             @RequestHeader("Authorization") String authorization

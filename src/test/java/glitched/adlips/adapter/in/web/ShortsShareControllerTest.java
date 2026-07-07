@@ -2,6 +2,7 @@ package glitched.adlips.adapter.in.web;
 
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -47,7 +48,7 @@ class ShortsShareControllerTest {
         when(getShortsShareUseCase.execute(12L))
                 .thenReturn(new ShortsShareResult(12L, "https://app.example.com/shorts/12"));
 
-        mockMvc.perform(get("/api/v1/shorts/12/share")
+        mockMvc.perform(post("/api/v1/shorts/12/share")
                         .header("Authorization", "Bearer " + validToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -62,7 +63,7 @@ class ShortsShareControllerTest {
                 new ShortsCompositionApplicationException(
                         ShortsCompositionErrorCode.SHORT_NOT_FOUND, "존재하지 않는 숏폼입니다."));
 
-        mockMvc.perform(get("/api/v1/shorts/999/share")
+        mockMvc.perform(post("/api/v1/shorts/999/share")
                         .header("Authorization", "Bearer " + validToken))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.success").value(false))
@@ -71,7 +72,14 @@ class ShortsShareControllerTest {
 
     @Test
     void 인증없는_요청시_401을_반환한다() throws Exception {
-        mockMvc.perform(get("/api/v1/shorts/12/share"))
+        mockMvc.perform(post("/api/v1/shorts/12/share"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void GET_요청은_허용하지_않는다() throws Exception {
+        mockMvc.perform(get("/api/v1/shorts/12/share")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isMethodNotAllowed());
     }
 }

@@ -2,6 +2,7 @@ package glitched.adlips.adapter.in.web;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -10,12 +11,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import glitched.adlips.adapter.in.web.shorts.ShortCommentController;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.adapter.out.token.JwtTokenIssuerAdapter;
+import glitched.adlips.application.shorts.GetShortCommentsUseCase;
 import glitched.adlips.application.shorts.ShortCommentApplicationException;
 import glitched.adlips.application.shorts.ShortCommentErrorCode;
+import glitched.adlips.application.shorts.ShortCommentListResult;
 import glitched.adlips.application.shorts.ShortCommentResult;
 import glitched.adlips.application.shorts.SubmitShortCommentUseCase;
+import glitched.adlips.application.shorts.port.out.ShortCommentQueryItem;
 import glitched.adlips.application.user.account.port.out.AccessTokenPort;
 import glitched.adlips.global.config.SecurityConfig;
+import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,6 +39,7 @@ class ShortCommentControllerTest {
     @Autowired JwtTokenIssuerAdapter jwtTokenIssuerAdapter;
 
     @MockitoBean SubmitShortCommentUseCase submitShortCommentUseCase;
+    @MockitoBean GetShortCommentsUseCase getShortCommentsUseCase;
     @MockitoBean AuthenticatedUserResolver authenticatedUserResolver;
     @MockitoBean AccessTokenPort accessTokenPort;
 
@@ -43,6 +50,55 @@ class ShortCommentControllerTest {
         validToken = jwtTokenIssuerAdapter.issue(1L);
         when(accessTokenPort.verify(validToken)).thenReturn(1L);
         when(authenticatedUserResolver.requireUserId("Bearer " + validToken)).thenReturn(1L);
+        when(authenticatedUserResolver.resolveOptionalUserId("Bearer " + validToken)).thenReturn(1L);
+        when(authenticatedUserResolver.resolveOptionalUserId(null)).thenReturn(null);
+    }
+
+    @Test
+    void 로그인_상태로_댓글_목록_조회시_200과_목록을_반환한다() throws Exception {
+        ShortCommentQueryItem item = new ShortCommentQueryItem(
+                7721L, null, "멜로디가 좋아요.", 12L, "adlip_user", "https://cdn.test/img.png",
+                4, 2, false, LocalDateTime.of(2026, 6, 22, 14, 0));
+        when(getShortCommentsUseCase.execute(15L, 1L))
+                .thenReturn(new ShortCommentListResult(15L, List.of(item)));
+
+        mockMvc.perform(get("/api/v1/shorts/15/comments")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("댓글 목록 조회가 완료되었습니다."))
+                .andExpect(jsonPath("$.data.shortId").value(15))
+                .andExpect(jsonPath("$.data.comments[0].commentId").value(7721))
+                .andExpect(jsonPath("$.data.comments[0].parentCommentId").doesNotExist())
+                .andExpect(jsonPath("$.data.comments[0].content").value("멜로디가 좋아요."))
+                .andExpect(jsonPath("$.data.comments[0].writer.userId").value(12))
+                .andExpect(jsonPath("$.data.comments[0].writer.nickname").value("adlip_user"))
+                .andExpect(jsonPath("$.data.comments[0].writer.profileImageUrl").value("https://cdn.test/img.png"))
+                .andExpect(jsonPath("$.data.comments[0].likeCount").value(4))
+                .andExpect(jsonPath("$.data.comments[0].replyCount").value(2))
+                .andExpect(jsonPath("$.data.comments[0].isLiked").value(false))
+                .andExpect(jsonPath("$.data.comments[0].createdAt").value("2026-06-22T14:00:00"));
+    }
+
+    @Test
+    void 비로그인_상태로_댓글_목록을_조회해도_200을_반환한다() throws Exception {
+        when(getShortCommentsUseCase.execute(15L, null))
+                .thenReturn(new ShortCommentListResult(15L, List.of()));
+
+        mockMvc.perform(get("/api/v1/shorts/15/comments"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.shortId").value(15));
+    }
+
+    @Test
+    void 댓글_목록_조회시_존재하지_않는_숏폼이면_404를_반환한다() throws Exception {
+        when(getShortCommentsUseCase.execute(999L, null)).thenThrow(
+                new ShortCommentApplicationException(
+                        ShortCommentErrorCode.SHORT_NOT_FOUND, "존재하지 않는 숏폼입니다."));
+
+        mockMvc.perform(get("/api/v1/shorts/999/comments"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("SHORT_NOT_FOUND"));
     }
 
     @Test

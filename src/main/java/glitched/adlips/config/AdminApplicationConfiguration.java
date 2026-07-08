@@ -3,6 +3,7 @@ package glitched.adlips.config;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.report.port.out.ReportResolutionPort;
 import glitched.adlips.application.report.usecase.ResolveReportUseCase;
+import glitched.adlips.application.report.usecase.RejectReportUseCase;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import java.time.Clock;
 import org.springframework.context.annotation.Bean;
@@ -19,5 +20,15 @@ public class AdminApplicationConfiguration {
             TransactionRunner transactionRunner
     ) {
         return new ResolveReportUseCase(reportResolutionPort, userRepositoryPort, clock, transactionRunner);
+    }
+
+    @Bean
+    RejectReportUseCase rejectReportUseCase(
+            ReportResolutionPort reportResolutionPort,
+            UserRepositoryPort userRepositoryPort,
+            Clock clock,
+            TransactionRunner transactionRunner
+    ) {
+        return new RejectReportUseCase(reportResolutionPort, userRepositoryPort, clock, transactionRunner);
     }
 }

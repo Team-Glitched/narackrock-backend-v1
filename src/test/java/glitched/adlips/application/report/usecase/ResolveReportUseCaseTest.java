@@ -73,13 +73,15 @@ class ResolveReportUseCaseTest {
     }
 
     @Test
-    void REJECT_REPORT_액션은_REJECTED_상태로_매핑된다() {
+    void REJECT_REPORT_액션은_별도_반려_API를_사용해야_하므로_VALIDATION_ERROR가_발생한다() {
         when(userRepository.findById(2L)).thenReturn(Optional.of(admin));
-        when(port.findByIdForUpdate(101L)).thenReturn(Optional.of(pendingReport()));
 
-        ReportResolutionResult result = useCase.execute(101L, 2L, "REJECT_REPORT", "근거 부족으로 반려합니다.");
+        assertThatThrownBy(() -> useCase.execute(101L, 2L, "REJECT_REPORT", "근거 부족으로 반려합니다."))
+                .isInstanceOf(ReportResolutionApplicationException.class)
+                .extracting("errorCode")
+                .isEqualTo(ReportResolutionErrorCode.VALIDATION_ERROR);
 
-        assertThat(result.status()).isEqualTo(ReportStatus.REJECTED);
+        verify(port, never()).findByIdForUpdate(any());
     }
 
     @Test

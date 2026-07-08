@@ -12,14 +12,14 @@ import glitched.adlips.domain.user.UserRole;
 import java.time.Clock;
 import java.time.LocalDateTime;
 
-public class ResolveReportUseCase {
+public class RejectReportUseCase {
 
     private final ReportResolutionPort port;
     private final UserRepositoryPort userRepository;
     private final Clock clock;
     private final TransactionRunner transactionRunner;
 
-    public ResolveReportUseCase(
+    public RejectReportUseCase(
             ReportResolutionPort port,
             UserRepositoryPort userRepository,
             Clock clock,
@@ -31,38 +31,40 @@ public class ResolveReportUseCase {
         this.transactionRunner = transactionRunner;
     }
 
-    public ReportResolutionResult execute(Long reportId, Long adminUserId, String actionTypeValue, String reason) {
+    public ReportResolutionResult execute(Long reportId, Long adminUserId, String reason) {
         User admin = requireAdmin(adminUserId);
-
         if (reason == null || reason.isBlank()) {
             throw new ReportResolutionApplicationException(
-                    ReportResolutionErrorCode.VALIDATION_ERROR, "차단 원인을 입력해 주세요.");
+                    ReportResolutionErrorCode.VALIDATION_ERROR, "반려 사유를 입력해 주세요.");
         }
-        ModerationActionType actionType = parseActionType(actionTypeValue);
-
-        return transactionRunner.required(() -> resolve(reportId, admin, actionType, reason.trim()));
+        return transactionRunner.required(() -> reject(reportId, admin, reason.trim()));
     }
 
-    private ReportResolutionResult resolve(Long reportId, User admin, ModerationActionType actionType, String reason) {
+    private ReportResolutionResult reject(Long reportId, User admin, String reason) {
         Report report = port.findByIdForUpdate(reportId)
                 .orElseThrow(() -> new ReportResolutionApplicationException(
                         ReportResolutionErrorCode.REPORT_NOT_FOUND, "존재하지 않는 신고입니다."));
-
-        ReportStatus newStatus = actionType == ModerationActionType.REJECT_REPORT
-                ? ReportStatus.REJECTED : ReportStatus.RESOLVED;
         try {
-            report.resolve(admin, newStatus, LocalDateTime.now(clock));
+            report.resolve(admin, ReportStatus.REJECTED, LocalDateTime.now(clock));
         } catch (IllegalStateException e) {
             throw new ReportResolutionApplicationException(
                     ReportResolutionErrorCode.ALREADY_HANDLED, "이미 처리된 신고입니다.");
         }
         port.save(report);
         port.saveModerationAction(new ModerationAction(
-                report, admin, report.getTargetType(), report.getTargetId(), actionType, reason));
-
+                report,
+                admin,
+                report.getTargetType(),
+                report.getTargetId(),
+                ModerationActionType.REJECT_REPORT,
+                reason));
         return new ReportResolutionResult(
-                report.getId(), report.getStatus(), actionType,
-                report.getHandledAt(), report.getTargetType(), report.getTargetId());
+                report.getId(),
+                report.getStatus(),
+                ModerationActionType.REJECT_REPORT,
+                report.getHandledAt(),
+                report.getTargetType(),
+                report.getTargetId());
     }
 
     private User requireAdmin(Long adminUserId) {
@@ -70,18 +72,5 @@ public class ResolveReportUseCase {
                 .filter(user -> user.getRole() == UserRole.ADMIN)
                 .orElseThrow(() -> new ReportResolutionApplicationException(
                         ReportResolutionErrorCode.FORBIDDEN, "관리자만 처리할 수 있습니다."));
-    }
-
-    private ModerationActionType parseActionType(String value) {
-        try {
-            ModerationActionType actionType = ModerationActionType.valueOf(value);
-            if (actionType == ModerationActionType.REJECT_REPORT) {
-                throw new IllegalArgumentException("reject action must use the reject endpoint");
-            }
-            return actionType;
-        } catch (IllegalArgumentException | NullPointerException e) {
-            throw new ReportResolutionApplicationException(
-                    ReportResolutionErrorCode.VALIDATION_ERROR, "올바르지 않은 처리 유형입니다.");
-        }
     }
 }

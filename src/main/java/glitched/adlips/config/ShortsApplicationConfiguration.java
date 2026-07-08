@@ -9,12 +9,14 @@ import glitched.adlips.application.shorts.GetShortsCompositionDetailUseCase;
 import glitched.adlips.application.shorts.GetShortsShareUseCase;
 import glitched.adlips.application.shorts.GetShortsUseCase;
 import glitched.adlips.application.shorts.ShortsCompositionEntryUseCase;
+import glitched.adlips.application.shorts.SubmitShortCommentUseCase;
 import glitched.adlips.application.shorts.SubmitShortReportUseCase;
 import glitched.adlips.application.shorts.ToggleShortBookmarkUseCase;
 import glitched.adlips.application.shorts.ToggleShortDislikeUseCase;
 import glitched.adlips.application.shorts.ToggleShortLikeUseCase;
 import glitched.adlips.application.shorts.ToggleShortPlaybackUseCase;
 import glitched.adlips.application.shorts.port.out.ShortBookmarkPort;
+import glitched.adlips.application.shorts.port.out.ShortCommentPort;
 import glitched.adlips.application.shorts.port.out.ShortPlaybackPort;
 import glitched.adlips.application.shorts.port.out.ShortReactionPort;
 import glitched.adlips.application.shorts.port.out.ShortReportPort;
@@ -122,5 +124,13 @@ public class ShortsApplicationConfiguration {
             ShortsShareLinkPort shortsShareLinkPort
     ) {
         return new GetShortsShareUseCase(shortsSharePort, shortsShareLinkPort);
+    }
+
+    @Bean
+    SubmitShortCommentUseCase submitShortCommentUseCase(
+            ShortCommentPort shortCommentPort,
+            TransactionRunner transactionRunner
+    ) {
+        return new SubmitShortCommentUseCase(shortCommentPort, transactionRunner);
     }
 }

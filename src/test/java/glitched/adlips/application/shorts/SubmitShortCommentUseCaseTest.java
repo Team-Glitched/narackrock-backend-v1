@@ -81,6 +81,16 @@ class SubmitShortCommentUseCaseTest {
     }
 
     @Test
+    void 정지된_사용자는_content가_공백이어도_BANNED_USER_ACCESS가_우선_발생한다() {
+        when(userBanQueryPort.isBanned(1L, LocalDateTime.now(clock))).thenReturn(true);
+
+        assertThatThrownBy(() -> useCase.execute(12L, 1L, "  ", null))
+                .isInstanceOf(ShortCommentApplicationException.class)
+                .extracting("errorCode")
+                .isEqualTo(ShortCommentErrorCode.BANNED_USER_ACCESS);
+    }
+
+    @Test
     void 댓글_내용이_공백이면_INVALID_INPUT_VALUE_예외와_댓글_메시지가_발생하고_포트를_호출하지_않는다() {
         assertThatThrownBy(() -> useCase.execute(12L, 1L, "  ", null))
                 .isInstanceOf(ShortCommentApplicationException.class)

@@ -26,16 +26,16 @@ public class SubmitShortCommentUseCase {
     }
 
     public ShortCommentResult execute(Long shortId, Long userId, String content, Long parentCommentId) {
+        if (userBanQueryPort.isBanned(userId, LocalDateTime.now(clock))) {
+            throw new ShortCommentApplicationException(
+                    ShortCommentErrorCode.BANNED_USER_ACCESS,
+                    "현재 서비스 이용 정지 상태이므로 댓글을 작성할 수 없습니다.");
+        }
         boolean isReply = parentCommentId != null;
         if (content == null || content.isBlank()) {
             throw new ShortCommentApplicationException(
                     ShortCommentErrorCode.INVALID_INPUT_VALUE,
                     isReply ? "대댓글 내용은 필수 입력 사항입니다." : "댓글 내용은 필수 입력 사항입니다.");
-        }
-        if (userBanQueryPort.isBanned(userId, LocalDateTime.now(clock))) {
-            throw new ShortCommentApplicationException(
-                    ShortCommentErrorCode.BANNED_USER_ACCESS,
-                    "현재 서비스 이용 정지 상태이므로 댓글을 작성할 수 없습니다.");
         }
 
         return transactionRunner.required(() -> {

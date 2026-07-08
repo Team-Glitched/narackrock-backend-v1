@@ -122,6 +122,23 @@ class ShortCommentControllerTest {
     }
 
     @Test
+    void 이용_정지_사용자면_403을_반환한다() throws Exception {
+        when(submitShortCommentUseCase.execute(15L, 1L, "내용", null)).thenThrow(
+                new ShortCommentApplicationException(
+                        ShortCommentErrorCode.BANNED_USER_ACCESS,
+                        "현재 서비스 이용 정지 상태이므로 댓글을 작성할 수 없습니다."));
+
+        mockMvc.perform(post("/api/v1/shorts/15/comments")
+                        .header("Authorization", "Bearer " + validToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"content\":\"내용\",\"parentCommentId\":null}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.errorCode").value("BANNED_USER_ACCESS"))
+                .andExpect(jsonPath("$.message")
+                        .value("현재 서비스 이용 정지 상태이므로 댓글을 작성할 수 없습니다."));
+    }
+
+    @Test
     void 인증없는_요청시_401을_반환한다() throws Exception {
         mockMvc.perform(post("/api/v1/shorts/15/comments")
                         .contentType(MediaType.APPLICATION_JSON)

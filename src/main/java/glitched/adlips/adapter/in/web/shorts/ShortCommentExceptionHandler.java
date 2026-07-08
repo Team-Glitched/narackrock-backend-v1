@@ -14,6 +14,7 @@ public class ShortCommentExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handle(ShortCommentApplicationException e) {
         HttpStatus status = switch (e.getErrorCode()) {
             case INVALID_INPUT_VALUE -> HttpStatus.BAD_REQUEST;
+            case BANNED_USER_ACCESS -> HttpStatus.FORBIDDEN;
             case SHORT_NOT_FOUND, PARENT_COMMENT_NOT_FOUND -> HttpStatus.NOT_FOUND;
         };
         return ResponseEntity.status(status).body(ApiErrorResponse.of(e.getErrorCode().name(), e.getMessage()));

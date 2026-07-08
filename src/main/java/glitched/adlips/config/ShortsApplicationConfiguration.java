@@ -20,6 +20,7 @@ import glitched.adlips.application.shorts.port.out.ShortCommentPort;
 import glitched.adlips.application.shorts.port.out.ShortPlaybackPort;
 import glitched.adlips.application.shorts.port.out.ShortReactionPort;
 import glitched.adlips.application.shorts.port.out.ShortReportPort;
+import glitched.adlips.application.shorts.port.out.UserBanQueryPort;
 import glitched.adlips.application.shorts.port.out.ShortsComposersQueryPort;
 import glitched.adlips.application.shorts.port.out.ShortsCompositionDetailQueryPort;
 import glitched.adlips.application.shorts.port.out.ShortsCompositionQueryPort;
@@ -129,8 +130,11 @@ public class ShortsApplicationConfiguration {
     @Bean
     SubmitShortCommentUseCase submitShortCommentUseCase(
             ShortCommentPort shortCommentPort,
-            TransactionRunner transactionRunner
+            UserBanQueryPort userBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock
     ) {
-        return new SubmitShortCommentUseCase(shortCommentPort, transactionRunner);
+        return new SubmitShortCommentUseCase(
+                shortCommentPort, userBanQueryPort, transactionRunner, clock);
     }
 }

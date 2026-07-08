@@ -11,6 +11,11 @@ import static org.mockito.Mockito.when;
 
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.shorts.port.out.ShortCommentPort;
+import glitched.adlips.application.shorts.port.out.UserBanQueryPort;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,16 +23,20 @@ import org.junit.jupiter.api.Test;
 class SubmitShortCommentUseCaseTest {
 
     ShortCommentPort port;
+    UserBanQueryPort userBanQueryPort;
     TransactionRunner transactionRunner;
+    Clock clock;
     SubmitShortCommentUseCase useCase;
 
     @BeforeEach
     void setUp() {
         port = mock(ShortCommentPort.class);
+        userBanQueryPort = mock(UserBanQueryPort.class);
         transactionRunner = mock(TransactionRunner.class);
         when(transactionRunner.required(any())).thenAnswer(invocation ->
                 invocation.<Supplier<?>>getArgument(0).get());
-        useCase = new SubmitShortCommentUseCase(port, transactionRunner);
+        clock = Clock.fixed(Instant.parse("2026-07-08T10:00:00Z"), ZoneOffset.UTC);
+        useCase = new SubmitShortCommentUseCase(port, userBanQueryPort, transactionRunner, clock);
     }
 
     @Test
@@ -56,6 +65,19 @@ class SubmitShortCommentUseCaseTest {
         assertThat(result.parentCommentId()).isEqualTo(7721L);
         verify(port).adjustShortCommentCount(12L, 1);
         verify(port).adjustParentReplyCount(7721L, 1);
+    }
+
+    @Test
+    void 이용_정지_사용자는_BANNED_USER_ACCESS_예외가_발생하고_댓글을_저장하지_않는다() {
+        when(userBanQueryPort.isBanned(1L, LocalDateTime.now(clock))).thenReturn(true);
+
+        assertThatThrownBy(() -> useCase.execute(12L, 1L, "내용", null))
+                .isInstanceOf(ShortCommentApplicationException.class)
+                .hasMessage("현재 서비스 이용 정지 상태이므로 댓글을 작성할 수 없습니다.")
+                .extracting("errorCode")
+                .isEqualTo(ShortCommentErrorCode.BANNED_USER_ACCESS);
+
+        verify(port, never()).save(any(), any(), any(), any());
     }
 
     @Test

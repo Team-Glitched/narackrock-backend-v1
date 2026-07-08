@@ -8,6 +8,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -15,7 +16,11 @@ import java.time.LocalDateTime;
 import java.util.Objects;
 
 @Entity
-@Table(name = "shorts_comments")
+@Table(name = "shorts_comments", indexes = {
+        @Index(name = "idx_shorts_comments_shorts_created", columnList = "shorts_id, created_at"),
+        @Index(name = "idx_shorts_comments_parent", columnList = "parent_comment_id"),
+        @Index(name = "idx_shorts_comments_user", columnList = "user_id")
+})
 public class ShortComment extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

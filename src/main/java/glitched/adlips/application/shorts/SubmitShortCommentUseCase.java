@@ -2,15 +2,27 @@ package glitched.adlips.application.shorts;
 
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.shorts.port.out.ShortCommentPort;
+import glitched.adlips.application.shorts.port.out.UserBanQueryPort;
+import java.time.Clock;
+import java.time.LocalDateTime;
 
 public class SubmitShortCommentUseCase {
 
     private final ShortCommentPort port;
+    private final UserBanQueryPort userBanQueryPort;
     private final TransactionRunner transactionRunner;
+    private final Clock clock;
 
-    public SubmitShortCommentUseCase(ShortCommentPort port, TransactionRunner transactionRunner) {
+    public SubmitShortCommentUseCase(
+            ShortCommentPort port,
+            UserBanQueryPort userBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
         this.port = port;
+        this.userBanQueryPort = userBanQueryPort;
         this.transactionRunner = transactionRunner;
+        this.clock = clock;
     }
 
     public ShortCommentResult execute(Long shortId, Long userId, String content, Long parentCommentId) {
@@ -19,6 +31,11 @@ public class SubmitShortCommentUseCase {
             throw new ShortCommentApplicationException(
                     ShortCommentErrorCode.INVALID_INPUT_VALUE,
                     isReply ? "대댓글 내용은 필수 입력 사항입니다." : "댓글 내용은 필수 입력 사항입니다.");
+        }
+        if (userBanQueryPort.isBanned(userId, LocalDateTime.now(clock))) {
+            throw new ShortCommentApplicationException(
+                    ShortCommentErrorCode.BANNED_USER_ACCESS,
+                    "현재 서비스 이용 정지 상태이므로 댓글을 작성할 수 없습니다.");
         }
 
         return transactionRunner.required(() -> {

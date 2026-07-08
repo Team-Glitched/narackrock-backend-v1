@@ -5,9 +5,19 @@ import static org.assertj.core.api.Assertions.assertThatCode;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import glitched.adlips.domain.user.User;
+import jakarta.persistence.Table;
+import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 
 class ShortCommentTest {
+
+    @Test
+    void ERD에_정의된_조회_인덱스를_매핑한다() {
+        Table table = ShortComment.class.getAnnotation(Table.class);
+
+        assertThat(Arrays.stream(table.indexes()).map(index -> index.columnList()))
+                .containsExactlyInAnyOrder("shorts_id, created_at", "parent_comment_id", "user_id");
+    }
 
     private ShortForm shorts() {
         return new ShortForm();

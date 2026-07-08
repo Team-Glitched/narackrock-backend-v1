@@ -93,4 +93,17 @@ public class Report extends BaseTimeEntity {
     public ReportStatus getStatus() {
         return status;
     }
+
+    public LocalDateTime getHandledAt() {
+        return handledAt;
+    }
+
+    public void resolve(User admin, ReportStatus newStatus, LocalDateTime handledAt) {
+        if (this.status != ReportStatus.PENDING) {
+            throw new IllegalStateException("이미 처리된 신고입니다.");
+        }
+        this.handledBy = Objects.requireNonNull(admin, "admin must not be null");
+        this.status = Objects.requireNonNull(newStatus, "newStatus must not be null");
+        this.handledAt = Objects.requireNonNull(handledAt, "handledAt must not be null");
+    }
 }

@@ -57,4 +57,8 @@ interface ShortFormJpaRepository extends JpaRepository<ShortForm, Long> {
 
     @Query("SELECT s.title FROM ShortForm s WHERE s.id = :shortId AND s.deletedAt IS NULL")
     Optional<String> findActiveTitle(@Param("shortId") Long shortId);
+
+    @Modifying
+    @Query("UPDATE ShortForm s SET s.commentCount = s.commentCount + :delta WHERE s.id = :shortId")
+    void adjustCommentCount(@Param("shortId") Long shortId, @Param("delta") int delta);
 }

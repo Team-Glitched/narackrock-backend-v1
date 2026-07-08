@@ -6,7 +6,10 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_bans", indexes = @Index(columnList = "user_id,lifted_at"))
+@Table(name = "user_bans", indexes = {
+        @Index(name = "idx_user_bans_user_lifted", columnList = "user_id, lifted_at"),
+        @Index(name = "idx_user_bans_admin", columnList = "admin_id")
+})
 public class UserBan extends BaseCreatedEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) @Column(name = "id") private Long id;
     @ManyToOne(fetch = FetchType.LAZY, optional = false) @JoinColumn(name = "user_id", nullable = false) private User user;

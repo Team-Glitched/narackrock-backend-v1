@@ -48,10 +48,8 @@ public class ResolveReportUseCase {
                 .orElseThrow(() -> new ReportResolutionApplicationException(
                         ReportResolutionErrorCode.REPORT_NOT_FOUND, "존재하지 않는 신고입니다."));
 
-        ReportStatus newStatus = actionType == ModerationActionType.REJECT_REPORT
-                ? ReportStatus.REJECTED : ReportStatus.RESOLVED;
         try {
-            report.resolve(admin, newStatus, LocalDateTime.now(clock));
+            report.resolve(admin, ReportStatus.RESOLVED, LocalDateTime.now(clock));
         } catch (IllegalStateException e) {
             throw new ReportResolutionApplicationException(
                     ReportResolutionErrorCode.ALREADY_HANDLED, "이미 처리된 신고입니다.");

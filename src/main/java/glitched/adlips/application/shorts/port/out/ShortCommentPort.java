@@ -1,5 +1,8 @@
 package glitched.adlips.application.shorts.port.out;
 
+import glitched.adlips.domain.shorts.ShortComment;
+import java.util.Optional;
+
 public interface ShortCommentPort {
     boolean existsActiveShort(Long shortId);
 
@@ -10,4 +13,8 @@ public interface ShortCommentPort {
     void adjustShortCommentCount(Long shortId, int delta);
 
     void adjustParentReplyCount(Long parentCommentId, int delta);
+
+    Optional<ShortComment> findActiveComment(Long commentId, Long shortId);
+
+    void updateContent(ShortComment comment);
 }

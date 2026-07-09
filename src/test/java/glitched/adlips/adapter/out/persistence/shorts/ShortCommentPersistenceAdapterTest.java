@@ -113,6 +113,39 @@ class ShortCommentPersistenceAdapterTest {
                 .extracting("replyCount").isEqualTo(1);
     }
 
+    @Test
+    void 존재하고_삭제되지_않은_댓글을_같은_숏폼_기준으로_조회한다() {
+        assertThat(adapter.findActiveComment(301L, 201L)).isPresent();
+    }
+
+    @Test
+    void 삭제된_댓글은_조회되지_않는다() {
+        assertThat(adapter.findActiveComment(302L, 201L)).isEmpty();
+    }
+
+    @Test
+    void 다른_숏폼_소속_댓글은_조회되지_않는다() {
+        assertThat(adapter.findActiveComment(303L, 201L)).isEmpty();
+    }
+
+    @Test
+    void 존재하지_않는_댓글은_조회되지_않는다() {
+        assertThat(adapter.findActiveComment(999L, 201L)).isEmpty();
+    }
+
+    @Test
+    void updateContent로_저장하면_내용이_반영된다() {
+        ShortComment comment = adapter.findActiveComment(301L, 201L).orElseThrow();
+        comment.updateContent("수정된 내용");
+
+        adapter.updateContent(comment);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(shortCommentRepository.findById(301L).orElseThrow().getContent())
+                .isEqualTo("수정된 내용");
+    }
+
     private void insertShort(long id, long userId, String deletedAtExpression) {
         String deletedAt = deletedAtExpression == null ? "NULL" : deletedAtExpression;
         jdbcTemplate.update("""

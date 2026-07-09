@@ -12,6 +12,7 @@ import glitched.adlips.application.shorts.GetShortCommentsUseCase;
 import glitched.adlips.application.shorts.ShortsCompositionEntryUseCase;
 import glitched.adlips.application.shorts.SubmitShortCommentUseCase;
 import glitched.adlips.application.shorts.SubmitShortReportUseCase;
+import glitched.adlips.application.shorts.UpdateShortCommentUseCase;
 import glitched.adlips.application.shorts.ToggleShortBookmarkUseCase;
 import glitched.adlips.application.shorts.ToggleShortDislikeUseCase;
 import glitched.adlips.application.shorts.ToggleShortLikeUseCase;
@@ -143,5 +144,13 @@ public class ShortsApplicationConfiguration {
     @Bean
     GetShortCommentsUseCase getShortCommentsUseCase(ShortCommentQueryPort shortCommentQueryPort) {
         return new GetShortCommentsUseCase(shortCommentQueryPort);
+    }
+
+    @Bean
+    UpdateShortCommentUseCase updateShortCommentUseCase(
+            ShortCommentPort shortCommentPort,
+            TransactionRunner transactionRunner
+    ) {
+        return new UpdateShortCommentUseCase(shortCommentPort, transactionRunner);
     }
 }

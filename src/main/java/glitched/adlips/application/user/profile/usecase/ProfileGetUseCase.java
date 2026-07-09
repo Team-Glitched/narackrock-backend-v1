@@ -6,6 +6,7 @@ import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
+import glitched.adlips.application.user.profile.port.out.ProfileActivityQueryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
 import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
 import glitched.adlips.domain.media.MediaFile;
@@ -20,17 +21,20 @@ public class ProfileGetUseCase {
     private final ProfileRepositoryPort profileRepository;
     private final MediaFileRepositoryPort mediaFileRepository;
     private final FollowRepositoryPort followRepository;
+    private final ProfileActivityQueryPort profileActivityQueryPort;
 
     public ProfileGetUseCase(
             UserRepositoryPort userRepository,
             ProfileRepositoryPort profileRepository,
             MediaFileRepositoryPort mediaFileRepository,
-            FollowRepositoryPort followRepository
+            FollowRepositoryPort followRepository,
+            ProfileActivityQueryPort profileActivityQueryPort
     ) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.mediaFileRepository = mediaFileRepository;
         this.followRepository = followRepository;
+        this.profileActivityQueryPort = profileActivityQueryPort;
     }
 
     public UserProfileGetResponse execute(UserProfileGetRequest request) {
@@ -58,7 +62,7 @@ public class ProfileGetUseCase {
                 new UserProfileGetResponse.Relations(
                         profile.getFollowerCount(), profile.getFollowingCount(), following
                 ),
-                UserProfileGetResponse.Activities.empty()
+                profileActivityQueryPort.findByUserId(targetUserId)
         );
     }
 

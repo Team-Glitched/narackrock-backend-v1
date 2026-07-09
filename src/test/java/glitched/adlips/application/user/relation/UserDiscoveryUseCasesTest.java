@@ -13,12 +13,15 @@ import glitched.adlips.application.user.relation.dto.response.UserSearchResponse
 import glitched.adlips.application.user.relation.model.RecommendType;
 import glitched.adlips.application.user.relation.usecase.RecommendedUserGetListUseCase;
 import glitched.adlips.application.user.relation.usecase.UserSearchUseCase;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class UserDiscoveryUseCasesTest {
 
     private SocialStore store;
+    private List<Long> collaboratorIds;
     private UserSearchUseCase userSearchUseCase;
     private RecommendedUserGetListUseCase recommendedUserGetListUseCase;
 
@@ -29,9 +32,10 @@ class UserDiscoveryUseCasesTest {
         store.addUser(2L, "guitar_friend", 10);
         store.addUser(3L, "jazz_creator", 20);
         store.addUser(4L, "popular", 100);
+        collaboratorIds = new ArrayList<>();
         userSearchUseCase = new UserSearchUseCase(store, store, new EmptyMedia());
         recommendedUserGetListUseCase = new RecommendedUserGetListUseCase(
-                store, store, new EmptyMedia()
+                store, store, userId -> collaboratorIds, new EmptyMedia()
         );
     }
 
@@ -74,5 +78,19 @@ class UserDiscoveryUseCasesTest {
         assertTrue(result.fallbackTriggered());
         assertEquals(4L, result.recommendedUsers().getFirst().userId());
         assertEquals(RecommendType.POPULAR_CREATOR, result.recommendedUsers().getFirst().recommendType());
+    }
+
+    @Test
+    void recommendsCollaboratorsBeforePopularFallback() {
+        collaboratorIds.add(3L);
+
+        RecommendedUserGetListResponse result = recommendedUserGetListUseCase.execute(
+                new RecommendedUserGetListRequest(1L, 0, 20)
+        );
+
+        assertFalse(result.fallbackTriggered());
+        assertEquals(1, result.totalCount());
+        assertEquals(3L, result.recommendedUsers().getFirst().userId());
+        assertEquals(RecommendType.COLLABORATOR, result.recommendedUsers().getFirst().recommendType());
     }
 }

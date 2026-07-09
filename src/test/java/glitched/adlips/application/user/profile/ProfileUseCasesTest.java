@@ -17,6 +17,7 @@ import glitched.adlips.application.user.profile.dto.response.UserProfileShareRes
 import glitched.adlips.application.user.profile.dto.response.UserProfileUpdateResponse;
 import glitched.adlips.application.user.profile.port.out.FileStoragePort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
+import glitched.adlips.application.user.profile.port.out.ProfileActivityQueryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileLinkPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
 import glitched.adlips.application.user.profile.usecase.ProfileGetUseCase;
@@ -81,7 +82,13 @@ class ProfileUseCasesTest {
         };
         ProfileLinkPort links = userId -> "https://app.example.com/users/profiles/" + userId;
         Clock clock = Clock.fixed(Instant.parse("2026-06-30T00:00:00Z"), ZoneOffset.UTC);
-        profileGetUseCase = new ProfileGetUseCase(users, profiles, media, follows);
+        ProfileActivityQueryPort activities = userId -> new UserProfileGetResponse.Activities(
+                1,
+                List.of(new UserProfileGetResponse.PostActivity(10L, "첫 게시글", null)),
+                List.of(new UserProfileGetResponse.ShortActivity(20L, "참여 숏폼", "album.png")),
+                List.of(new UserProfileGetResponse.PinnedShortActivity(30L, "고정 숏폼", "album.png", "media.mp4", 0))
+        );
+        profileGetUseCase = new ProfileGetUseCase(users, profiles, media, follows, activities);
         profileUpdateUseCase = new ProfileUpdateUseCase(users, profiles, clock);
         profileImageUpdateUseCase = new ProfileImageUpdateUseCase(users, profiles, media, storage);
         profileShareUseCase = new ProfileShareUseCase(users, profiles, links);
@@ -91,14 +98,21 @@ class ProfileUseCasesTest {
     }
 
     @Test
-    void returnsProfileWithEmptyActivitiesUntilActivityPortsAreConnected() {
+    void returnsProfileWithActivitiesFromQueryPort() {
         UserProfileGetResponse result = profileGetUseCase.execute(new UserProfileGetRequest(1L, 1L));
 
         assertEquals("guitar_moon", result.nickname());
         assertEquals(0, result.relations().followerCount());
-        assertEquals(0, result.activities().posts().size());
-        assertEquals(0, result.activities().participatedShorts().size());
-        assertEquals(0, result.activities().pinnedShorts().size());
+        assertEquals(1, result.activities().postCount());
+        assertEquals(List.of(10L), result.activities().posts().stream()
+                .map(UserProfileGetResponse.PostActivity::postId)
+                .toList());
+        assertEquals(List.of(20L), result.activities().participatedShorts().stream()
+                .map(UserProfileGetResponse.ShortActivity::shortId)
+                .toList());
+        assertEquals(List.of(30L), result.activities().pinnedShorts().stream()
+                .map(UserProfileGetResponse.PinnedShortActivity::shortId)
+                .toList());
     }
 
     @Test

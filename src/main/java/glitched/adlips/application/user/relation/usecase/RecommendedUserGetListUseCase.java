@@ -8,14 +8,17 @@ import glitched.adlips.application.user.relation.model.RecommendType;
 import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
+import glitched.adlips.application.user.relation.port.out.CollaborationUserQueryPort;
 import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
 import glitched.adlips.application.user.relation.port.out.ProfileQueryPort;
 import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.user.Profile;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,15 +30,18 @@ public class RecommendedUserGetListUseCase {
 
     private final ProfileQueryPort profileQuery;
     private final FollowRepositoryPort followRepository;
+    private final CollaborationUserQueryPort collaborationUserQueryPort;
     private final MediaFileRepositoryPort mediaFileRepository;
 
     public RecommendedUserGetListUseCase(
             ProfileQueryPort profileQuery,
             FollowRepositoryPort followRepository,
+            CollaborationUserQueryPort collaborationUserQueryPort,
             MediaFileRepositoryPort mediaFileRepository
     ) {
         this.profileQuery = profileQuery;
         this.followRepository = followRepository;
+        this.collaborationUserQueryPort = collaborationUserQueryPort;
         this.mediaFileRepository = mediaFileRepository;
     }
 
@@ -45,21 +51,26 @@ public class RecommendedUserGetListUseCase {
         int size = request.size();
         validatePage(page, size);
         Set<Long> followingIds = new LinkedHashSet<>(followRepository.findFollowingIds(requesterId));
-        Set<Long> candidates = new LinkedHashSet<>();
+        Map<Long, RecommendType> candidateTypes = new LinkedHashMap<>();
         for (Long followingId : followingIds) {
-            candidates.addAll(followRepository.findFollowingIds(followingId));
+            for (Long candidateId : followRepository.findFollowingIds(followingId)) {
+                candidateTypes.putIfAbsent(candidateId, RecommendType.FRIEND_OF_FRIEND);
+            }
         }
-        candidates.remove(requesterId);
-        candidates.removeAll(followingIds);
+        for (Long collaboratorId : collaborationUserQueryPort.findCollaboratorIds(requesterId)) {
+            candidateTypes.putIfAbsent(collaboratorId, RecommendType.COLLABORATOR);
+        }
+        candidateTypes.remove(requesterId);
+        followingIds.forEach(candidateTypes::remove);
 
-        List<Profile> personalized = profileQuery.findAllByUserIds(candidates).stream()
+        List<Profile> personalized = profileQuery.findAllByUserIds(candidateTypes.keySet()).stream()
                 .sorted(Comparator.comparingInt(Profile::getFollowerCount).reversed())
                 .toList();
         if (!personalized.isEmpty()) {
             return new RecommendedUserGetListResponse(
                     personalized.size(),
                     false,
-                    recommendedUsers(page(personalized, page, size), requesterId, RecommendType.FRIEND_OF_FRIEND)
+                    recommendedUsers(page(personalized, page, size), requesterId, candidateTypes)
             );
         }
 
@@ -76,22 +87,41 @@ public class RecommendedUserGetListUseCase {
     private List<RecommendedUserResponse> recommendedUsers(
             Collection<Profile> profiles,
             Long requesterId,
+            Map<Long, RecommendType> candidateTypes
+    ) {
+        return profiles.stream()
+                .map(profile -> recommendedUser(profile, requesterId, candidateTypes.get(profile.getUserId())))
+                .toList();
+    }
+
+    private List<RecommendedUserResponse> recommendedUsers(
+            Collection<Profile> profiles,
+            Long requesterId,
             RecommendType type
     ) {
-        String explanation = type == RecommendType.FRIEND_OF_FRIEND
-                ? "함께 아는 사용자가 있습니다."
-                : "최근 활동이 활발한 작곡가입니다.";
         return profiles.stream()
-                .map(profile -> new RecommendedUserResponse(
-                        profile.getUserId(),
-                        profile.getNickname(),
-                        imageUrl(profile),
-                        profile.getPrimaryInstrument(),
-                        type,
-                        explanation,
-                        followRepository.exists(requesterId, profile.getUserId())
-                ))
+                .map(profile -> recommendedUser(profile, requesterId, type))
                 .toList();
+    }
+
+    private RecommendedUserResponse recommendedUser(Profile profile, Long requesterId, RecommendType type) {
+        return new RecommendedUserResponse(
+                profile.getUserId(),
+                profile.getNickname(),
+                imageUrl(profile),
+                profile.getPrimaryInstrument(),
+                type,
+                explanation(type),
+                followRepository.exists(requesterId, profile.getUserId())
+        );
+    }
+
+    private String explanation(RecommendType type) {
+        return switch (type) {
+            case FRIEND_OF_FRIEND -> "함께 아는 사용자가 있습니다.";
+            case COLLABORATOR -> "함께 작업한 이력이 있습니다.";
+            case POPULAR_CREATOR -> "최근 활동이 활발한 작곡가입니다.";
+        };
     }
 
     private String imageUrl(Profile profile) {

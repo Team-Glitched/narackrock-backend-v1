@@ -64,12 +64,24 @@ class SecurityConfigTest {
                 .andExpect(status().isNotFound());
     }
 
+    @Test
+    void allowsUserRelationsGetWithoutToken() throws Exception {
+        mockMvc.perform(get("/api/v1/users/1/relations?type=following"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("relations"));
+    }
+
     @RestController
     public static class ProtectedController {
 
         @GetMapping("/protected")
         public String protectedEndpoint(java.security.Principal principal) {
             return principal.getName();
+        }
+
+        @GetMapping("/api/v1/users/{userId}/relations")
+        public String relations() {
+            return "relations";
         }
     }
 

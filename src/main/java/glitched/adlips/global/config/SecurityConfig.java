@@ -55,6 +55,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/v1/shorts",
+                                "/api/v1/users/*/relations",
                                 "/files/**"
                         ).permitAll()
                         .anyRequest().authenticated()

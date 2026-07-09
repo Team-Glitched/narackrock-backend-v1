@@ -10,7 +10,9 @@ import glitched.adlips.application.user.account.port.out.UserAuthProviderReposit
 import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
+import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
+import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.user.AuthProvider;
 import glitched.adlips.domain.user.Profile;
 import glitched.adlips.domain.user.User;
@@ -26,6 +28,7 @@ public class GoogleLoginUseCase {
     private final UserRepositoryPort userRepository;
     private final UserAuthProviderRepositoryPort authProviderRepository;
     private final ProfileRepositoryPort profileRepository;
+    private final MediaFileRepositoryPort mediaFileRepository;
     private final RefreshTokenManager refreshTokenManager;
 
     public GoogleLoginUseCase(
@@ -34,6 +37,7 @@ public class GoogleLoginUseCase {
             UserRepositoryPort userRepository,
             UserAuthProviderRepositoryPort authProviderRepository,
             ProfileRepositoryPort profileRepository,
+            MediaFileRepositoryPort mediaFileRepository,
             RefreshTokenManager refreshTokenManager
     ) {
         this.googleIdentityPort = googleIdentityPort;
@@ -41,6 +45,7 @@ public class GoogleLoginUseCase {
         this.userRepository = userRepository;
         this.authProviderRepository = authProviderRepository;
         this.profileRepository = profileRepository;
+        this.mediaFileRepository = mediaFileRepository;
         this.refreshTokenManager = refreshTokenManager;
     }
 
@@ -64,8 +69,17 @@ public class GoogleLoginUseCase {
                 accessTokenPort.issue(user.getId()),
                 refreshTokenManager.issue(user.getId()),
                 "Bearer",
-                new UserResponse(user.getId(), profile.getNickname(), null)
+                new UserResponse(user.getId(), profile.getNickname(), profileImageUrl(profile))
         );
+    }
+
+    private String profileImageUrl(Profile profile) {
+        if (profile.getProfileImageFileId() == null) {
+            return null;
+        }
+        return mediaFileRepository.findById(profile.getProfileImageFileId())
+                .map(MediaFile::getFileUrl)
+                .orElse(null);
     }
 
     private UserApplicationException signupRequired() {

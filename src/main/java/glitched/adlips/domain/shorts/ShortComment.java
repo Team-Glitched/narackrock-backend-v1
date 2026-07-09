@@ -91,4 +91,12 @@ public class ShortComment extends BaseTimeEntity {
     public void updateContent(String content) {
         this.content = requireContent(content);
     }
+
+    public void delete(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
 }

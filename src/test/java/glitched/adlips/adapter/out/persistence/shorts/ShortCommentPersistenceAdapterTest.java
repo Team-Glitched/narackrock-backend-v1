@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import glitched.adlips.domain.shorts.ShortComment;
 import jakarta.persistence.EntityManager;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -144,6 +145,18 @@ class ShortCommentPersistenceAdapterTest {
 
         assertThat(shortCommentRepository.findById(301L).orElseThrow().getContent())
                 .isEqualTo("수정된 내용");
+    }
+
+    @Test
+    void delete로_저장하면_더_이상_활성_댓글로_조회되지_않는다() {
+        ShortComment comment = adapter.findActiveComment(301L, 201L).orElseThrow();
+        comment.delete(LocalDateTime.now());
+
+        adapter.updateContent(comment);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(adapter.findActiveComment(301L, 201L)).isEmpty();
     }
 
     private void insertShort(long id, long userId, String deletedAtExpression) {

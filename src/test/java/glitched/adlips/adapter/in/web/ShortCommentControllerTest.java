@@ -1,7 +1,9 @@
 package glitched.adlips.adapter.in.web;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -12,6 +14,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import glitched.adlips.adapter.in.web.shorts.ShortCommentController;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.adapter.out.token.JwtTokenIssuerAdapter;
+import glitched.adlips.application.shorts.DeleteShortCommentUseCase;
 import glitched.adlips.application.shorts.GetShortCommentsUseCase;
 import glitched.adlips.application.shorts.ShortCommentApplicationException;
 import glitched.adlips.application.shorts.ShortCommentErrorCode;
@@ -43,6 +46,7 @@ class ShortCommentControllerTest {
     @MockitoBean SubmitShortCommentUseCase submitShortCommentUseCase;
     @MockitoBean GetShortCommentsUseCase getShortCommentsUseCase;
     @MockitoBean UpdateShortCommentUseCase updateShortCommentUseCase;
+    @MockitoBean DeleteShortCommentUseCase deleteShortCommentUseCase;
     @MockitoBean AuthenticatedUserResolver authenticatedUserResolver;
     @MockitoBean AccessTokenPort accessTokenPort;
 
@@ -267,6 +271,46 @@ class ShortCommentControllerTest {
         mockMvc.perform(patch("/api/v1/shorts/15/comments/7721")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"content\":\"내용\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 댓글_삭제시_200과_data_없이_반환한다() throws Exception {
+        mockMvc.perform(delete("/api/v1/shorts/15/comments/7721")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("댓글이 성공적으로 삭제되었습니다."))
+                .andExpect(jsonPath("$.data").doesNotExist());
+    }
+
+    @Test
+    void 댓글_삭제시_본인_댓글이_아니면_403을_반환한다() throws Exception {
+        doThrow(new ShortCommentApplicationException(
+                ShortCommentErrorCode.NOT_COMMENT_OWNER, "본인이 작성한 댓글만 삭제할 수 있습니다."))
+                .when(deleteShortCommentUseCase).execute(15L, 7721L, 1L);
+
+        mockMvc.perform(delete("/api/v1/shorts/15/comments/7721")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.errorCode").value("NOT_COMMENT_OWNER"));
+    }
+
+    @Test
+    void 댓글_삭제시_존재하지_않으면_404를_반환한다() throws Exception {
+        doThrow(new ShortCommentApplicationException(
+                ShortCommentErrorCode.COMMENT_NOT_FOUND, "존재하지 않거나 이미 삭제된 댓글입니다."))
+                .when(deleteShortCommentUseCase).execute(15L, 999L, 1L);
+
+        mockMvc.perform(delete("/api/v1/shorts/15/comments/999")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("COMMENT_NOT_FOUND"));
+    }
+
+    @Test
+    void 댓글_삭제시_인증없는_요청은_401을_반환한다() throws Exception {
+        mockMvc.perform(delete("/api/v1/shorts/15/comments/7721"))
                 .andExpect(status().isUnauthorized());
     }
 }

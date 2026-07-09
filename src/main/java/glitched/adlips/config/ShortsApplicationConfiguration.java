@@ -8,6 +8,7 @@ import glitched.adlips.application.shorts.GetShortsComposersUseCase;
 import glitched.adlips.application.shorts.GetShortsCompositionDetailUseCase;
 import glitched.adlips.application.shorts.GetShortsShareUseCase;
 import glitched.adlips.application.shorts.GetShortsUseCase;
+import glitched.adlips.application.shorts.DeleteShortCommentUseCase;
 import glitched.adlips.application.shorts.GetShortCommentsUseCase;
 import glitched.adlips.application.shorts.ShortsCompositionEntryUseCase;
 import glitched.adlips.application.shorts.SubmitShortCommentUseCase;
@@ -152,5 +153,14 @@ public class ShortsApplicationConfiguration {
             TransactionRunner transactionRunner
     ) {
         return new UpdateShortCommentUseCase(shortCommentPort, transactionRunner);
+    }
+
+    @Bean
+    DeleteShortCommentUseCase deleteShortCommentUseCase(
+            ShortCommentPort shortCommentPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new DeleteShortCommentUseCase(shortCommentPort, transactionRunner, clock);
     }
 }

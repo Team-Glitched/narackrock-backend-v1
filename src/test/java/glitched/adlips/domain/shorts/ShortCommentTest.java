@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import glitched.adlips.domain.user.User;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 
@@ -97,5 +98,15 @@ class ShortCommentTest {
 
         assertThatThrownBy(() -> comment.updateContent(null))
                 .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void delete로_deletedAt이_반영된다() {
+        ShortComment comment = new ShortComment(shorts(), user(), "내용", null);
+        LocalDateTime deletedAt = LocalDateTime.of(2026, 7, 9, 12, 0);
+
+        comment.delete(deletedAt);
+
+        assertThat(comment.getDeletedAt()).isEqualTo(deletedAt);
     }
 }

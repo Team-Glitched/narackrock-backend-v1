@@ -7,6 +7,7 @@ import glitched.adlips.adapter.in.web.dto.ShortCommentResponse;
 import glitched.adlips.adapter.in.web.dto.ShortCommentUpdateRequest;
 import glitched.adlips.adapter.in.web.dto.ShortCommentUpdateResponse;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
+import glitched.adlips.application.shorts.DeleteShortCommentUseCase;
 import glitched.adlips.application.shorts.GetShortCommentsUseCase;
 import glitched.adlips.application.shorts.ShortCommentListResult;
 import glitched.adlips.application.shorts.ShortCommentResult;
@@ -14,6 +15,7 @@ import glitched.adlips.application.shorts.SubmitShortCommentUseCase;
 import glitched.adlips.application.shorts.UpdateShortCommentUseCase;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -30,17 +32,20 @@ public class ShortCommentController {
     private final SubmitShortCommentUseCase submitShortCommentUseCase;
     private final GetShortCommentsUseCase getShortCommentsUseCase;
     private final UpdateShortCommentUseCase updateShortCommentUseCase;
+    private final DeleteShortCommentUseCase deleteShortCommentUseCase;
     private final AuthenticatedUserResolver authenticatedUserResolver;
 
     public ShortCommentController(
             SubmitShortCommentUseCase submitShortCommentUseCase,
             GetShortCommentsUseCase getShortCommentsUseCase,
             UpdateShortCommentUseCase updateShortCommentUseCase,
+            DeleteShortCommentUseCase deleteShortCommentUseCase,
             AuthenticatedUserResolver authenticatedUserResolver
     ) {
         this.submitShortCommentUseCase = submitShortCommentUseCase;
         this.getShortCommentsUseCase = getShortCommentsUseCase;
         this.updateShortCommentUseCase = updateShortCommentUseCase;
+        this.deleteShortCommentUseCase = deleteShortCommentUseCase;
         this.authenticatedUserResolver = authenticatedUserResolver;
     }
 
@@ -81,5 +86,16 @@ public class ShortCommentController {
         Long updatedCommentId = updateShortCommentUseCase.execute(shortId, commentId, userId, request.content());
         return ResponseEntity.ok(ApiResponse.success(
                 "댓글이 성공적으로 수정되었습니다.", new ShortCommentUpdateResponse(updatedCommentId)));
+    }
+
+    @DeleteMapping("/{shortId}/comments/{commentId}")
+    public ResponseEntity<ApiResponse<Void>> delete(
+            @PathVariable Long shortId,
+            @PathVariable Long commentId,
+            @RequestHeader("Authorization") String authorization
+    ) {
+        Long userId = authenticatedUserResolver.requireUserId(authorization);
+        deleteShortCommentUseCase.execute(shortId, commentId, userId);
+        return ResponseEntity.ok(ApiResponse.success("댓글이 성공적으로 삭제되었습니다."));
     }
 }

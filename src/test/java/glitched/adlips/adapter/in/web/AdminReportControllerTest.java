@@ -67,8 +67,8 @@ class AdminReportControllerTest {
                 .andExpect(jsonPath("$.data.status").value("RESOLVED"))
                 .andExpect(jsonPath("$.data.actionType").value("HIDE_CONTENT"))
                 .andExpect(jsonPath("$.data.handledAt").value("2026-06-24T14:40:00"))
-                .andExpect(jsonPath("$.data.targetType").doesNotExist())
-                .andExpect(jsonPath("$.data.targetId").doesNotExist());
+                .andExpect(jsonPath("$.data.targetType").value("SHORT"))
+                .andExpect(jsonPath("$.data.targetId").value(12));
     }
 
     @Test

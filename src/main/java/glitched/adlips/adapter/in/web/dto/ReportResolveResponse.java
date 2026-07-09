@@ -7,13 +7,17 @@ public record ReportResolveResponse(
         Long reportId,
         String status,
         String actionType,
-        LocalDateTime handledAt
+        LocalDateTime handledAt,
+        String targetType,
+        Long targetId
 ) {
     public static ReportResolveResponse from(ReportResolutionResult result) {
         return new ReportResolveResponse(
                 result.reportId(),
                 result.status().name(),
                 result.actionType().name(),
-                result.handledAt());
+                result.handledAt(),
+                result.targetType().name(),
+                result.targetId());
     }
 }

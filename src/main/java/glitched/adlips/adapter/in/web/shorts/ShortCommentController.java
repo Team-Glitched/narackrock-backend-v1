@@ -3,6 +3,8 @@ package glitched.adlips.adapter.in.web.shorts;
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.adapter.in.web.dto.ShortCommentLikeResponse;
 import glitched.adlips.adapter.in.web.dto.ShortCommentListResponse;
+import glitched.adlips.adapter.in.web.dto.ShortCommentReportRequest;
+import glitched.adlips.adapter.in.web.dto.ShortCommentReportResponse;
 import glitched.adlips.adapter.in.web.dto.ShortCommentRequest;
 import glitched.adlips.adapter.in.web.dto.ShortCommentResponse;
 import glitched.adlips.adapter.in.web.dto.ShortCommentUpdateRequest;
@@ -12,7 +14,9 @@ import glitched.adlips.application.shorts.DeleteShortCommentUseCase;
 import glitched.adlips.application.shorts.GetShortCommentsUseCase;
 import glitched.adlips.application.shorts.ShortCommentLikeResult;
 import glitched.adlips.application.shorts.ShortCommentListResult;
+import glitched.adlips.application.shorts.ShortCommentReportResult;
 import glitched.adlips.application.shorts.ShortCommentResult;
+import glitched.adlips.application.shorts.SubmitShortCommentReportUseCase;
 import glitched.adlips.application.shorts.SubmitShortCommentUseCase;
 import glitched.adlips.application.shorts.ToggleShortCommentLikeUseCase;
 import glitched.adlips.application.shorts.UpdateShortCommentUseCase;
@@ -37,6 +41,7 @@ public class ShortCommentController {
     private final UpdateShortCommentUseCase updateShortCommentUseCase;
     private final DeleteShortCommentUseCase deleteShortCommentUseCase;
     private final ToggleShortCommentLikeUseCase toggleShortCommentLikeUseCase;
+    private final SubmitShortCommentReportUseCase submitShortCommentReportUseCase;
     private final AuthenticatedUserResolver authenticatedUserResolver;
 
     public ShortCommentController(
@@ -45,6 +50,7 @@ public class ShortCommentController {
             UpdateShortCommentUseCase updateShortCommentUseCase,
             DeleteShortCommentUseCase deleteShortCommentUseCase,
             ToggleShortCommentLikeUseCase toggleShortCommentLikeUseCase,
+            SubmitShortCommentReportUseCase submitShortCommentReportUseCase,
             AuthenticatedUserResolver authenticatedUserResolver
     ) {
         this.submitShortCommentUseCase = submitShortCommentUseCase;
@@ -52,6 +58,7 @@ public class ShortCommentController {
         this.updateShortCommentUseCase = updateShortCommentUseCase;
         this.deleteShortCommentUseCase = deleteShortCommentUseCase;
         this.toggleShortCommentLikeUseCase = toggleShortCommentLikeUseCase;
+        this.submitShortCommentReportUseCase = submitShortCommentReportUseCase;
         this.authenticatedUserResolver = authenticatedUserResolver;
     }
 
@@ -115,5 +122,19 @@ public class ShortCommentController {
         ShortCommentLikeResult result = toggleShortCommentLikeUseCase.toggle(userId, shortId, commentId);
         return ResponseEntity.ok(ApiResponse.success(
                 "댓글 좋아요 상태가 성공적으로 반영되었습니다.", ShortCommentLikeResponse.from(result)));
+    }
+
+    @PostMapping("/{shortId}/comments/{commentId}/reports")
+    public ResponseEntity<ApiResponse<ShortCommentReportResponse>> report(
+            @PathVariable Long shortId,
+            @PathVariable Long commentId,
+            @RequestHeader("Authorization") String authorization,
+            @RequestBody ShortCommentReportRequest request
+    ) {
+        Long userId = authenticatedUserResolver.requireUserId(authorization);
+        ShortCommentReportResult result = submitShortCommentReportUseCase.execute(
+                shortId, commentId, userId, request.reason(), request.description());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
+                "댓글 신고가 성공적으로 접수되었습니다.", ShortCommentReportResponse.from(result)));
     }
 }

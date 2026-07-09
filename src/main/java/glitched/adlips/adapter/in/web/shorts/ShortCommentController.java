@@ -1,6 +1,7 @@
 package glitched.adlips.adapter.in.web.shorts;
 
 import glitched.adlips.adapter.in.web.ApiResponse;
+import glitched.adlips.adapter.in.web.dto.ShortCommentLikeResponse;
 import glitched.adlips.adapter.in.web.dto.ShortCommentListResponse;
 import glitched.adlips.adapter.in.web.dto.ShortCommentRequest;
 import glitched.adlips.adapter.in.web.dto.ShortCommentResponse;
@@ -9,9 +10,11 @@ import glitched.adlips.adapter.in.web.dto.ShortCommentUpdateResponse;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.application.shorts.DeleteShortCommentUseCase;
 import glitched.adlips.application.shorts.GetShortCommentsUseCase;
+import glitched.adlips.application.shorts.ShortCommentLikeResult;
 import glitched.adlips.application.shorts.ShortCommentListResult;
 import glitched.adlips.application.shorts.ShortCommentResult;
 import glitched.adlips.application.shorts.SubmitShortCommentUseCase;
+import glitched.adlips.application.shorts.ToggleShortCommentLikeUseCase;
 import glitched.adlips.application.shorts.UpdateShortCommentUseCase;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +36,7 @@ public class ShortCommentController {
     private final GetShortCommentsUseCase getShortCommentsUseCase;
     private final UpdateShortCommentUseCase updateShortCommentUseCase;
     private final DeleteShortCommentUseCase deleteShortCommentUseCase;
+    private final ToggleShortCommentLikeUseCase toggleShortCommentLikeUseCase;
     private final AuthenticatedUserResolver authenticatedUserResolver;
 
     public ShortCommentController(
@@ -40,12 +44,14 @@ public class ShortCommentController {
             GetShortCommentsUseCase getShortCommentsUseCase,
             UpdateShortCommentUseCase updateShortCommentUseCase,
             DeleteShortCommentUseCase deleteShortCommentUseCase,
+            ToggleShortCommentLikeUseCase toggleShortCommentLikeUseCase,
             AuthenticatedUserResolver authenticatedUserResolver
     ) {
         this.submitShortCommentUseCase = submitShortCommentUseCase;
         this.getShortCommentsUseCase = getShortCommentsUseCase;
         this.updateShortCommentUseCase = updateShortCommentUseCase;
         this.deleteShortCommentUseCase = deleteShortCommentUseCase;
+        this.toggleShortCommentLikeUseCase = toggleShortCommentLikeUseCase;
         this.authenticatedUserResolver = authenticatedUserResolver;
     }
 
@@ -97,5 +103,17 @@ public class ShortCommentController {
         Long userId = authenticatedUserResolver.requireUserId(authorization);
         deleteShortCommentUseCase.execute(shortId, commentId, userId);
         return ResponseEntity.ok(ApiResponse.success("댓글이 성공적으로 삭제되었습니다."));
+    }
+
+    @PostMapping("/{shortId}/comments/{commentId}/like")
+    public ResponseEntity<ApiResponse<ShortCommentLikeResponse>> toggleLike(
+            @PathVariable Long shortId,
+            @PathVariable Long commentId,
+            @RequestHeader("Authorization") String authorization
+    ) {
+        Long userId = authenticatedUserResolver.requireUserId(authorization);
+        ShortCommentLikeResult result = toggleShortCommentLikeUseCase.toggle(userId, shortId, commentId);
+        return ResponseEntity.ok(ApiResponse.success(
+                "댓글 좋아요 상태가 성공적으로 반영되었습니다.", ShortCommentLikeResponse.from(result)));
     }
 }

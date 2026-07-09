@@ -18,9 +18,11 @@ import glitched.adlips.application.shorts.DeleteShortCommentUseCase;
 import glitched.adlips.application.shorts.GetShortCommentsUseCase;
 import glitched.adlips.application.shorts.ShortCommentApplicationException;
 import glitched.adlips.application.shorts.ShortCommentErrorCode;
+import glitched.adlips.application.shorts.ShortCommentLikeResult;
 import glitched.adlips.application.shorts.ShortCommentListResult;
 import glitched.adlips.application.shorts.ShortCommentResult;
 import glitched.adlips.application.shorts.SubmitShortCommentUseCase;
+import glitched.adlips.application.shorts.ToggleShortCommentLikeUseCase;
 import glitched.adlips.application.shorts.UpdateShortCommentUseCase;
 import glitched.adlips.application.shorts.port.out.ShortCommentQueryItem;
 import glitched.adlips.application.user.account.port.out.AccessTokenPort;
@@ -47,6 +49,7 @@ class ShortCommentControllerTest {
     @MockitoBean GetShortCommentsUseCase getShortCommentsUseCase;
     @MockitoBean UpdateShortCommentUseCase updateShortCommentUseCase;
     @MockitoBean DeleteShortCommentUseCase deleteShortCommentUseCase;
+    @MockitoBean ToggleShortCommentLikeUseCase toggleShortCommentLikeUseCase;
     @MockitoBean AuthenticatedUserResolver authenticatedUserResolver;
     @MockitoBean AccessTokenPort accessTokenPort;
 
@@ -311,6 +314,52 @@ class ShortCommentControllerTest {
     @Test
     void 댓글_삭제시_인증없는_요청은_401을_반환한다() throws Exception {
         mockMvc.perform(delete("/api/v1/shorts/15/comments/7721"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 댓글_좋아요_토글시_200과_결과를_반환한다() throws Exception {
+        when(toggleShortCommentLikeUseCase.toggle(1L, 15L, 7721L))
+                .thenReturn(new ShortCommentLikeResult(7721L, true, 5));
+
+        mockMvc.perform(post("/api/v1/shorts/15/comments/7721/like")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("댓글 좋아요 상태가 성공적으로 반영되었습니다."))
+                .andExpect(jsonPath("$.data.commentId").value(7721))
+                .andExpect(jsonPath("$.data.isLiked").value(true))
+                .andExpect(jsonPath("$.data.likeCount").value(5));
+    }
+
+    @Test
+    void 댓글_좋아요_취소시_isLiked_false를_반환한다() throws Exception {
+        when(toggleShortCommentLikeUseCase.toggle(1L, 15L, 7721L))
+                .thenReturn(new ShortCommentLikeResult(7721L, false, 4));
+
+        mockMvc.perform(post("/api/v1/shorts/15/comments/7721/like")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.isLiked").value(false))
+                .andExpect(jsonPath("$.data.likeCount").value(4));
+    }
+
+    @Test
+    void 댓글_좋아요_토글시_존재하지_않으면_404를_반환한다() throws Exception {
+        when(toggleShortCommentLikeUseCase.toggle(1L, 15L, 999L)).thenThrow(
+                new ShortCommentApplicationException(
+                        ShortCommentErrorCode.COMMENT_NOT_FOUND,
+                        "존재하지 않거나 이미 삭제된 댓글에는 좋아요를 누를 수 없습니다."));
+
+        mockMvc.perform(post("/api/v1/shorts/15/comments/999/like")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("COMMENT_NOT_FOUND"));
+    }
+
+    @Test
+    void 댓글_좋아요_토글시_인증없는_요청은_401을_반환한다() throws Exception {
+        mockMvc.perform(post("/api/v1/shorts/15/comments/7721/like"))
                 .andExpect(status().isUnauthorized());
     }
 }

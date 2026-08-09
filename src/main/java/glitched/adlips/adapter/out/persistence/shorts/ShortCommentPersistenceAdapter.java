@@ -5,6 +5,7 @@ import glitched.adlips.domain.shorts.ShortComment;
 import glitched.adlips.domain.shorts.ShortForm;
 import glitched.adlips.domain.user.User;
 import jakarta.persistence.EntityManager;
+import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -52,5 +53,15 @@ public class ShortCommentPersistenceAdapter implements ShortCommentPort {
     @Override
     public void adjustParentReplyCount(Long parentCommentId, int delta) {
         shortCommentRepository.adjustReplyCount(parentCommentId, delta);
+    }
+
+    @Override
+    public Optional<ShortComment> findActiveComment(Long commentId, Long shortId) {
+        return shortCommentRepository.findByIdAndShortsIdAndDeletedAtIsNull(commentId, shortId);
+    }
+
+    @Override
+    public void updateContent(ShortComment comment) {
+        shortCommentRepository.save(comment);
     }
 }

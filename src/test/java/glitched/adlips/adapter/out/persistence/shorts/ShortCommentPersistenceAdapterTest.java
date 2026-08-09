@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import glitched.adlips.domain.shorts.ShortComment;
 import jakarta.persistence.EntityManager;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -111,6 +112,51 @@ class ShortCommentPersistenceAdapterTest {
 
         assertThat(shortCommentRepository.findById(301L).orElseThrow())
                 .extracting("replyCount").isEqualTo(1);
+    }
+
+    @Test
+    void 존재하고_삭제되지_않은_댓글을_같은_숏폼_기준으로_조회한다() {
+        assertThat(adapter.findActiveComment(301L, 201L)).isPresent();
+    }
+
+    @Test
+    void 삭제된_댓글은_조회되지_않는다() {
+        assertThat(adapter.findActiveComment(302L, 201L)).isEmpty();
+    }
+
+    @Test
+    void 다른_숏폼_소속_댓글은_조회되지_않는다() {
+        assertThat(adapter.findActiveComment(303L, 201L)).isEmpty();
+    }
+
+    @Test
+    void 존재하지_않는_댓글은_조회되지_않는다() {
+        assertThat(adapter.findActiveComment(999L, 201L)).isEmpty();
+    }
+
+    @Test
+    void updateContent로_저장하면_내용이_반영된다() {
+        ShortComment comment = adapter.findActiveComment(301L, 201L).orElseThrow();
+        comment.updateContent("수정된 내용");
+
+        adapter.updateContent(comment);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(shortCommentRepository.findById(301L).orElseThrow().getContent())
+                .isEqualTo("수정된 내용");
+    }
+
+    @Test
+    void delete로_저장하면_더_이상_활성_댓글로_조회되지_않는다() {
+        ShortComment comment = adapter.findActiveComment(301L, 201L).orElseThrow();
+        comment.delete(LocalDateTime.now());
+
+        adapter.updateContent(comment);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(adapter.findActiveComment(301L, 201L)).isEmpty();
     }
 
     private void insertShort(long id, long userId, String deletedAtExpression) {

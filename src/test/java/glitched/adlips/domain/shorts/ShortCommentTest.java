@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import glitched.adlips.domain.user.User;
 import jakarta.persistence.Table;
+import java.time.LocalDateTime;
 import java.util.Arrays;
 import org.junit.jupiter.api.Test;
 
@@ -65,5 +66,47 @@ class ShortCommentTest {
     void content가_공백이면_예외가_발생한다() {
         assertThatThrownBy(() -> new ShortComment(shorts(), user(), "   ", null))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void getUserId는_생성자에_전달한_user의_id를_반환한다() {
+        ShortComment comment = new ShortComment(shorts(), user(), "내용", null);
+
+        assertThat(comment.getUserId()).isEqualTo(1L);
+    }
+
+    @Test
+    void updateContent로_내용을_수정할_수_있다() {
+        ShortComment comment = new ShortComment(shorts(), user(), "원래 내용", null);
+
+        comment.updateContent("수정된 내용");
+
+        assertThat(comment.getContent()).isEqualTo("수정된 내용");
+    }
+
+    @Test
+    void updateContent에_공백을_전달하면_예외가_발생한다() {
+        ShortComment comment = new ShortComment(shorts(), user(), "원래 내용", null);
+
+        assertThatThrownBy(() -> comment.updateContent("   "))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void updateContent에_null을_전달하면_예외가_발생한다() {
+        ShortComment comment = new ShortComment(shorts(), user(), "원래 내용", null);
+
+        assertThatThrownBy(() -> comment.updateContent(null))
+                .isInstanceOf(NullPointerException.class);
+    }
+
+    @Test
+    void delete로_deletedAt이_반영된다() {
+        ShortComment comment = new ShortComment(shorts(), user(), "내용", null);
+        LocalDateTime deletedAt = LocalDateTime.of(2026, 7, 9, 12, 0);
+
+        comment.delete(deletedAt);
+
+        assertThat(comment.getDeletedAt()).isEqualTo(deletedAt);
     }
 }

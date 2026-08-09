@@ -5,8 +5,8 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -220,7 +220,7 @@ class ShortCommentControllerTest {
         when(updateShortCommentUseCase.execute(15L, 7721L, 1L, "수정된 댓글 내용입니다."))
                 .thenReturn(7721L);
 
-        mockMvc.perform(patch("/api/v1/shorts/15/comments/7721")
+        mockMvc.perform(put("/api/v1/shorts/15/comments/7721")
                         .header("Authorization", "Bearer " + validToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"content\":\"수정된 댓글 내용입니다.\"}"))
@@ -236,7 +236,7 @@ class ShortCommentControllerTest {
                 new ShortCommentApplicationException(
                         ShortCommentErrorCode.INVALID_INPUT_VALUE, "댓글 내용은 필수 입력 사항입니다."));
 
-        mockMvc.perform(patch("/api/v1/shorts/15/comments/7721")
+        mockMvc.perform(put("/api/v1/shorts/15/comments/7721")
                         .header("Authorization", "Bearer " + validToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"content\":\"  \"}"))
@@ -250,7 +250,7 @@ class ShortCommentControllerTest {
                 new ShortCommentApplicationException(
                         ShortCommentErrorCode.NOT_COMMENT_OWNER, "본인이 작성한 댓글만 수정할 수 있습니다."));
 
-        mockMvc.perform(patch("/api/v1/shorts/15/comments/7721")
+        mockMvc.perform(put("/api/v1/shorts/15/comments/7721")
                         .header("Authorization", "Bearer " + validToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"content\":\"내용\"}"))
@@ -264,7 +264,7 @@ class ShortCommentControllerTest {
                 new ShortCommentApplicationException(
                         ShortCommentErrorCode.COMMENT_NOT_FOUND, "수정하려는 댓글을 찾을 수 없거나 이미 삭제되었습니다."));
 
-        mockMvc.perform(patch("/api/v1/shorts/15/comments/999")
+        mockMvc.perform(put("/api/v1/shorts/15/comments/999")
                         .header("Authorization", "Bearer " + validToken)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"content\":\"내용\"}"))
@@ -274,7 +274,7 @@ class ShortCommentControllerTest {
 
     @Test
     void 댓글_수정시_인증없는_요청은_401을_반환한다() throws Exception {
-        mockMvc.perform(patch("/api/v1/shorts/15/comments/7721")
+        mockMvc.perform(put("/api/v1/shorts/15/comments/7721")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content("{\"content\":\"내용\"}"))
                 .andExpect(status().isUnauthorized());
@@ -325,7 +325,7 @@ class ShortCommentControllerTest {
         when(toggleShortCommentLikeUseCase.toggle(1L, 15L, 7721L))
                 .thenReturn(new ShortCommentLikeResult(7721L, true, 5));
 
-        mockMvc.perform(post("/api/v1/shorts/15/comments/7721/like")
+        mockMvc.perform(post("/api/v1/shorts/15/comments/7721/likes")
                         .header("Authorization", "Bearer " + validToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
@@ -340,7 +340,7 @@ class ShortCommentControllerTest {
         when(toggleShortCommentLikeUseCase.toggle(1L, 15L, 7721L))
                 .thenReturn(new ShortCommentLikeResult(7721L, false, 4));
 
-        mockMvc.perform(post("/api/v1/shorts/15/comments/7721/like")
+        mockMvc.perform(post("/api/v1/shorts/15/comments/7721/likes")
                         .header("Authorization", "Bearer " + validToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.isLiked").value(false))
@@ -354,7 +354,7 @@ class ShortCommentControllerTest {
                         ShortCommentErrorCode.COMMENT_NOT_FOUND,
                         "존재하지 않거나 이미 삭제된 댓글에는 좋아요를 누를 수 없습니다."));
 
-        mockMvc.perform(post("/api/v1/shorts/15/comments/999/like")
+        mockMvc.perform(post("/api/v1/shorts/15/comments/999/likes")
                         .header("Authorization", "Bearer " + validToken))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.errorCode").value("COMMENT_NOT_FOUND"));
@@ -362,7 +362,7 @@ class ShortCommentControllerTest {
 
     @Test
     void 댓글_좋아요_토글시_인증없는_요청은_401을_반환한다() throws Exception {
-        mockMvc.perform(post("/api/v1/shorts/15/comments/7721/like"))
+        mockMvc.perform(post("/api/v1/shorts/15/comments/7721/likes"))
                 .andExpect(status().isUnauthorized());
     }
 

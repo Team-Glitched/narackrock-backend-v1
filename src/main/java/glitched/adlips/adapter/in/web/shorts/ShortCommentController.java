@@ -24,9 +24,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -88,7 +88,7 @@ public class ShortCommentController {
                 "댓글 목록 조회가 완료되었습니다.", ShortCommentListResponse.from(result)));
     }
 
-    @PatchMapping("/{shortId}/comments/{commentId}")
+    @PutMapping("/{shortId}/comments/{commentId}")
     public ResponseEntity<ApiResponse<ShortCommentUpdateResponse>> update(
             @PathVariable Long shortId,
             @PathVariable Long commentId,
@@ -112,7 +112,7 @@ public class ShortCommentController {
         return ResponseEntity.ok(ApiResponse.success("댓글이 성공적으로 삭제되었습니다."));
     }
 
-    @PostMapping("/{shortId}/comments/{commentId}/like")
+    @PostMapping("/{shortId}/comments/{commentId}/likes")
     public ResponseEntity<ApiResponse<ShortCommentLikeResponse>> toggleLike(
             @PathVariable Long shortId,
             @PathVariable Long commentId,

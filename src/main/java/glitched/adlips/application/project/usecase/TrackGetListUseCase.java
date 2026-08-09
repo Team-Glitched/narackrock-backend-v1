@@ -9,29 +9,37 @@ import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.TrackGetListRequest;
 import glitched.adlips.application.project.dto.response.ProjectVersionResponse;
 import glitched.adlips.application.project.dto.response.TrackGetListResponse;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.domain.project.ProjectMemberRole;
 import java.util.List;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
 public class TrackGetListUseCase {
     private final ProjectJpaRepository projects;
     private final ProjectMemberJpaRepository members;
     private final ProjectTrackJpaRepository tracks;
     private final ProjectClipJpaRepository clips;
     private final MediaFileRepositoryPort mediaFiles;
+    private final TransactionRunner transactionRunner;
 
     public TrackGetListUseCase(ProjectJpaRepository projects, ProjectMemberJpaRepository members,
                                ProjectTrackJpaRepository tracks, ProjectClipJpaRepository clips,
                                MediaFileRepositoryPort mediaFiles) {
-        this.projects = projects; this.members = members; this.tracks = tracks;
-        this.clips = clips; this.mediaFiles = mediaFiles;
+        this(projects, members, tracks, clips, mediaFiles, TransactionRunner.direct());
     }
 
-    @Transactional(readOnly = true)
+    public TrackGetListUseCase(ProjectJpaRepository projects, ProjectMemberJpaRepository members,
+                               ProjectTrackJpaRepository tracks, ProjectClipJpaRepository clips,
+                               MediaFileRepositoryPort mediaFiles, TransactionRunner transactionRunner) {
+        this.projects = projects; this.members = members; this.tracks = tracks;
+        this.clips = clips; this.mediaFiles = mediaFiles;
+        this.transactionRunner = transactionRunner;
+    }
+
     public TrackGetListResponse execute(TrackGetListRequest request) {
+        return transactionRunner.readOnly(() -> executeInternal(request));
+    }
+
+    private TrackGetListResponse executeInternal(TrackGetListRequest request) {
         var project = projects.findByIdAndDeletedAtIsNull(request.projectId())
                 .orElseThrow(() -> error(ProjectErrorCode.PROJECT_NOT_FOUND, "존재하지 않거나 삭제된 음악 프로젝트입니다."));
         var member = members.findByProjectIdAndUserId(request.projectId(), request.userId())

@@ -7,23 +7,31 @@ import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.TrackDeleteRequest;
 import glitched.adlips.application.project.dto.response.ProjectVersionResponse;
 import glitched.adlips.application.project.dto.response.TrackDeleteResponse;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.project.ContributionApprovalStatus;
 import glitched.adlips.domain.project.ContributionTargetType;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
 public class TrackDeleteUseCase {
     private final ProjectTrackJpaRepository tracks;
     private final ProjectContributionItemJpaRepository contributionItems;
+    private final TransactionRunner transactionRunner;
 
     public TrackDeleteUseCase(ProjectTrackJpaRepository tracks,
                               ProjectContributionItemJpaRepository contributionItems) {
-        this.tracks = tracks; this.contributionItems = contributionItems;
+        this(tracks, contributionItems, TransactionRunner.direct());
     }
 
-    @Transactional
+    public TrackDeleteUseCase(ProjectTrackJpaRepository tracks,
+                              ProjectContributionItemJpaRepository contributionItems,
+                              TransactionRunner transactionRunner) {
+        this.tracks = tracks; this.contributionItems = contributionItems;
+        this.transactionRunner = transactionRunner;
+    }
+
     public TrackDeleteResponse execute(TrackDeleteRequest request) {
+        return transactionRunner.required(() -> executeInternal(request));
+    }
+
+    private TrackDeleteResponse executeInternal(TrackDeleteRequest request) {
         var track = tracks.findByIdAndIsDeletedFalse(request.trackId())
                 .orElseThrow(() -> error(ProjectErrorCode.TRACK_NOT_FOUND, "존재하지 않는 트랙입니다."));
         Long projectOwnerId = track.getProject().getOwner().getId();

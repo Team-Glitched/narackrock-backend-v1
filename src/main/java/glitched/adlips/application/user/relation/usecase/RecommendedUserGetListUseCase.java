@@ -10,6 +10,7 @@ import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
 import glitched.adlips.application.user.relation.port.out.ProfileQueryPort;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.user.Profile;
 import java.util.Collection;
@@ -17,29 +18,39 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
-@Transactional(readOnly = true)
 public class RecommendedUserGetListUseCase {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final ProfileQueryPort profileQuery;
     private final FollowRepositoryPort followRepository;
     private final MediaFileRepositoryPort mediaFileRepository;
+    private final TransactionRunner transactionRunner;
 
     public RecommendedUserGetListUseCase(
             ProfileQueryPort profileQuery,
             FollowRepositoryPort followRepository,
             MediaFileRepositoryPort mediaFileRepository
     ) {
+        this(profileQuery, followRepository, mediaFileRepository, TransactionRunner.direct());
+    }
+
+    public RecommendedUserGetListUseCase(
+            ProfileQueryPort profileQuery,
+            FollowRepositoryPort followRepository,
+            MediaFileRepositoryPort mediaFileRepository,
+            TransactionRunner transactionRunner
+    ) {
         this.profileQuery = profileQuery;
         this.followRepository = followRepository;
         this.mediaFileRepository = mediaFileRepository;
+        this.transactionRunner = transactionRunner;
     }
 
     public RecommendedUserGetListResponse execute(RecommendedUserGetListRequest request) {
+        return transactionRunner.readOnly(() -> executeInternal(request));
+    }
+
+    private RecommendedUserGetListResponse executeInternal(RecommendedUserGetListRequest request) {
         Long requesterId = request.requesterId();
         int page = request.page();
         int size = request.size();

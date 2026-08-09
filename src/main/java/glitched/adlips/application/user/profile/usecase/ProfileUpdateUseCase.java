@@ -6,30 +6,41 @@ import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.user.Profile;
 import java.time.Clock;
 import java.time.LocalDateTime;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
 public class ProfileUpdateUseCase {
     private final UserRepositoryPort userRepository;
     private final ProfileRepositoryPort profileRepository;
     private final Clock clock;
+    private final TransactionRunner transactionRunner;
 
     public ProfileUpdateUseCase(
             UserRepositoryPort userRepository,
             ProfileRepositoryPort profileRepository,
             Clock clock
     ) {
+        this(userRepository, profileRepository, clock, TransactionRunner.direct());
+    }
+
+    public ProfileUpdateUseCase(
+            UserRepositoryPort userRepository,
+            ProfileRepositoryPort profileRepository,
+            Clock clock,
+            TransactionRunner transactionRunner
+    ) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.clock = clock;
+        this.transactionRunner = transactionRunner;
     }
 
-    @Transactional
     public UserProfileUpdateResponse execute(UserProfileUpdateRequest request) {
+        return transactionRunner.required(() -> executeInternal(request));
+    }
+
+    private UserProfileUpdateResponse executeInternal(UserProfileUpdateRequest request) {
         if (request == null) {
             throw validation("수정할 프로필 정보를 입력해 주세요.");
         }

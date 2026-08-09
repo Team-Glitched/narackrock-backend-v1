@@ -12,6 +12,7 @@ import glitched.adlips.application.project.dto.request.ProjectContributionCreate
 import glitched.adlips.application.project.dto.request.ProjectVersionRequest;
 import glitched.adlips.application.project.dto.response.ProjectContributionCreateResponse;
 import glitched.adlips.application.project.dto.response.ProjectVersionResponse;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.domain.project.ApprovalStatus;
 import glitched.adlips.domain.project.ContributionChangeType;
@@ -25,10 +26,6 @@ import glitched.adlips.domain.project.ProjectTrack;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
 public class ProjectContributionCreateUseCase {
     private final ProjectJpaRepository projects;
     private final ProjectMemberJpaRepository members;
@@ -37,6 +34,7 @@ public class ProjectContributionCreateUseCase {
     private final ProjectTrackJpaRepository tracks;
     private final ProjectClipJpaRepository clips;
     private final UserRepositoryPort users;
+    private final TransactionRunner transactionRunner;
 
     public ProjectContributionCreateUseCase(
             ProjectJpaRepository projects,
@@ -46,6 +44,18 @@ public class ProjectContributionCreateUseCase {
             ProjectTrackJpaRepository tracks,
             ProjectClipJpaRepository clips,
             UserRepositoryPort users) {
+        this(projects, members, contributions, contributionItems, tracks, clips, users, TransactionRunner.direct());
+    }
+
+    public ProjectContributionCreateUseCase(
+            ProjectJpaRepository projects,
+            ProjectMemberJpaRepository members,
+            ProjectContributionJpaRepository contributions,
+            ProjectContributionItemJpaRepository contributionItems,
+            ProjectTrackJpaRepository tracks,
+            ProjectClipJpaRepository clips,
+            UserRepositoryPort users,
+            TransactionRunner transactionRunner) {
         this.projects = projects;
         this.members = members;
         this.contributions = contributions;
@@ -53,10 +63,14 @@ public class ProjectContributionCreateUseCase {
         this.tracks = tracks;
         this.clips = clips;
         this.users = users;
+        this.transactionRunner = transactionRunner;
     }
 
-    @Transactional
     public ProjectContributionCreateResponse execute(ProjectContributionCreateRequest request) {
+        return transactionRunner.required(() -> executeInternal(request));
+    }
+
+    private ProjectContributionCreateResponse executeInternal(ProjectContributionCreateRequest request) {
         validateRequest(request);
         Project project = projects.findByIdAndDeletedAtIsNull(request.projectId())
                 .orElseThrow(() -> error(ProjectErrorCode.PROJECT_NOT_FOUND,

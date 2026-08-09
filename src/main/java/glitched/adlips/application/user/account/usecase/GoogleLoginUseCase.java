@@ -11,15 +11,11 @@ import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.user.AuthProvider;
 import glitched.adlips.domain.user.Profile;
 import glitched.adlips.domain.user.User;
 import glitched.adlips.domain.user.UserAuthProvider;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
-@Transactional(readOnly = true)
 public class GoogleLoginUseCase {
     private final GoogleIdentityPort googleIdentityPort;
     private final AccessTokenPort accessTokenPort;
@@ -27,6 +23,7 @@ public class GoogleLoginUseCase {
     private final UserAuthProviderRepositoryPort authProviderRepository;
     private final ProfileRepositoryPort profileRepository;
     private final RefreshTokenManager refreshTokenManager;
+    private final TransactionRunner transactionRunner;
 
     public GoogleLoginUseCase(
             GoogleIdentityPort googleIdentityPort,
@@ -36,15 +33,33 @@ public class GoogleLoginUseCase {
             ProfileRepositoryPort profileRepository,
             RefreshTokenManager refreshTokenManager
     ) {
+        this(googleIdentityPort, accessTokenPort, userRepository, authProviderRepository,
+                profileRepository, refreshTokenManager, TransactionRunner.direct());
+    }
+
+    public GoogleLoginUseCase(
+            GoogleIdentityPort googleIdentityPort,
+            AccessTokenPort accessTokenPort,
+            UserRepositoryPort userRepository,
+            UserAuthProviderRepositoryPort authProviderRepository,
+            ProfileRepositoryPort profileRepository,
+            RefreshTokenManager refreshTokenManager,
+            TransactionRunner transactionRunner
+    ) {
         this.googleIdentityPort = googleIdentityPort;
         this.accessTokenPort = accessTokenPort;
         this.userRepository = userRepository;
         this.authProviderRepository = authProviderRepository;
         this.profileRepository = profileRepository;
         this.refreshTokenManager = refreshTokenManager;
+        this.transactionRunner = transactionRunner;
     }
 
     public GoogleLoginResponse execute(GoogleLoginRequest request) {
+        return transactionRunner.readOnly(() -> executeInternal(request));
+    }
+
+    private GoogleLoginResponse executeInternal(GoogleLoginRequest request) {
         validateToken(request == null ? null : request.idToken());
         GoogleIdentityResponse identity = googleIdentityPort.verify(request.idToken());
         validateVerifiedEmail(identity);

@@ -8,6 +8,7 @@ import glitched.adlips.application.project.ProjectApplicationException;
 import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.ProjectContributionReviewRequest;
 import glitched.adlips.application.project.dto.response.ProjectContributionReviewResponse;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.project.dto.response.ProjectVersionResponse;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.domain.project.ContributionApprovalStatus;
@@ -19,16 +20,13 @@ import glitched.adlips.domain.project.ProjectContributionItem;
 import glitched.adlips.domain.project.ProjectMemberRole;
 import java.time.LocalDateTime;
 import java.util.Map;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
 public class ProjectContributionReviewUseCase {
     private final ProjectContributionJpaRepository contributions;
     private final ProjectMemberJpaRepository members;
     private final ProjectTrackJpaRepository tracks;
     private final ProjectClipJpaRepository clips;
     private final UserRepositoryPort users;
+    private final TransactionRunner transactionRunner;
 
     public ProjectContributionReviewUseCase(
             ProjectContributionJpaRepository contributions,
@@ -36,15 +34,29 @@ public class ProjectContributionReviewUseCase {
             ProjectTrackJpaRepository tracks,
             ProjectClipJpaRepository clips,
             UserRepositoryPort users) {
+        this(contributions, members, tracks, clips, users, TransactionRunner.direct());
+    }
+
+    public ProjectContributionReviewUseCase(
+            ProjectContributionJpaRepository contributions,
+            ProjectMemberJpaRepository members,
+            ProjectTrackJpaRepository tracks,
+            ProjectClipJpaRepository clips,
+            UserRepositoryPort users,
+            TransactionRunner transactionRunner) {
         this.contributions = contributions;
         this.members = members;
         this.tracks = tracks;
         this.clips = clips;
         this.users = users;
+        this.transactionRunner = transactionRunner;
     }
 
-    @Transactional
     public ProjectContributionReviewResponse execute(ProjectContributionReviewRequest request) {
+        return transactionRunner.required(() -> executeInternal(request));
+    }
+
+    private ProjectContributionReviewResponse executeInternal(ProjectContributionReviewRequest request) {
         validateRequest(request);
         ProjectContribution contribution = contributions
                 .findByIdAndProjectId(request.contributionId(), request.projectId())

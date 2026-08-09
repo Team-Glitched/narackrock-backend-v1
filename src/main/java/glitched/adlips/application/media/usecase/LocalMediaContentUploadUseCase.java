@@ -9,9 +9,6 @@ import glitched.adlips.domain.media.MediaFileStatus;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import org.springframework.stereotype.Service;
-
-@Service
 public class LocalMediaContentUploadUseCase {
     private final MediaFileRepositoryPort mediaFiles;
     private final MediaUploadSessionJpaRepository sessions;

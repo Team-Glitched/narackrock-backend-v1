@@ -8,18 +8,15 @@ import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
 import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.user.Profile;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
-@Transactional(readOnly = true)
 public class ProfileGetUseCase {
     private final UserRepositoryPort userRepository;
     private final ProfileRepositoryPort profileRepository;
     private final MediaFileRepositoryPort mediaFileRepository;
     private final FollowRepositoryPort followRepository;
+    private final TransactionRunner transactionRunner;
 
     public ProfileGetUseCase(
             UserRepositoryPort userRepository,
@@ -27,13 +24,28 @@ public class ProfileGetUseCase {
             MediaFileRepositoryPort mediaFileRepository,
             FollowRepositoryPort followRepository
     ) {
+        this(userRepository, profileRepository, mediaFileRepository, followRepository, TransactionRunner.direct());
+    }
+
+    public ProfileGetUseCase(
+            UserRepositoryPort userRepository,
+            ProfileRepositoryPort profileRepository,
+            MediaFileRepositoryPort mediaFileRepository,
+            FollowRepositoryPort followRepository,
+            TransactionRunner transactionRunner
+    ) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.mediaFileRepository = mediaFileRepository;
         this.followRepository = followRepository;
+        this.transactionRunner = transactionRunner;
     }
 
     public UserProfileGetResponse execute(UserProfileGetRequest request) {
+        return transactionRunner.readOnly(() -> executeInternal(request));
+    }
+
+    private UserProfileGetResponse executeInternal(UserProfileGetRequest request) {
         Long targetUserId = request.targetUserId();
         Long requesterId = request.requesterId();
         requireActiveUser(targetUserId);

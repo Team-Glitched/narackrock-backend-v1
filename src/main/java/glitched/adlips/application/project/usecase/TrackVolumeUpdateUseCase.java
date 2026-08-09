@@ -6,19 +6,26 @@ import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.TrackVolumeUpdateRequest;
 import glitched.adlips.application.project.dto.response.ProjectVersionResponse;
 import glitched.adlips.application.project.dto.response.TrackVolumeUpdateResponse;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+import glitched.adlips.application.port.TransactionRunner;
 
-@Service
 public class TrackVolumeUpdateUseCase {
     private final ProjectTrackJpaRepository tracks;
+    private final TransactionRunner transactionRunner;
 
     public TrackVolumeUpdateUseCase(ProjectTrackJpaRepository tracks) {
-        this.tracks = tracks;
+        this(tracks, TransactionRunner.direct());
     }
 
-    @Transactional
+    public TrackVolumeUpdateUseCase(ProjectTrackJpaRepository tracks, TransactionRunner transactionRunner) {
+        this.tracks = tracks;
+        this.transactionRunner = transactionRunner;
+    }
+
     public TrackVolumeUpdateResponse execute(TrackVolumeUpdateRequest request) {
+        return transactionRunner.required(() -> executeInternal(request));
+    }
+
+    private TrackVolumeUpdateResponse executeInternal(TrackVolumeUpdateRequest request) {
         if (request == null || request.volume() < 0 || request.volume() > 100) {
             throw error(ProjectErrorCode.INVALID_TRACK_VOLUME, "트랙 볼륨은 0부터 100 사이여야 합니다.");
         }

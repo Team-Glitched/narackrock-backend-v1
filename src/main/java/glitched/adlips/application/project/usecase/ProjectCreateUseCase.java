@@ -6,6 +6,7 @@ import glitched.adlips.application.project.ProjectApplicationException;
 import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.ProjectCreateRequest;
 import glitched.adlips.application.project.dto.response.ProjectCreateResponse;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.project.dto.response.ProjectVersionResponse;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
@@ -16,28 +17,37 @@ import glitched.adlips.domain.project.Project;
 import glitched.adlips.domain.project.ProjectMember;
 import glitched.adlips.domain.project.ProjectMemberRole;
 import glitched.adlips.domain.user.User;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
 public class ProjectCreateUseCase {
     private final UserRepositoryPort userRepository;
     private final MediaFileRepositoryPort mediaFileRepository;
     private final ProjectJpaRepository projectRepository;
     private final ProjectMemberJpaRepository memberRepository;
+    private final TransactionRunner transactionRunner;
 
     public ProjectCreateUseCase(UserRepositoryPort userRepository,
                                 MediaFileRepositoryPort mediaFileRepository,
                                 ProjectJpaRepository projectRepository,
                                 ProjectMemberJpaRepository memberRepository) {
+        this(userRepository, mediaFileRepository, projectRepository, memberRepository, TransactionRunner.direct());
+    }
+
+    public ProjectCreateUseCase(UserRepositoryPort userRepository,
+                                MediaFileRepositoryPort mediaFileRepository,
+                                ProjectJpaRepository projectRepository,
+                                ProjectMemberJpaRepository memberRepository,
+                                TransactionRunner transactionRunner) {
         this.userRepository = userRepository;
         this.mediaFileRepository = mediaFileRepository;
         this.projectRepository = projectRepository;
         this.memberRepository = memberRepository;
+        this.transactionRunner = transactionRunner;
     }
 
-    @Transactional
     public ProjectCreateResponse execute(ProjectCreateRequest request) {
+        return transactionRunner.required(() -> executeInternal(request));
+    }
+
+    private ProjectCreateResponse executeInternal(ProjectCreateRequest request) {
         if (request == null || request.ownerId() == null || request.albumImageFileId() == null
                 || request.title() == null || request.title().isBlank()) {
             throw error(ProjectErrorCode.VALIDATION_ERROR, "곡 이름과 앨범 이미지는 필수입니다.");

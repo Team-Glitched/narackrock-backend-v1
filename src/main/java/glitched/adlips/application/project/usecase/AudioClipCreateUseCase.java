@@ -8,6 +8,7 @@ import glitched.adlips.application.project.ProjectApplicationException;
 import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.AudioClipCreateRequest;
 import glitched.adlips.application.project.dto.response.AudioClipCreateResponse;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.domain.media.MediaFileStatus;
@@ -15,10 +16,6 @@ import glitched.adlips.domain.media.MediaFileType;
 import glitched.adlips.domain.project.ClipSourceType;
 import glitched.adlips.domain.project.ProjectClip;
 import glitched.adlips.domain.project.ProjectMemberRole;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
 public class AudioClipCreateUseCase {
     private final ProjectJpaRepository projects;
     private final ProjectMemberJpaRepository members;
@@ -26,20 +23,32 @@ public class AudioClipCreateUseCase {
     private final ProjectClipJpaRepository clips;
     private final UserRepositoryPort users;
     private final MediaFileRepositoryPort mediaFiles;
+    private final TransactionRunner transactionRunner;
 
     public AudioClipCreateUseCase(ProjectJpaRepository projects, ProjectMemberJpaRepository members,
                                   ProjectTrackJpaRepository tracks, ProjectClipJpaRepository clips,
                                   UserRepositoryPort users, MediaFileRepositoryPort mediaFiles) {
+        this(projects, members, tracks, clips, users, mediaFiles, TransactionRunner.direct());
+    }
+
+    public AudioClipCreateUseCase(ProjectJpaRepository projects, ProjectMemberJpaRepository members,
+                                  ProjectTrackJpaRepository tracks, ProjectClipJpaRepository clips,
+                                  UserRepositoryPort users, MediaFileRepositoryPort mediaFiles,
+                                  TransactionRunner transactionRunner) {
         this.projects = projects;
         this.members = members;
         this.tracks = tracks;
         this.clips = clips;
         this.users = users;
         this.mediaFiles = mediaFiles;
+        this.transactionRunner = transactionRunner;
     }
 
-    @Transactional
     public AudioClipCreateResponse execute(AudioClipCreateRequest request) {
+        return transactionRunner.required(() -> executeInternal(request));
+    }
+
+    private AudioClipCreateResponse executeInternal(AudioClipCreateRequest request) {
         validateBasic(request);
         var project = projects.findByIdAndDeletedAtIsNull(request.projectId())
                 .orElseThrow(() -> error(ProjectErrorCode.PROJECT_NOT_FOUND, "존재하지 않는 프로젝트입니다."));

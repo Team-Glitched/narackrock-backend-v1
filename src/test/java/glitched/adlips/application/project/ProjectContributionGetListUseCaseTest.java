@@ -2,6 +2,7 @@ package glitched.adlips.application.project;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -25,7 +26,6 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.Pageable;
 
 class ProjectContributionGetListUseCaseTest {
     @Test
@@ -53,7 +53,7 @@ class ProjectContributionGetListUseCaseTest {
         when(members.findByProjectIdAndUserId(1L, 1L))
                 .thenReturn(Optional.of(new ProjectMember(project, owner, ProjectMemberRole.OWNER)));
         when(contributions.findByProjectIdAndApprovalStatusInOrderByIdDesc(
-                any(), any(), any(Pageable.class))).thenReturn(List.of(contribution));
+                any(), any(), anyInt())).thenReturn(List.of(contribution));
         when(profiles.findByUserId(2L)).thenReturn(Optional.of(Profile.create(2L, "guitar_moon")));
 
         var response = new ProjectContributionGetListUseCase(
@@ -65,6 +65,6 @@ class ProjectContributionGetListUseCaseTest {
         assertThat(response.page().nextCursor()).isEqualTo(10L);
         verify(contributions).findByProjectIdAndApprovalStatusInOrderByIdDesc(
                 any(), argThat(statuses -> !statuses.contains(ContributionApprovalStatus.REJECTED)),
-                any(Pageable.class));
+                anyInt());
     }
 }

@@ -37,8 +37,9 @@ public class UserExceptionHandler {
     private HttpStatus statusOf(UserErrorCode errorCode) {
         return switch (errorCode) {
             case AUTH_FAILED_GOOGLE, INVALID_REFRESH_TOKEN, UNAUTHORIZED_ACCESS -> HttpStatus.UNAUTHORIZED;
-            case SIGNUP_REQUIRED, USER_NOT_FOUND, PROFILE_NOT_FOUND, FOLLOW_NOT_FOUND -> HttpStatus.NOT_FOUND;
-            case PRIVATE_PROFILE -> HttpStatus.FORBIDDEN;
+            case SIGNUP_REQUIRED, USER_NOT_FOUND, PROFILE_NOT_FOUND, FOLLOW_NOT_FOUND, BAN_NOT_FOUND ->
+                    HttpStatus.NOT_FOUND;
+            case PRIVATE_PROFILE, FORBIDDEN_ADMIN_ACCESS, BANNED_USER_ACCESS -> HttpStatus.FORBIDDEN;
             case DUPLICATE_NICKNAME, ALREADY_REGISTERED, ALREADY_FOLLOWING -> HttpStatus.CONFLICT;
             default -> HttpStatus.BAD_REQUEST;
         };

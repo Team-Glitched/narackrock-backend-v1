@@ -8,17 +8,23 @@ import glitched.adlips.application.shorts.GetShortsComposersUseCase;
 import glitched.adlips.application.shorts.GetShortsCompositionDetailUseCase;
 import glitched.adlips.application.shorts.GetShortsShareUseCase;
 import glitched.adlips.application.shorts.GetShortsUseCase;
+import glitched.adlips.application.shorts.DeleteShortCommentUseCase;
 import glitched.adlips.application.shorts.GetShortCommentsUseCase;
 import glitched.adlips.application.shorts.ShortsCompositionEntryUseCase;
+import glitched.adlips.application.shorts.SubmitShortCommentReportUseCase;
 import glitched.adlips.application.shorts.SubmitShortCommentUseCase;
 import glitched.adlips.application.shorts.SubmitShortReportUseCase;
+import glitched.adlips.application.shorts.UpdateShortCommentUseCase;
 import glitched.adlips.application.shorts.ToggleShortBookmarkUseCase;
+import glitched.adlips.application.shorts.ToggleShortCommentLikeUseCase;
 import glitched.adlips.application.shorts.ToggleShortDislikeUseCase;
 import glitched.adlips.application.shorts.ToggleShortLikeUseCase;
 import glitched.adlips.application.shorts.ToggleShortPlaybackUseCase;
 import glitched.adlips.application.shorts.port.out.ShortBookmarkPort;
 import glitched.adlips.application.shorts.port.out.ShortCommentPort;
 import glitched.adlips.application.shorts.port.out.ShortCommentQueryPort;
+import glitched.adlips.application.shorts.port.out.ShortCommentReactionPort;
+import glitched.adlips.application.shorts.port.out.ShortCommentReportPort;
 import glitched.adlips.application.shorts.port.out.ShortPlaybackPort;
 import glitched.adlips.application.shorts.port.out.ShortReactionPort;
 import glitched.adlips.application.shorts.port.out.ShortReportPort;
@@ -143,5 +149,38 @@ public class ShortsApplicationConfiguration {
     @Bean
     GetShortCommentsUseCase getShortCommentsUseCase(ShortCommentQueryPort shortCommentQueryPort) {
         return new GetShortCommentsUseCase(shortCommentQueryPort);
+    }
+
+    @Bean
+    UpdateShortCommentUseCase updateShortCommentUseCase(
+            ShortCommentPort shortCommentPort,
+            TransactionRunner transactionRunner
+    ) {
+        return new UpdateShortCommentUseCase(shortCommentPort, transactionRunner);
+    }
+
+    @Bean
+    DeleteShortCommentUseCase deleteShortCommentUseCase(
+            ShortCommentPort shortCommentPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new DeleteShortCommentUseCase(shortCommentPort, transactionRunner, clock);
+    }
+
+    @Bean
+    ToggleShortCommentLikeUseCase toggleShortCommentLikeUseCase(
+            ShortCommentReactionPort shortCommentReactionPort,
+            TransactionRunner transactionRunner
+    ) {
+        return new ToggleShortCommentLikeUseCase(shortCommentReactionPort, transactionRunner);
+    }
+
+    @Bean
+    SubmitShortCommentReportUseCase submitShortCommentReportUseCase(
+            ShortCommentPort shortCommentPort,
+            ShortCommentReportPort shortCommentReportPort
+    ) {
+        return new SubmitShortCommentReportUseCase(shortCommentPort, shortCommentReportPort);
     }
 }

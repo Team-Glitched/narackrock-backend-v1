@@ -4,34 +4,45 @@ import glitched.adlips.application.user.account.port.out.RefreshTokenGeneratorPo
 import glitched.adlips.application.user.account.port.out.UserRefreshTokenRepositoryPort;
 import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.user.UserRefreshToken;
 import java.time.Clock;
 import java.time.Instant;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
 public class RefreshTokenManager {
     private final UserRefreshTokenRepositoryPort repository;
     private final RefreshTokenGeneratorPort generator;
     private final Clock clock;
     private final long validitySeconds;
+    private final TransactionRunner transactionRunner;
 
     public RefreshTokenManager(
             UserRefreshTokenRepositoryPort repository,
             RefreshTokenGeneratorPort generator,
             Clock clock,
-            @Value("${app.auth.refresh-token-validity-seconds}") long validitySeconds
+            long validitySeconds
+    ) {
+        this(repository, generator, clock, validitySeconds, TransactionRunner.direct());
+    }
+
+    public RefreshTokenManager(
+            UserRefreshTokenRepositoryPort repository,
+            RefreshTokenGeneratorPort generator,
+            Clock clock,
+            long validitySeconds,
+            TransactionRunner transactionRunner
     ) {
         this.repository = repository;
         this.generator = generator;
         this.clock = clock;
         this.validitySeconds = validitySeconds;
+        this.transactionRunner = transactionRunner;
     }
 
-    @Transactional
     public String issue(Long userId) {
+        return transactionRunner.required(() -> issueInternal(userId));
+    }
+
+    private String issueInternal(Long userId) {
         String rawToken = generator.generate();
         repository.save(UserRefreshToken.create(
                 userId,
@@ -41,8 +52,11 @@ public class RefreshTokenManager {
         return rawToken;
     }
 
-    @Transactional
     public Rotation rotate(String rawToken) {
+        return transactionRunner.required(() -> rotateInternal(rawToken));
+    }
+
+    private Rotation rotateInternal(String rawToken) {
         Instant now = Instant.now(clock);
         UserRefreshToken current = repository.findByTokenHashForUpdate(generator.hash(rawToken))
                 .filter(token -> token.isUsable(now))
@@ -51,8 +65,14 @@ public class RefreshTokenManager {
         return new Rotation(current.getUserId(), issue(current.getUserId()));
     }
 
-    @Transactional
     public void revokeAll(Long userId) {
+        transactionRunner.required(() -> {
+            revokeAllInternal(userId);
+            return null;
+        });
+    }
+
+    private void revokeAllInternal(Long userId) {
         Instant now = Instant.now(clock);
         repository.findActiveByUserId(userId).forEach(token -> repository.save(token.revoke(now)));
     }

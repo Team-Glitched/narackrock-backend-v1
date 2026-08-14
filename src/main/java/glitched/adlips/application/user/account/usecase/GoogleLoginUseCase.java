@@ -1,5 +1,6 @@
 package glitched.adlips.application.user.account.usecase;
 
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.account.dto.request.GoogleLoginRequest;
 import glitched.adlips.application.user.account.dto.response.GoogleIdentityResponse;
 import glitched.adlips.application.user.account.dto.response.GoogleLoginResponse;
@@ -17,11 +18,7 @@ import glitched.adlips.domain.user.AuthProvider;
 import glitched.adlips.domain.user.Profile;
 import glitched.adlips.domain.user.User;
 import glitched.adlips.domain.user.UserAuthProvider;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-@Service
-@Transactional(readOnly = true)
 public class GoogleLoginUseCase {
     private final GoogleIdentityPort googleIdentityPort;
     private final AccessTokenPort accessTokenPort;
@@ -30,6 +27,48 @@ public class GoogleLoginUseCase {
     private final ProfileRepositoryPort profileRepository;
     private final MediaFileRepositoryPort mediaFileRepository;
     private final RefreshTokenManager refreshTokenManager;
+    private final TransactionRunner transactionRunner;
+
+    public GoogleLoginUseCase(
+            GoogleIdentityPort googleIdentityPort,
+            AccessTokenPort accessTokenPort,
+            UserRepositoryPort userRepository,
+            UserAuthProviderRepositoryPort authProviderRepository,
+            ProfileRepositoryPort profileRepository,
+            RefreshTokenManager refreshTokenManager
+    ) {
+        this(
+                googleIdentityPort,
+                accessTokenPort,
+                userRepository,
+                authProviderRepository,
+                profileRepository,
+                null,
+                refreshTokenManager,
+                TransactionRunner.direct()
+        );
+    }
+
+    public GoogleLoginUseCase(
+            GoogleIdentityPort googleIdentityPort,
+            AccessTokenPort accessTokenPort,
+            UserRepositoryPort userRepository,
+            UserAuthProviderRepositoryPort authProviderRepository,
+            ProfileRepositoryPort profileRepository,
+            RefreshTokenManager refreshTokenManager,
+            TransactionRunner transactionRunner
+    ) {
+        this(
+                googleIdentityPort,
+                accessTokenPort,
+                userRepository,
+                authProviderRepository,
+                profileRepository,
+                null,
+                refreshTokenManager,
+                transactionRunner
+        );
+    }
 
     public GoogleLoginUseCase(
             GoogleIdentityPort googleIdentityPort,
@@ -40,6 +79,28 @@ public class GoogleLoginUseCase {
             MediaFileRepositoryPort mediaFileRepository,
             RefreshTokenManager refreshTokenManager
     ) {
+        this(
+                googleIdentityPort,
+                accessTokenPort,
+                userRepository,
+                authProviderRepository,
+                profileRepository,
+                mediaFileRepository,
+                refreshTokenManager,
+                TransactionRunner.direct()
+        );
+    }
+
+    public GoogleLoginUseCase(
+            GoogleIdentityPort googleIdentityPort,
+            AccessTokenPort accessTokenPort,
+            UserRepositoryPort userRepository,
+            UserAuthProviderRepositoryPort authProviderRepository,
+            ProfileRepositoryPort profileRepository,
+            MediaFileRepositoryPort mediaFileRepository,
+            RefreshTokenManager refreshTokenManager,
+            TransactionRunner transactionRunner
+    ) {
         this.googleIdentityPort = googleIdentityPort;
         this.accessTokenPort = accessTokenPort;
         this.userRepository = userRepository;
@@ -47,36 +108,50 @@ public class GoogleLoginUseCase {
         this.profileRepository = profileRepository;
         this.mediaFileRepository = mediaFileRepository;
         this.refreshTokenManager = refreshTokenManager;
+        this.transactionRunner = transactionRunner;
     }
 
     public GoogleLoginResponse execute(GoogleLoginRequest request) {
+        return transactionRunner.readOnly(() -> executeInternal(request));
+    }
+
+    private GoogleLoginResponse executeInternal(GoogleLoginRequest request) {
         validateToken(request == null ? null : request.idToken());
+
         GoogleIdentityResponse identity = googleIdentityPort.verify(request.idToken());
         validateVerifiedEmail(identity);
 
         UserAuthProvider provider = authProviderRepository
                 .findByProviderAndProviderUserId(AuthProvider.GOOGLE, identity.subject())
-                .orElseThrow(() -> signupRequired());
+                .orElseThrow(this::signupRequired);
+
         User user = userRepository.findById(provider.getUserId())
                 .filter(User::isActive)
                 .orElseThrow(this::signupRequired);
+
         Profile profile = profileRepository.findByUserId(user.getId())
                 .orElseThrow(() -> new UserApplicationException(
                         UserErrorCode.PROFILE_NOT_FOUND,
                         "사용자 프로필을 찾을 수 없습니다."
                 ));
+
         return new GoogleLoginResponse(
                 accessTokenPort.issue(user.getId()),
                 refreshTokenManager.issue(user.getId()),
                 "Bearer",
-                new UserResponse(user.getId(), profile.getNickname(), profileImageUrl(profile))
+                new UserResponse(
+                        user.getId(),
+                        profile.getNickname(),
+                        profileImageUrl(profile)
+                )
         );
     }
 
     private String profileImageUrl(Profile profile) {
-        if (profile.getProfileImageFileId() == null) {
+        if (mediaFileRepository == null || profile.getProfileImageFileId() == null) {
             return null;
         }
+
         return mediaFileRepository.findById(profile.getProfileImageFileId())
                 .map(MediaFile::getFileUrl)
                 .orElse(null);
@@ -90,15 +165,25 @@ public class GoogleLoginUseCase {
     }
 
     private void validateVerifiedEmail(GoogleIdentityResponse identity) {
-        if (identity == null || identity.subject() == null || identity.subject().isBlank()
-                || identity.email() == null || identity.email().isBlank() || !identity.emailVerified()) {
-            throw new UserApplicationException(UserErrorCode.AUTH_FAILED_GOOGLE, "계정 인증을 실패했습니다.");
+        if (identity == null
+                || identity.subject() == null
+                || identity.subject().isBlank()
+                || identity.email() == null
+                || identity.email().isBlank()
+                || !identity.emailVerified()) {
+            throw new UserApplicationException(
+                    UserErrorCode.AUTH_FAILED_GOOGLE,
+                    "계정 인증을 실패했습니다."
+            );
         }
     }
 
     private void validateToken(String idToken) {
         if (idToken == null || idToken.isBlank()) {
-            throw new UserApplicationException(UserErrorCode.VALIDATION_ERROR, "Google ID 토큰은 필수입니다.");
+            throw new UserApplicationException(
+                    UserErrorCode.VALIDATION_ERROR,
+                    "Google ID 토큰은 필수입니다."
+            );
         }
     }
 }

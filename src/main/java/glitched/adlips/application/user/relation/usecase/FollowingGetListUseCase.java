@@ -8,19 +8,16 @@ import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
 import glitched.adlips.application.user.relation.port.out.ProfileQueryPort;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.user.Profile;
 import java.util.List;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
-@Transactional(readOnly = true)
 public class FollowingGetListUseCase {
     private final UserRepositoryPort userRepository;
     private final ProfileQueryPort profileQuery;
     private final FollowRepositoryPort followRepository;
     private final MediaFileRepositoryPort mediaFileRepository;
+    private final TransactionRunner transactionRunner;
 
     public FollowingGetListUseCase(
             UserRepositoryPort userRepository,
@@ -28,13 +25,28 @@ public class FollowingGetListUseCase {
             FollowRepositoryPort followRepository,
             MediaFileRepositoryPort mediaFileRepository
     ) {
+        this(userRepository, profileQuery, followRepository, mediaFileRepository, TransactionRunner.direct());
+    }
+
+    public FollowingGetListUseCase(
+            UserRepositoryPort userRepository,
+            ProfileQueryPort profileQuery,
+            FollowRepositoryPort followRepository,
+            MediaFileRepositoryPort mediaFileRepository,
+            TransactionRunner transactionRunner
+    ) {
         this.userRepository = userRepository;
         this.profileQuery = profileQuery;
         this.followRepository = followRepository;
         this.mediaFileRepository = mediaFileRepository;
+        this.transactionRunner = transactionRunner;
     }
 
     public List<UserRelationResponse> execute(FollowingGetListRequest request) {
+        return transactionRunner.readOnly(() -> executeInternal(request));
+    }
+
+    private List<UserRelationResponse> executeInternal(FollowingGetListRequest request) {
         Long userId = request.userId();
         requireActiveUser(userId);
         return profileQuery.findAllByUserIds(followRepository.findFollowingIds(userId)).stream()

@@ -8,6 +8,7 @@ import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.ProjectContributionGetListRequest;
 import glitched.adlips.application.project.dto.response.ProjectContributionGetListResponse;
 import glitched.adlips.application.project.dto.response.ProjectVersionResponse;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
 import glitched.adlips.domain.project.ContributionApprovalStatus;
@@ -17,17 +18,13 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
 public class ProjectContributionGetListUseCase {
     private final ProjectJpaRepository projects;
     private final ProjectMemberJpaRepository members;
     private final ProjectContributionJpaRepository contributions;
     private final ProfileRepositoryPort profiles;
     private final MediaFileRepositoryPort mediaFiles;
+    private final TransactionRunner transactionRunner;
 
     public ProjectContributionGetListUseCase(
             ProjectJpaRepository projects,
@@ -35,15 +32,29 @@ public class ProjectContributionGetListUseCase {
             ProjectContributionJpaRepository contributions,
             ProfileRepositoryPort profiles,
             MediaFileRepositoryPort mediaFiles) {
+        this(projects, members, contributions, profiles, mediaFiles, TransactionRunner.direct());
+    }
+
+    public ProjectContributionGetListUseCase(
+            ProjectJpaRepository projects,
+            ProjectMemberJpaRepository members,
+            ProjectContributionJpaRepository contributions,
+            ProfileRepositoryPort profiles,
+            MediaFileRepositoryPort mediaFiles,
+            TransactionRunner transactionRunner) {
         this.projects = projects;
         this.members = members;
         this.contributions = contributions;
         this.profiles = profiles;
         this.mediaFiles = mediaFiles;
+        this.transactionRunner = transactionRunner;
     }
 
-    @Transactional(readOnly = true)
     public ProjectContributionGetListResponse execute(ProjectContributionGetListRequest request) {
+        return transactionRunner.readOnly(() -> executeInternal(request));
+    }
+
+    private ProjectContributionGetListResponse executeInternal(ProjectContributionGetListRequest request) {
         validateRequest(request);
         projects.findByIdAndDeletedAtIsNull(request.projectId())
                 .orElseThrow(() -> error(ProjectErrorCode.PROJECT_NOT_FOUND,
@@ -55,10 +66,10 @@ public class ProjectContributionGetListUseCase {
         List<ContributionApprovalStatus> statuses = parseStatuses(request.status());
         boolean canReviewAll = member.getRole() == ProjectMemberRole.OWNER
                 || member.getRole() == ProjectMemberRole.EDITOR;
-        PageRequest pageable = PageRequest.of(0, request.size() + 1);
+        int pageSize = request.size() + 1;
         List<ProjectContribution> fetched = canReviewAll
-                ? findProjectContributions(request, statuses, pageable)
-                : findOwnContributions(request, statuses, pageable);
+                ? findProjectContributions(request, statuses, pageSize)
+                : findOwnContributions(request, statuses, pageSize);
 
         boolean hasMore = fetched.size() > request.size();
         List<ProjectContributionGetListResponse.Contribution> items = fetched.stream()
@@ -73,25 +84,25 @@ public class ProjectContributionGetListUseCase {
     private List<ProjectContribution> findProjectContributions(
             ProjectContributionGetListRequest request,
             Collection<ContributionApprovalStatus> statuses,
-            PageRequest pageable) {
+            int pageSize) {
         if (request.cursor() == null) {
             return contributions.findByProjectIdAndApprovalStatusInOrderByIdDesc(
-                    request.projectId(), statuses, pageable);
+                    request.projectId(), statuses, pageSize);
         }
         return contributions.findByProjectIdAndApprovalStatusInAndIdLessThanOrderByIdDesc(
-                request.projectId(), statuses, request.cursor(), pageable);
+                request.projectId(), statuses, request.cursor(), pageSize);
     }
 
     private List<ProjectContribution> findOwnContributions(
             ProjectContributionGetListRequest request,
             Collection<ContributionApprovalStatus> statuses,
-            PageRequest pageable) {
+            int pageSize) {
         if (request.cursor() == null) {
             return contributions.findByProjectIdAndUserIdAndApprovalStatusInOrderByIdDesc(
-                    request.projectId(), request.userId(), statuses, pageable);
+                    request.projectId(), request.userId(), statuses, pageSize);
         }
         return contributions.findByProjectIdAndUserIdAndApprovalStatusInAndIdLessThanOrderByIdDesc(
-                request.projectId(), request.userId(), statuses, request.cursor(), pageable);
+                request.projectId(), request.userId(), statuses, request.cursor(), pageSize);
     }
 
     private ProjectContributionGetListResponse.Contribution toResponse(

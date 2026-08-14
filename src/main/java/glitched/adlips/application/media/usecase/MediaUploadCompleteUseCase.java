@@ -6,42 +6,51 @@ import glitched.adlips.application.media.MediaApplicationException;
 import glitched.adlips.application.media.MediaErrorCode;
 import glitched.adlips.application.media.dto.request.MediaUploadCompleteRequest;
 import glitched.adlips.application.media.dto.response.MediaUploadCompleteResponse;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.media.MediaFileStatus;
 import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
 public class MediaUploadCompleteUseCase {
     private final MediaFileRepositoryPort mediaFiles;
     private final MediaUploadSessionJpaRepository sessions;
     private final LocalFileStorageAdapter storage;
     private final Clock clock;
+    private final TransactionRunner transactionRunner;
 
-    @Autowired
     public MediaUploadCompleteUseCase(MediaFileRepositoryPort mediaFiles,
                                       MediaUploadSessionJpaRepository sessions,
                                       LocalFileStorageAdapter storage) {
-        this(mediaFiles, sessions, storage, Clock.systemUTC());
+        this(mediaFiles, sessions, storage, Clock.systemUTC(), TransactionRunner.direct());
     }
 
     public MediaUploadCompleteUseCase(MediaFileRepositoryPort mediaFiles,
                                       MediaUploadSessionJpaRepository sessions,
                                       LocalFileStorageAdapter storage,
                                       Clock clock) {
+        this(mediaFiles, sessions, storage, clock, TransactionRunner.direct());
+    }
+
+    public MediaUploadCompleteUseCase(MediaFileRepositoryPort mediaFiles,
+                                      MediaUploadSessionJpaRepository sessions,
+                                      LocalFileStorageAdapter storage,
+                                      Clock clock,
+                                      TransactionRunner transactionRunner) {
         this.mediaFiles = mediaFiles;
         this.sessions = sessions;
         this.storage = storage;
         this.clock = clock;
+        this.transactionRunner = transactionRunner;
     }
 
-    @Transactional(noRollbackFor = MediaApplicationException.class)
     public MediaUploadCompleteResponse execute(MediaUploadCompleteRequest request) {
+        return transactionRunner.requiredWithoutRollbackOn(
+                MediaApplicationException.class, () -> executeInternal(request));
+    }
+
+    private MediaUploadCompleteResponse executeInternal(MediaUploadCompleteRequest request) {
         MediaFile media = mediaFiles.findById(request.mediaFileId())
                 .orElseThrow(() -> error(MediaErrorCode.MEDIA_FILE_NOT_FOUND, "존재하지 않는 미디어 파일입니다."));
         if (!media.getOwnerId().equals(request.userId())) {

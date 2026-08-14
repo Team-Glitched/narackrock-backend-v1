@@ -6,6 +6,7 @@ import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.MidiClipSaveRequest;
 import glitched.adlips.application.project.dto.response.MidiClipSaveResponse;
 import glitched.adlips.application.project.dto.request.MidiNoteRequest;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.project.ApprovalStatus;
 import glitched.adlips.domain.project.ClipType;
 import glitched.adlips.domain.project.MidiNote;
@@ -13,27 +14,31 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-@Service
 public class MidiClipSaveUseCase {
     private final ProjectClipJpaRepository clips;
     private final Clock clock;
+    private final TransactionRunner transactionRunner;
 
-    @Autowired
     public MidiClipSaveUseCase(ProjectClipJpaRepository clips) {
-        this(clips, Clock.systemUTC());
+        this(clips, Clock.systemUTC(), TransactionRunner.direct());
     }
 
     public MidiClipSaveUseCase(ProjectClipJpaRepository clips, Clock clock) {
-        this.clips = clips;
-        this.clock = clock;
+        this(clips, clock, TransactionRunner.direct());
     }
 
-    @Transactional
+    public MidiClipSaveUseCase(ProjectClipJpaRepository clips, Clock clock, TransactionRunner transactionRunner) {
+        this.clips = clips;
+        this.clock = clock;
+        this.transactionRunner = transactionRunner;
+    }
+
     public MidiClipSaveResponse execute(MidiClipSaveRequest request) {
+        return transactionRunner.required(() -> executeInternal(request));
+    }
+
+    private MidiClipSaveResponse executeInternal(MidiClipSaveRequest request) {
         if (request == null || request.clipId() == null || request.userId() == null
                 || request.midiNotes() == null) {
             throw error(ProjectErrorCode.INVALID_MIDI_NOTE_DATA, "올바르지 않은 MIDI 노트 데이터입니다.");

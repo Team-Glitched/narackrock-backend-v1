@@ -1,27 +1,41 @@
 package glitched.adlips.application.user.profile.usecase;
 
-import glitched.adlips.application.user.profile.dto.request.UserProfileGetRequest;
-import glitched.adlips.application.user.profile.dto.response.UserProfileGetResponse;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
+import glitched.adlips.application.user.profile.dto.request.UserProfileGetRequest;
+import glitched.adlips.application.user.profile.dto.response.UserProfileGetResponse;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileActivityQueryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
 import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
 import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.user.Profile;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
-@Service
-@Transactional(readOnly = true)
 public class ProfileGetUseCase {
     private final UserRepositoryPort userRepository;
     private final ProfileRepositoryPort profileRepository;
     private final MediaFileRepositoryPort mediaFileRepository;
     private final FollowRepositoryPort followRepository;
     private final ProfileActivityQueryPort profileActivityQueryPort;
+    private final TransactionRunner transactionRunner;
+
+    public ProfileGetUseCase(
+            UserRepositoryPort userRepository,
+            ProfileRepositoryPort profileRepository,
+            MediaFileRepositoryPort mediaFileRepository,
+            FollowRepositoryPort followRepository
+    ) {
+        this(
+                userRepository,
+                profileRepository,
+                mediaFileRepository,
+                followRepository,
+                userId -> UserProfileGetResponse.Activities.empty(),
+                TransactionRunner.direct()
+        );
+    }
 
     public ProfileGetUseCase(
             UserRepositoryPort userRepository,
@@ -30,21 +44,67 @@ public class ProfileGetUseCase {
             FollowRepositoryPort followRepository,
             ProfileActivityQueryPort profileActivityQueryPort
     ) {
+        this(
+                userRepository,
+                profileRepository,
+                mediaFileRepository,
+                followRepository,
+                profileActivityQueryPort,
+                TransactionRunner.direct()
+        );
+    }
+
+    public ProfileGetUseCase(
+            UserRepositoryPort userRepository,
+            ProfileRepositoryPort profileRepository,
+            MediaFileRepositoryPort mediaFileRepository,
+            FollowRepositoryPort followRepository,
+            TransactionRunner transactionRunner
+    ) {
+        this(
+                userRepository,
+                profileRepository,
+                mediaFileRepository,
+                followRepository,
+                userId -> UserProfileGetResponse.Activities.empty(),
+                transactionRunner
+        );
+    }
+
+    public ProfileGetUseCase(
+            UserRepositoryPort userRepository,
+            ProfileRepositoryPort profileRepository,
+            MediaFileRepositoryPort mediaFileRepository,
+            FollowRepositoryPort followRepository,
+            ProfileActivityQueryPort profileActivityQueryPort,
+            TransactionRunner transactionRunner
+    ) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.mediaFileRepository = mediaFileRepository;
         this.followRepository = followRepository;
         this.profileActivityQueryPort = profileActivityQueryPort;
+        this.transactionRunner = transactionRunner;
     }
 
     public UserProfileGetResponse execute(UserProfileGetRequest request) {
+        return transactionRunner.readOnly(() -> executeInternal(request));
+    }
+
+    private UserProfileGetResponse executeInternal(UserProfileGetRequest request) {
         Long targetUserId = request.targetUserId();
         Long requesterId = request.requesterId();
+
         requireActiveUser(targetUserId);
+
         Profile profile = requireProfile(targetUserId);
         boolean owner = targetUserId.equals(requesterId);
+
         if (profile.isPrivate() && !owner) {
-            throw new UserApplicationException(UserErrorCode.PRIVATE_PROFILE, "비공개 프로필입니다.");
+            throw new UserApplicationException(
+                    UserErrorCode.PRIVATE_PROFILE,
+                    "비공개 프로필입니다."
+            );
         }
 
         String profileImageUrl = profile.getProfileImageFileId() == null
@@ -52,7 +112,11 @@ public class ProfileGetUseCase {
                 : mediaFileRepository.findById(profile.getProfileImageFileId())
                         .map(MediaFile::getFileUrl)
                         .orElse(null);
-        boolean following = !owner && requesterId != null && followRepository.exists(requesterId, targetUserId);
+
+        boolean following = !owner
+                && requesterId != null
+                && followRepository.exists(requesterId, targetUserId);
+
         return new UserProfileGetResponse(
                 profile.getUserId(),
                 profile.getNickname(),
@@ -60,7 +124,9 @@ public class ProfileGetUseCase {
                 profile.getExplanation(),
                 profile.getPrimaryInstrument(),
                 new UserProfileGetResponse.Relations(
-                        profile.getFollowerCount(), profile.getFollowingCount(), following
+                        profile.getFollowerCount(),
+                        profile.getFollowingCount(),
+                        following
                 ),
                 profileActivityQueryPort.findByUserId(targetUserId)
         );

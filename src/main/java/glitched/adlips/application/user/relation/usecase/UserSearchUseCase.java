@@ -9,32 +9,43 @@ import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
 import glitched.adlips.application.user.relation.port.out.ProfileQueryPort;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.user.Profile;
 import java.util.List;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
-@Transactional(readOnly = true)
 public class UserSearchUseCase {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final ProfileQueryPort profileQuery;
     private final FollowRepositoryPort followRepository;
     private final MediaFileRepositoryPort mediaFileRepository;
+    private final TransactionRunner transactionRunner;
 
     public UserSearchUseCase(
             ProfileQueryPort profileQuery,
             FollowRepositoryPort followRepository,
             MediaFileRepositoryPort mediaFileRepository
     ) {
+        this(profileQuery, followRepository, mediaFileRepository, TransactionRunner.direct());
+    }
+
+    public UserSearchUseCase(
+            ProfileQueryPort profileQuery,
+            FollowRepositoryPort followRepository,
+            MediaFileRepositoryPort mediaFileRepository,
+            TransactionRunner transactionRunner
+    ) {
         this.profileQuery = profileQuery;
         this.followRepository = followRepository;
         this.mediaFileRepository = mediaFileRepository;
+        this.transactionRunner = transactionRunner;
     }
 
     public UserSearchResponse execute(UserSearchRequest request) {
+        return transactionRunner.readOnly(() -> executeInternal(request));
+    }
+
+    private UserSearchResponse executeInternal(UserSearchRequest request) {
         Long requesterId = request.requesterId();
         String keyword = request.keyword();
         int page = request.page();

@@ -5,6 +5,7 @@ import glitched.adlips.application.media.MediaApplicationException;
 import glitched.adlips.application.media.MediaErrorCode;
 import glitched.adlips.application.media.dto.request.MediaUploadSessionCreateRequest;
 import glitched.adlips.application.media.dto.response.MediaUploadSessionCreateResponse;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.media.MediaFileType;
@@ -16,12 +17,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
 public class MediaUploadSessionCreateUseCase {
     private static final long MAX_FILE_SIZE = 100L * 1024 * 1024;
     private static final Map<MediaFileType, Set<String>> ALLOWED_MIME_TYPES = Map.of(
@@ -35,14 +30,14 @@ public class MediaUploadSessionCreateUseCase {
     private final MediaUploadSessionJpaRepository sessions;
     private final Clock clock;
     private final String apiBaseUrl;
+    private final TransactionRunner transactionRunner;
 
-    @Autowired
     public MediaUploadSessionCreateUseCase(
             MediaFileRepositoryPort mediaFiles,
             MediaUploadSessionJpaRepository sessions,
-            @Value("${app.api.public-base-url:http://localhost:8080}") String apiBaseUrl
+            String apiBaseUrl
     ) {
-        this(mediaFiles, sessions, Clock.systemUTC(), apiBaseUrl);
+        this(mediaFiles, sessions, Clock.systemUTC(), apiBaseUrl, TransactionRunner.direct());
     }
 
     public MediaUploadSessionCreateUseCase(
@@ -51,14 +46,28 @@ public class MediaUploadSessionCreateUseCase {
             Clock clock,
             String apiBaseUrl
     ) {
+        this(mediaFiles, sessions, clock, apiBaseUrl, TransactionRunner.direct());
+    }
+
+    public MediaUploadSessionCreateUseCase(
+            MediaFileRepositoryPort mediaFiles,
+            MediaUploadSessionJpaRepository sessions,
+            Clock clock,
+            String apiBaseUrl,
+            TransactionRunner transactionRunner
+    ) {
         this.mediaFiles = mediaFiles;
         this.sessions = sessions;
         this.clock = clock;
         this.apiBaseUrl = stripTrailingSlash(apiBaseUrl);
+        this.transactionRunner = transactionRunner;
     }
 
-    @Transactional
     public MediaUploadSessionCreateResponse execute(MediaUploadSessionCreateRequest request) {
+        return transactionRunner.required(() -> executeInternal(request));
+    }
+
+    private MediaUploadSessionCreateResponse executeInternal(MediaUploadSessionCreateRequest request) {
         validate(request);
         String safeFileName = request.fileName().replaceAll("[^a-zA-Z0-9._-]", "_");
         String storageKey = "media/" + request.userId() + "/" + UUID.randomUUID() + "-" + safeFileName;

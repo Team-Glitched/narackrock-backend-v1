@@ -10,32 +10,40 @@ import glitched.adlips.application.project.dto.request.MidiClipCreateRequest;
 import glitched.adlips.application.project.dto.response.MidiClipCreateResponse;
 import glitched.adlips.application.project.dto.request.MidiNoteRequest;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.project.ProjectClip;
 import glitched.adlips.domain.project.ProjectMemberRole;
 import glitched.adlips.domain.project.MidiNote;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
 public class MidiClipCreateUseCase {
     private final ProjectJpaRepository projects;
     private final ProjectMemberJpaRepository members;
     private final ProjectTrackJpaRepository tracks;
     private final ProjectClipJpaRepository clips;
     private final UserRepositoryPort users;
+    private final TransactionRunner transactionRunner;
 
     public MidiClipCreateUseCase(ProjectJpaRepository projects, ProjectMemberJpaRepository members,
                                  ProjectTrackJpaRepository tracks, ProjectClipJpaRepository clips,
                                  UserRepositoryPort users) {
+        this(projects, members, tracks, clips, users, TransactionRunner.direct());
+    }
+
+    public MidiClipCreateUseCase(ProjectJpaRepository projects, ProjectMemberJpaRepository members,
+                                 ProjectTrackJpaRepository tracks, ProjectClipJpaRepository clips,
+                                 UserRepositoryPort users, TransactionRunner transactionRunner) {
         this.projects = projects;
         this.members = members;
         this.tracks = tracks;
         this.clips = clips;
         this.users = users;
+        this.transactionRunner = transactionRunner;
     }
 
-    @Transactional
     public MidiClipCreateResponse execute(MidiClipCreateRequest request) {
+        return transactionRunner.required(() -> executeInternal(request));
+    }
+
+    private MidiClipCreateResponse executeInternal(MidiClipCreateRequest request) {
         if (request == null || request.projectId() == null || request.trackId() == null
                 || request.userId() == null || request.midiNotes() == null) {
             throw error(ProjectErrorCode.INVALID_MIDI_NOTE_DATA, "MIDI 노트 데이터가 올바르지 않습니다.");

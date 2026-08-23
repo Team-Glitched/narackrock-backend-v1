@@ -49,11 +49,12 @@ class ProfileActivityQueryPersistenceAdapterTest {
     void 프로필_활동_목록을_조회한다() {
         jdbcTemplate.update("""
                 INSERT INTO posts (
-                    id, gallery_id, user_id, title, content, view_count, like_count, dislike_count, created_at
+                    id, gallery_id, user_id, title, content,
+                    view_count, like_count, dislike_count, comment_count, created_at
                 )
                 VALUES
-                    (20, 10, 1, '첫 게시글', 'content', 0, 0, 0, '2026-07-09T00:00:00'),
-                    (21, 10, 2, '다른 유저 글', 'content', 0, 0, 0, '2026-07-09T00:00:00')
+                    (20, 10, 1, '첫 게시글', 'content', 0, 0, 0, 0, '2026-07-09T00:00:00'),
+                    (21, 10, 2, '다른 유저 글', 'content', 0, 0, 0, 0, '2026-07-09T00:00:00')
                 """);
         jdbcTemplate.update("""
                 INSERT INTO shorts (

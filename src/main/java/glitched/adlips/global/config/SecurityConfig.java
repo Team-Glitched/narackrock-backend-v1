@@ -57,6 +57,8 @@ public class SecurityConfig {
                                 "/api/v1/shorts",
                                 "/api/v1/users/*/relations",
                                 "/api/v1/shorts/*/comments",
+                                "/api/v1/galleries/*/posts",
+                                "/api/v1/galleries/*/posts/*",
                                 "/files/**"
                         ).permitAll()
                         .anyRequest().authenticated()

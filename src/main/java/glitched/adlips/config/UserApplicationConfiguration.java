@@ -21,6 +21,7 @@ import glitched.adlips.application.user.profile.usecase.ProfileImageUpdateUseCas
 import glitched.adlips.application.user.profile.usecase.ProfileMuteToggleUseCase;
 import glitched.adlips.application.user.profile.usecase.ProfileShareUseCase;
 import glitched.adlips.application.user.profile.usecase.ProfileUpdateUseCase;
+import glitched.adlips.application.user.relation.port.out.CollaborationUserQueryPort;
 import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
 import glitched.adlips.application.user.relation.port.out.ProfileQueryPort;
 import glitched.adlips.application.user.relation.usecase.FollowCancelUseCase;
@@ -202,11 +203,12 @@ public class UserApplicationConfiguration {
     RecommendedUserGetListUseCase recommendedUserGetListUseCase(
             ProfileQueryPort profileQuery,
             FollowRepositoryPort followRepository,
+            CollaborationUserQueryPort collaborationUserQueryPort,
             MediaFileRepositoryPort mediaFileRepository,
             TransactionRunner transactionRunner
     ) {
         return new RecommendedUserGetListUseCase(
-                profileQuery, followRepository, mediaFileRepository, transactionRunner);
+                profileQuery, followRepository, collaborationUserQueryPort, mediaFileRepository, transactionRunner);
     }
 
     @Bean

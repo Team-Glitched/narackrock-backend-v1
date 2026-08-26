@@ -5,7 +5,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import glitched.adlips.adapter.out.persistence.media.MediaUploadSessionJpaRepository;
+import glitched.adlips.application.media.port.out.MediaUploadSessionRepositoryPort;
 import glitched.adlips.application.media.dto.request.MediaUploadSessionCreateRequest;
 import glitched.adlips.application.media.dto.response.MediaUploadSessionCreateResponse;
 import glitched.adlips.application.media.usecase.MediaUploadSessionCreateUseCase;
@@ -22,7 +22,7 @@ class MediaUploadSessionCreateUseCaseTest {
     @Test
     void createsUploadingMediaAndPutSession() {
         MediaFileRepositoryPort mediaFiles = mock(MediaFileRepositoryPort.class);
-        MediaUploadSessionJpaRepository sessions = mock(MediaUploadSessionJpaRepository.class);
+        MediaUploadSessionRepositoryPort sessions = mock(MediaUploadSessionRepositoryPort.class);
         when(mediaFiles.save(any(MediaFile.class))).thenAnswer(invocation -> invocation.<MediaFile>getArgument(0).withId(501L));
         when(sessions.save(any(MediaUploadSession.class))).thenAnswer(invocation -> invocation.getArgument(0));
         Clock clock = Clock.fixed(Instant.parse("2026-07-05T10:00:00Z"), ZoneOffset.UTC);
@@ -41,7 +41,7 @@ class MediaUploadSessionCreateUseCaseTest {
     @Test
     void acceptsBrowserWaveMimeType() {
         MediaFileRepositoryPort mediaFiles = mock(MediaFileRepositoryPort.class);
-        MediaUploadSessionJpaRepository sessions = mock(MediaUploadSessionJpaRepository.class);
+        MediaUploadSessionRepositoryPort sessions = mock(MediaUploadSessionRepositoryPort.class);
         when(mediaFiles.save(any(MediaFile.class))).thenAnswer(
                 invocation -> invocation.<MediaFile>getArgument(0).withId(502L));
         when(sessions.save(any(MediaUploadSession.class))).thenAnswer(invocation -> invocation.getArgument(0));

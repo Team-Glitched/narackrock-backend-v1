@@ -1,8 +1,8 @@
 package glitched.adlips.application.project.usecase;
 
-import glitched.adlips.adapter.out.persistence.project.ProjectContributionJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectMemberJpaRepository;
+import glitched.adlips.application.project.port.out.ProjectContributionRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.ProjectApplicationException;
 import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.ProjectContributionGetListRequest;
@@ -19,26 +19,26 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 public class ProjectContributionGetListUseCase {
-    private final ProjectJpaRepository projects;
-    private final ProjectMemberJpaRepository members;
-    private final ProjectContributionJpaRepository contributions;
+    private final ProjectRepositoryPort projects;
+    private final ProjectMemberRepositoryPort members;
+    private final ProjectContributionRepositoryPort contributions;
     private final ProfileRepositoryPort profiles;
     private final MediaFileRepositoryPort mediaFiles;
     private final TransactionRunner transactionRunner;
 
     public ProjectContributionGetListUseCase(
-            ProjectJpaRepository projects,
-            ProjectMemberJpaRepository members,
-            ProjectContributionJpaRepository contributions,
+            ProjectRepositoryPort projects,
+            ProjectMemberRepositoryPort members,
+            ProjectContributionRepositoryPort contributions,
             ProfileRepositoryPort profiles,
             MediaFileRepositoryPort mediaFiles) {
         this(projects, members, contributions, profiles, mediaFiles, TransactionRunner.direct());
     }
 
     public ProjectContributionGetListUseCase(
-            ProjectJpaRepository projects,
-            ProjectMemberJpaRepository members,
-            ProjectContributionJpaRepository contributions,
+            ProjectRepositoryPort projects,
+            ProjectMemberRepositoryPort members,
+            ProjectContributionRepositoryPort contributions,
             ProfileRepositoryPort profiles,
             MediaFileRepositoryPort mediaFiles,
             TransactionRunner transactionRunner) {

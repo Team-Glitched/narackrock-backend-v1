@@ -5,9 +5,9 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import glitched.adlips.adapter.out.persistence.project.ProjectJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectMemberJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectTrackJpaRepository;
+import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.project.dto.request.TrackCreateRequest;
 import glitched.adlips.application.project.dto.response.TrackCreateResponse;
 import glitched.adlips.application.project.usecase.TrackCreateUseCase;
@@ -25,9 +25,9 @@ class TrackCreateUseCaseTest {
     void createsDraftTrackWithoutRenderedMedia() {
         User owner = User.create("owner@example.com").withId(1L);
         Project project = new Project(owner, "곡", null, 701L);
-        ProjectJpaRepository projects = mock(ProjectJpaRepository.class);
-        ProjectMemberJpaRepository members = mock(ProjectMemberJpaRepository.class);
-        ProjectTrackJpaRepository tracks = mock(ProjectTrackJpaRepository.class);
+        ProjectRepositoryPort projects = mock(ProjectRepositoryPort.class);
+        ProjectMemberRepositoryPort members = mock(ProjectMemberRepositoryPort.class);
+        ProjectTrackRepositoryPort tracks = mock(ProjectTrackRepositoryPort.class);
         UserRepositoryPort users = mock(UserRepositoryPort.class);
         when(projects.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(project));
         when(members.findByProjectIdAndUserId(10L, 1L)).thenReturn(Optional.of(new ProjectMember(project, owner, ProjectMemberRole.OWNER)));

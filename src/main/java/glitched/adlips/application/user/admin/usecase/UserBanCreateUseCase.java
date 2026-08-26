@@ -3,6 +3,7 @@ package glitched.adlips.application.user.admin.usecase;
 import glitched.adlips.application.user.admin.dto.request.UserBanCreateRequest;
 import glitched.adlips.application.user.admin.dto.response.UserBanCreateResponse;
 import glitched.adlips.application.user.admin.port.out.UserBanRepositoryPort;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
@@ -11,27 +12,37 @@ import glitched.adlips.domain.user.User;
 import glitched.adlips.domain.user.UserRole;
 import java.time.Clock;
 import java.time.LocalDateTime;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
 public class UserBanCreateUseCase {
     private final UserRepositoryPort userRepository;
     private final UserBanRepositoryPort userBanRepository;
     private final Clock clock;
+    private final TransactionRunner transactionRunner;
 
     public UserBanCreateUseCase(
             UserRepositoryPort userRepository,
             UserBanRepositoryPort userBanRepository,
             Clock clock
     ) {
+        this(userRepository, userBanRepository, clock, TransactionRunner.direct());
+    }
+
+    public UserBanCreateUseCase(
+            UserRepositoryPort userRepository,
+            UserBanRepositoryPort userBanRepository,
+            Clock clock,
+            TransactionRunner transactionRunner
+    ) {
         this.userRepository = userRepository;
         this.userBanRepository = userBanRepository;
         this.clock = clock;
+        this.transactionRunner = transactionRunner;
     }
 
-    @Transactional
     public UserBanCreateResponse execute(UserBanCreateRequest request) {
+        return transactionRunner.required(() -> executeInternal(request));
+    }
+
+    private UserBanCreateResponse executeInternal(UserBanCreateRequest request) {
         validate(request);
         LocalDateTime now = LocalDateTime.now(clock);
         User admin = requireAdmin(request.adminId());

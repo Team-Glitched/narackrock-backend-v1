@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import glitched.adlips.adapter.out.persistence.project.ProjectJpaRepository;
+import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.dto.request.ProjectDeleteRequest;
 import glitched.adlips.application.project.usecase.ProjectDeleteUseCase;
 import glitched.adlips.domain.project.Project;
@@ -21,7 +21,7 @@ class ProjectDeleteUseCaseTest {
     void ownerSoftDeletesProject() {
         User owner = User.create("owner@example.com").withId(1L);
         Project project = new Project(owner, "곡", null, 701L);
-        ProjectJpaRepository projects = mock(ProjectJpaRepository.class);
+        ProjectRepositoryPort projects = mock(ProjectRepositoryPort.class);
         when(projects.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(project));
 
         new ProjectDeleteUseCase(projects, Clock.fixed(Instant.parse("2026-07-02T00:00:00Z"), ZoneOffset.UTC))

@@ -1,9 +1,9 @@
 package glitched.adlips.application.project.usecase;
 
-import glitched.adlips.adapter.out.persistence.project.ProjectClipJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectMemberJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectTrackJpaRepository;
+import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.project.ProjectApplicationException;
 import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.AudioClipCreateRequest;
@@ -17,22 +17,22 @@ import glitched.adlips.domain.project.ClipSourceType;
 import glitched.adlips.domain.project.ProjectClip;
 import glitched.adlips.domain.project.ProjectMemberRole;
 public class AudioClipCreateUseCase {
-    private final ProjectJpaRepository projects;
-    private final ProjectMemberJpaRepository members;
-    private final ProjectTrackJpaRepository tracks;
-    private final ProjectClipJpaRepository clips;
+    private final ProjectRepositoryPort projects;
+    private final ProjectMemberRepositoryPort members;
+    private final ProjectTrackRepositoryPort tracks;
+    private final ProjectClipRepositoryPort clips;
     private final UserRepositoryPort users;
     private final MediaFileRepositoryPort mediaFiles;
     private final TransactionRunner transactionRunner;
 
-    public AudioClipCreateUseCase(ProjectJpaRepository projects, ProjectMemberJpaRepository members,
-                                  ProjectTrackJpaRepository tracks, ProjectClipJpaRepository clips,
+    public AudioClipCreateUseCase(ProjectRepositoryPort projects, ProjectMemberRepositoryPort members,
+                                  ProjectTrackRepositoryPort tracks, ProjectClipRepositoryPort clips,
                                   UserRepositoryPort users, MediaFileRepositoryPort mediaFiles) {
         this(projects, members, tracks, clips, users, mediaFiles, TransactionRunner.direct());
     }
 
-    public AudioClipCreateUseCase(ProjectJpaRepository projects, ProjectMemberJpaRepository members,
-                                  ProjectTrackJpaRepository tracks, ProjectClipJpaRepository clips,
+    public AudioClipCreateUseCase(ProjectRepositoryPort projects, ProjectMemberRepositoryPort members,
+                                  ProjectTrackRepositoryPort tracks, ProjectClipRepositoryPort clips,
                                   UserRepositoryPort users, MediaFileRepositoryPort mediaFiles,
                                   TransactionRunner transactionRunner) {
         this.projects = projects;
@@ -55,7 +55,7 @@ public class AudioClipCreateUseCase {
         members.findByProjectIdAndUserId(request.projectId(), request.userId())
                 .filter(member -> member.getRole() != ProjectMemberRole.VIEWER)
                 .orElseThrow(() -> error(ProjectErrorCode.PROJECT_ACCESS_DENIED, "해당 프로젝트에 접근할 권한이 없습니다."));
-        var track = tracks.findByIdAndIsDeletedFalse(request.trackId())
+        var track = tracks.findTrackByIdAndIsDeletedFalse(request.trackId())
                 .orElseThrow(() -> error(ProjectErrorCode.TRACK_NOT_FOUND, "존재하지 않는 트랙입니다."));
         if (!track.belongsTo(project)) {
             throw error(ProjectErrorCode.TRACK_NOT_IN_PROJECT, "해당 프로젝트에 속한 트랙이 아닙니다.");

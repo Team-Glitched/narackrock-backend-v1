@@ -1,34 +1,34 @@
 package glitched.adlips.application.project.usecase;
 
-import glitched.adlips.adapter.out.persistence.project.ProjectClipJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectMemberJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectTrackJpaRepository;
 import glitched.adlips.application.project.ProjectApplicationException;
 import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.TrackGetListRequest;
 import glitched.adlips.application.project.dto.response.ProjectVersionResponse;
 import glitched.adlips.application.project.dto.response.TrackGetListResponse;
 import glitched.adlips.application.port.TransactionRunner;
+import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.domain.project.ProjectMemberRole;
 import java.util.List;
 public class TrackGetListUseCase {
-    private final ProjectJpaRepository projects;
-    private final ProjectMemberJpaRepository members;
-    private final ProjectTrackJpaRepository tracks;
-    private final ProjectClipJpaRepository clips;
+    private final ProjectRepositoryPort projects;
+    private final ProjectMemberRepositoryPort members;
+    private final ProjectTrackRepositoryPort tracks;
+    private final ProjectClipRepositoryPort clips;
     private final MediaFileRepositoryPort mediaFiles;
     private final TransactionRunner transactionRunner;
 
-    public TrackGetListUseCase(ProjectJpaRepository projects, ProjectMemberJpaRepository members,
-                               ProjectTrackJpaRepository tracks, ProjectClipJpaRepository clips,
+    public TrackGetListUseCase(ProjectRepositoryPort projects, ProjectMemberRepositoryPort members,
+                               ProjectTrackRepositoryPort tracks, ProjectClipRepositoryPort clips,
                                MediaFileRepositoryPort mediaFiles) {
         this(projects, members, tracks, clips, mediaFiles, TransactionRunner.direct());
     }
 
-    public TrackGetListUseCase(ProjectJpaRepository projects, ProjectMemberJpaRepository members,
-                               ProjectTrackJpaRepository tracks, ProjectClipJpaRepository clips,
+    public TrackGetListUseCase(ProjectRepositoryPort projects, ProjectMemberRepositoryPort members,
+                               ProjectTrackRepositoryPort tracks, ProjectClipRepositoryPort clips,
                                MediaFileRepositoryPort mediaFiles, TransactionRunner transactionRunner) {
         this.projects = projects; this.members = members; this.tracks = tracks;
         this.clips = clips; this.mediaFiles = mediaFiles;

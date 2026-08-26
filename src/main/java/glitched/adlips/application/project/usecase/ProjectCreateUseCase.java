@@ -1,11 +1,11 @@
 package glitched.adlips.application.project.usecase;
 
-import glitched.adlips.adapter.out.persistence.project.ProjectJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectMemberJpaRepository;
 import glitched.adlips.application.project.ProjectApplicationException;
 import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.ProjectCreateRequest;
 import glitched.adlips.application.project.dto.response.ProjectCreateResponse;
+import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.project.dto.response.ProjectVersionResponse;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
@@ -20,21 +20,21 @@ import glitched.adlips.domain.user.User;
 public class ProjectCreateUseCase {
     private final UserRepositoryPort userRepository;
     private final MediaFileRepositoryPort mediaFileRepository;
-    private final ProjectJpaRepository projectRepository;
-    private final ProjectMemberJpaRepository memberRepository;
+    private final ProjectRepositoryPort projectRepository;
+    private final ProjectMemberRepositoryPort memberRepository;
     private final TransactionRunner transactionRunner;
 
     public ProjectCreateUseCase(UserRepositoryPort userRepository,
                                 MediaFileRepositoryPort mediaFileRepository,
-                                ProjectJpaRepository projectRepository,
-                                ProjectMemberJpaRepository memberRepository) {
+                                ProjectRepositoryPort projectRepository,
+                                ProjectMemberRepositoryPort memberRepository) {
         this(userRepository, mediaFileRepository, projectRepository, memberRepository, TransactionRunner.direct());
     }
 
     public ProjectCreateUseCase(UserRepositoryPort userRepository,
                                 MediaFileRepositoryPort mediaFileRepository,
-                                ProjectJpaRepository projectRepository,
-                                ProjectMemberJpaRepository memberRepository,
+                                ProjectRepositoryPort projectRepository,
+                                ProjectMemberRepositoryPort memberRepository,
                                 TransactionRunner transactionRunner) {
         this.userRepository = userRepository;
         this.mediaFileRepository = mediaFileRepository;

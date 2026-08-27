@@ -45,6 +45,7 @@ class DeletePostUseCaseTest {
     @Test
     void 정상_삭제시_deletedAt이_반영되어_저장된다() {
         Post post = post(1L);
+        when(port.existsGallery(10L)).thenReturn(true);
         when(port.findActivePost(501L, 10L)).thenReturn(Optional.of(post));
 
         useCase.execute(10L, 501L, 1L);
@@ -55,6 +56,7 @@ class DeletePostUseCaseTest {
 
     @Test
     void 존재하지_않으면_POST_NOT_FOUND가_발생한다() {
+        when(port.existsGallery(10L)).thenReturn(true);
         when(port.findActivePost(999L, 10L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> useCase.execute(10L, 999L, 1L))
@@ -64,7 +66,20 @@ class DeletePostUseCaseTest {
     }
 
     @Test
+    void 존재하지_않는_갤러리면_GALLERY_NOT_FOUND가_발생하고_게시글을_조회하지_않는다() {
+        when(port.existsGallery(999L)).thenReturn(false);
+
+        assertThatThrownBy(() -> useCase.execute(999L, 501L, 1L))
+                .isInstanceOf(PostApplicationException.class)
+                .extracting("errorCode")
+                .isEqualTo(PostErrorCode.GALLERY_NOT_FOUND);
+
+        verify(port, never()).findActivePost(any(), any());
+    }
+
+    @Test
     void 본인_게시글이_아니면_NOT_POST_OWNER가_발생하고_삭제하지_않는다() {
+        when(port.existsGallery(10L)).thenReturn(true);
         when(port.findActivePost(501L, 10L)).thenReturn(Optional.of(post(2L)));
 
         assertThatThrownBy(() -> useCase.execute(10L, 501L, 1L))

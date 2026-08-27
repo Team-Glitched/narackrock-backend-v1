@@ -20,6 +20,10 @@ public class DeletePostUseCase {
 
     public void execute(Long galleryId, Long postId, Long userId) {
         transactionRunner.<Void>required(() -> {
+            if (!port.existsGallery(galleryId)) {
+                throw new PostApplicationException(
+                        PostErrorCode.GALLERY_NOT_FOUND, "존재하지 않는 갤러리입니다.");
+            }
             Post post = port.findActivePost(postId, galleryId)
                     .orElseThrow(() -> new PostApplicationException(
                             PostErrorCode.POST_NOT_FOUND, "존재하지 않거나 이미 삭제된 게시글입니다."));

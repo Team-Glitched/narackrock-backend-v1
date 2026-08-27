@@ -39,6 +39,7 @@ class UpdatePostUseCaseTest {
 
     @Test
     void 정상_수정시_postId를_반환한다() {
+        when(port.existsGallery(10L)).thenReturn(true);
         when(port.findActivePost(501L, 10L)).thenReturn(Optional.of(post(1L)));
 
         Long postId = useCase.execute(10L, 501L, 1L, "수정된 제목", "수정된 내용");
@@ -58,6 +59,7 @@ class UpdatePostUseCaseTest {
 
     @Test
     void 존재하지_않으면_POST_NOT_FOUND가_발생한다() {
+        when(port.existsGallery(10L)).thenReturn(true);
         when(port.findActivePost(999L, 10L)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> useCase.execute(10L, 999L, 1L, "제목", "내용"))
@@ -67,7 +69,20 @@ class UpdatePostUseCaseTest {
     }
 
     @Test
+    void 존재하지_않는_갤러리면_GALLERY_NOT_FOUND가_발생하고_게시글을_조회하지_않는다() {
+        when(port.existsGallery(999L)).thenReturn(false);
+
+        assertThatThrownBy(() -> useCase.execute(999L, 501L, 1L, "제목", "내용"))
+                .isInstanceOf(PostApplicationException.class)
+                .extracting("errorCode")
+                .isEqualTo(PostErrorCode.GALLERY_NOT_FOUND);
+
+        verify(port, never()).findActivePost(any(), any());
+    }
+
+    @Test
     void 본인_게시글이_아니면_NOT_POST_OWNER가_발생하고_수정하지_않는다() {
+        when(port.existsGallery(10L)).thenReturn(true);
         when(port.findActivePost(501L, 10L)).thenReturn(Optional.of(post(2L)));
 
         assertThatThrownBy(() -> useCase.execute(10L, 501L, 1L, "제목", "내용"))

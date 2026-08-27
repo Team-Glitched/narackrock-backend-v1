@@ -23,6 +23,10 @@ public class UpdatePostUseCase {
         }
 
         return transactionRunner.required(() -> {
+            if (!port.existsGallery(galleryId)) {
+                throw new PostApplicationException(
+                        PostErrorCode.GALLERY_NOT_FOUND, "존재하지 않는 갤러리입니다.");
+            }
             Post post = port.findActivePost(postId, galleryId)
                     .orElseThrow(() -> new PostApplicationException(
                             PostErrorCode.POST_NOT_FOUND, "수정하려는 게시글을 찾을 수 없거나 이미 삭제되었습니다."));

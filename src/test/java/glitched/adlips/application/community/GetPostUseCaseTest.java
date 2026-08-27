@@ -2,25 +2,34 @@ package glitched.adlips.application.community;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import glitched.adlips.application.community.port.out.PostQueryItem;
 import glitched.adlips.application.community.port.out.PostQueryPort;
+import glitched.adlips.application.port.TransactionRunner;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class GetPostUseCaseTest {
 
     PostQueryPort port;
+    TransactionRunner transactionRunner;
     GetPostUseCase useCase;
 
     @BeforeEach
     void setUp() {
         port = mock(PostQueryPort.class);
-        useCase = new GetPostUseCase(port);
+        transactionRunner = mock(TransactionRunner.class);
+        lenient().when(transactionRunner.readOnly(any())).thenAnswer(invocation ->
+                invocation.<Supplier<?>>getArgument(0).get());
+        useCase = new GetPostUseCase(port, transactionRunner);
     }
 
     @Test
@@ -33,6 +42,18 @@ class GetPostUseCaseTest {
         PostQueryItem result = useCase.execute(10L, 501L);
 
         assertThat(result).isEqualTo(item);
+    }
+
+    @Test
+    void 조회는_readOnly_트랜잭션으로_실행된다() {
+        PostQueryItem item = new PostQueryItem(
+                501L, 10L, 1L, "writer", null, "제목", "내용", 0, 0, 0, 0, LocalDateTime.of(2026, 8, 23, 10, 0));
+        when(port.existsGallery(10L)).thenReturn(true);
+        when(port.findDetail(501L, 10L)).thenReturn(Optional.of(item));
+
+        useCase.execute(10L, 501L);
+
+        verify(transactionRunner).readOnly(any());
     }
 
     @Test

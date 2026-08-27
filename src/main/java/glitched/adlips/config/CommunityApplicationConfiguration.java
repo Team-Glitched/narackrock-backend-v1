@@ -21,13 +21,13 @@ public class CommunityApplicationConfiguration {
     }
 
     @Bean
-    GetPostUseCase getPostUseCase(PostQueryPort postQueryPort) {
-        return new GetPostUseCase(postQueryPort);
+    GetPostUseCase getPostUseCase(PostQueryPort postQueryPort, TransactionRunner transactionRunner) {
+        return new GetPostUseCase(postQueryPort, transactionRunner);
     }
 
     @Bean
-    GetPostsUseCase getPostsUseCase(PostQueryPort postQueryPort) {
-        return new GetPostsUseCase(postQueryPort);
+    GetPostsUseCase getPostsUseCase(PostQueryPort postQueryPort, TransactionRunner transactionRunner) {
+        return new GetPostsUseCase(postQueryPort, transactionRunner);
     }
 
     @Bean

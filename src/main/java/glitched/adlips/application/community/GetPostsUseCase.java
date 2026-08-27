@@ -2,6 +2,7 @@ package glitched.adlips.application.community;
 
 import glitched.adlips.application.community.port.out.PostQueryItem;
 import glitched.adlips.application.community.port.out.PostQueryPort;
+import glitched.adlips.application.port.TransactionRunner;
 import java.util.List;
 
 public class GetPostsUseCase {
@@ -9,15 +10,25 @@ public class GetPostsUseCase {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final PostQueryPort port;
+    private final TransactionRunner transactionRunner;
 
     public GetPostsUseCase(PostQueryPort port) {
+        this(port, TransactionRunner.direct());
+    }
+
+    public GetPostsUseCase(PostQueryPort port, TransactionRunner transactionRunner) {
         this.port = port;
+        this.transactionRunner = transactionRunner;
     }
 
     public PostListResult execute(Long galleryId, int page, int size) {
         if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
             throw new PostApplicationException(PostErrorCode.VALIDATION_ERROR, "페이지 번호와 크기를 확인해 주세요.");
         }
+        return transactionRunner.readOnly(() -> executeInternal(galleryId, page, size));
+    }
+
+    private PostListResult executeInternal(Long galleryId, int page, int size) {
         if (!port.existsGallery(galleryId)) {
             throw new PostApplicationException(PostErrorCode.GALLERY_NOT_FOUND, "존재하지 않는 갤러리입니다.");
         }

@@ -2,25 +2,34 @@ package glitched.adlips.application.community;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import glitched.adlips.application.community.port.out.PostQueryItem;
 import glitched.adlips.application.community.port.out.PostQueryPort;
+import glitched.adlips.application.port.TransactionRunner;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class GetPostsUseCaseTest {
 
     PostQueryPort port;
+    TransactionRunner transactionRunner;
     GetPostsUseCase useCase;
 
     @BeforeEach
     void setUp() {
         port = mock(PostQueryPort.class);
-        useCase = new GetPostsUseCase(port);
+        transactionRunner = mock(TransactionRunner.class);
+        lenient().when(transactionRunner.readOnly(any())).thenAnswer(invocation ->
+                invocation.<Supplier<?>>getArgument(0).get());
+        useCase = new GetPostsUseCase(port, transactionRunner);
     }
 
     @Test
@@ -36,6 +45,17 @@ class GetPostsUseCaseTest {
         assertThat(result.galleryId()).isEqualTo(10L);
         assertThat(result.totalCount()).isEqualTo(1L);
         assertThat(result.posts()).containsExactly(item);
+    }
+
+    @Test
+    void 조회는_readOnly_트랜잭션으로_실행된다() {
+        when(port.existsGallery(10L)).thenReturn(true);
+        when(port.findPosts(10L, 0, 20)).thenReturn(List.of());
+        when(port.countPosts(10L)).thenReturn(0L);
+
+        useCase.execute(10L, 0, 20);
+
+        verify(transactionRunner).readOnly(any());
     }
 
     @Test

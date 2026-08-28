@@ -1,11 +1,11 @@
 package glitched.adlips.application.project.usecase;
 
-import glitched.adlips.adapter.out.persistence.project.ProjectClipJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectContributionItemJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectContributionJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectMemberJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectTrackJpaRepository;
+import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectContributionItemRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectContributionRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.project.ProjectApplicationException;
 import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.ProjectContributionCreateRequest;
@@ -27,33 +27,33 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 public class ProjectContributionCreateUseCase {
-    private final ProjectJpaRepository projects;
-    private final ProjectMemberJpaRepository members;
-    private final ProjectContributionJpaRepository contributions;
-    private final ProjectContributionItemJpaRepository contributionItems;
-    private final ProjectTrackJpaRepository tracks;
-    private final ProjectClipJpaRepository clips;
+    private final ProjectRepositoryPort projects;
+    private final ProjectMemberRepositoryPort members;
+    private final ProjectContributionRepositoryPort contributions;
+    private final ProjectContributionItemRepositoryPort contributionItems;
+    private final ProjectTrackRepositoryPort tracks;
+    private final ProjectClipRepositoryPort clips;
     private final UserRepositoryPort users;
     private final TransactionRunner transactionRunner;
 
     public ProjectContributionCreateUseCase(
-            ProjectJpaRepository projects,
-            ProjectMemberJpaRepository members,
-            ProjectContributionJpaRepository contributions,
-            ProjectContributionItemJpaRepository contributionItems,
-            ProjectTrackJpaRepository tracks,
-            ProjectClipJpaRepository clips,
+            ProjectRepositoryPort projects,
+            ProjectMemberRepositoryPort members,
+            ProjectContributionRepositoryPort contributions,
+            ProjectContributionItemRepositoryPort contributionItems,
+            ProjectTrackRepositoryPort tracks,
+            ProjectClipRepositoryPort clips,
             UserRepositoryPort users) {
         this(projects, members, contributions, contributionItems, tracks, clips, users, TransactionRunner.direct());
     }
 
     public ProjectContributionCreateUseCase(
-            ProjectJpaRepository projects,
-            ProjectMemberJpaRepository members,
-            ProjectContributionJpaRepository contributions,
-            ProjectContributionItemJpaRepository contributionItems,
-            ProjectTrackJpaRepository tracks,
-            ProjectClipJpaRepository clips,
+            ProjectRepositoryPort projects,
+            ProjectMemberRepositoryPort members,
+            ProjectContributionRepositoryPort contributions,
+            ProjectContributionItemRepositoryPort contributionItems,
+            ProjectTrackRepositoryPort tracks,
+            ProjectClipRepositoryPort clips,
             UserRepositoryPort users,
             TransactionRunner transactionRunner) {
         this.projects = projects;
@@ -142,7 +142,7 @@ public class ProjectContributionCreateUseCase {
 
         for (var item : items) {
             if (item.targetType() == ContributionTargetType.TRACK) {
-                ProjectTrack track = tracks.findByIdAndIsDeletedFalse(item.targetId())
+                ProjectTrack track = tracks.findTrackByIdAndIsDeletedFalse(item.targetId())
                         .orElseThrow(() -> invalidItem());
                 validateTrack(project, userId, item, track);
                 if (item.changeType() == ContributionChangeType.ADD) {
@@ -154,7 +154,7 @@ public class ProjectContributionCreateUseCase {
                     }
                 }
             } else {
-                ProjectClip clip = clips.findByIdAndIsDeletedFalse(item.targetId())
+                ProjectClip clip = clips.findClipByIdAndIsDeletedFalse(item.targetId())
                         .orElseThrow(() -> invalidItem());
                 validateClip(project, userId, item, clip);
             }
@@ -195,9 +195,9 @@ public class ProjectContributionCreateUseCase {
                 continue;
             }
             if (item.targetType() == ContributionTargetType.TRACK) {
-                tracks.findByIdAndIsDeletedFalse(item.targetId()).orElseThrow(this::invalidItem).submitForReview();
+                tracks.findTrackByIdAndIsDeletedFalse(item.targetId()).orElseThrow(this::invalidItem).submitForReview();
             } else {
-                clips.findByIdAndIsDeletedFalse(item.targetId()).orElseThrow(this::invalidItem).submitForReview();
+                clips.findClipByIdAndIsDeletedFalse(item.targetId()).orElseThrow(this::invalidItem).submitForReview();
             }
         }
     }

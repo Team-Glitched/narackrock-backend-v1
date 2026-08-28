@@ -1,9 +1,9 @@
 package glitched.adlips.application.media.usecase;
 
-import glitched.adlips.adapter.out.persistence.media.MediaUploadSessionJpaRepository;
-import glitched.adlips.adapter.out.storage.LocalFileStorageAdapter;
 import glitched.adlips.application.media.MediaApplicationException;
 import glitched.adlips.application.media.MediaErrorCode;
+import glitched.adlips.application.media.port.out.MediaContentStoragePort;
+import glitched.adlips.application.media.port.out.MediaUploadSessionRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.domain.media.MediaFileStatus;
 import java.time.Clock;
@@ -11,13 +11,13 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 public class LocalMediaContentUploadUseCase {
     private final MediaFileRepositoryPort mediaFiles;
-    private final MediaUploadSessionJpaRepository sessions;
-    private final LocalFileStorageAdapter storage;
+    private final MediaUploadSessionRepositoryPort sessions;
+    private final MediaContentStoragePort storage;
     private final Clock clock = Clock.systemUTC();
 
     public LocalMediaContentUploadUseCase(MediaFileRepositoryPort mediaFiles,
-                                          MediaUploadSessionJpaRepository sessions,
-                                          LocalFileStorageAdapter storage) {
+                                          MediaUploadSessionRepositoryPort sessions,
+                                          MediaContentStoragePort storage) {
         this.mediaFiles = mediaFiles;
         this.sessions = sessions;
         this.storage = storage;

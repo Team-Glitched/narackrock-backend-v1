@@ -1,10 +1,10 @@
 package glitched.adlips.config;
 
-import glitched.adlips.adapter.out.persistence.media.MediaUploadSessionJpaRepository;
-import glitched.adlips.adapter.out.storage.LocalFileStorageAdapter;
 import glitched.adlips.application.media.usecase.LocalMediaContentUploadUseCase;
 import glitched.adlips.application.media.usecase.MediaUploadCompleteUseCase;
 import glitched.adlips.application.media.usecase.MediaUploadSessionCreateUseCase;
+import glitched.adlips.application.media.port.out.MediaContentStoragePort;
+import glitched.adlips.application.media.port.out.MediaUploadSessionRepositoryPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import java.time.Clock;
@@ -18,8 +18,8 @@ public class MediaApplicationConfiguration {
     @Bean
     LocalMediaContentUploadUseCase localMediaContentUploadUseCase(
             MediaFileRepositoryPort mediaFiles,
-            MediaUploadSessionJpaRepository sessions,
-            LocalFileStorageAdapter storage
+            MediaUploadSessionRepositoryPort sessions,
+            MediaContentStoragePort storage
     ) {
         return new LocalMediaContentUploadUseCase(mediaFiles, sessions, storage);
     }
@@ -27,7 +27,7 @@ public class MediaApplicationConfiguration {
     @Bean
     MediaUploadSessionCreateUseCase mediaUploadSessionCreateUseCase(
             MediaFileRepositoryPort mediaFiles,
-            MediaUploadSessionJpaRepository sessions,
+            MediaUploadSessionRepositoryPort sessions,
             Clock clock,
             @Value("${app.api.public-base-url:http://localhost:8080}") String apiBaseUrl,
             TransactionRunner transactionRunner
@@ -39,8 +39,8 @@ public class MediaApplicationConfiguration {
     @Bean
     MediaUploadCompleteUseCase mediaUploadCompleteUseCase(
             MediaFileRepositoryPort mediaFiles,
-            MediaUploadSessionJpaRepository sessions,
-            LocalFileStorageAdapter storage,
+            MediaUploadSessionRepositoryPort sessions,
+            MediaContentStoragePort storage,
             Clock clock,
             TransactionRunner transactionRunner
     ) {

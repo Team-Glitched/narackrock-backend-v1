@@ -36,12 +36,14 @@ public class RecommendedUserGetListUseCase {
             CollaborationUserQueryPort collaborationUserQueryPort,
             MediaFileRepositoryPort mediaFileRepository
     ) {
-        this(profileQuery, followRepository, mediaFileRepository, TransactionRunner.direct());
+        this(profileQuery, followRepository, collaborationUserQueryPort,
+                mediaFileRepository, TransactionRunner.direct());
     }
 
     public RecommendedUserGetListUseCase(
             ProfileQueryPort profileQuery,
             FollowRepositoryPort followRepository,
+            CollaborationUserQueryPort collaborationUserQueryPort,
             MediaFileRepositoryPort mediaFileRepository,
             TransactionRunner transactionRunner
     ) {

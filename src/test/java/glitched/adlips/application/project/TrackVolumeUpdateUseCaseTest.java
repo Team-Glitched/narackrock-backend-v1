@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import glitched.adlips.adapter.out.persistence.project.ProjectTrackJpaRepository;
+import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.project.dto.request.TrackVolumeUpdateRequest;
 import glitched.adlips.application.project.usecase.TrackVolumeUpdateUseCase;
 import glitched.adlips.domain.project.Project;
@@ -22,8 +22,8 @@ class TrackVolumeUpdateUseCaseTest {
         ProjectTrack track = new ProjectTrack(project, owner, "Guitar", "GUITAR", 0);
         track.approve();
         track.replaceRenderedMedia(601L);
-        ProjectTrackJpaRepository tracks = mock(ProjectTrackJpaRepository.class);
-        when(tracks.findByIdAndIsDeletedFalse(101L)).thenReturn(Optional.of(track));
+        ProjectTrackRepositoryPort tracks = mock(ProjectTrackRepositoryPort.class);
+        when(tracks.findTrackByIdAndIsDeletedFalse(101L)).thenReturn(Optional.of(track));
 
         var response = new TrackVolumeUpdateUseCase(tracks)
                 .execute(new TrackVolumeUpdateRequest(101L, 1L, 75));
@@ -35,7 +35,7 @@ class TrackVolumeUpdateUseCaseTest {
 
     @Test
     void rejectsVolumeOutsideZeroToOneHundred() {
-        ProjectTrackJpaRepository tracks = mock(ProjectTrackJpaRepository.class);
+        ProjectTrackRepositoryPort tracks = mock(ProjectTrackRepositoryPort.class);
 
         assertThatThrownBy(() -> new TrackVolumeUpdateUseCase(tracks)
                 .execute(new TrackVolumeUpdateRequest(101L, 1L, 101)))

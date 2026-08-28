@@ -6,12 +6,12 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import glitched.adlips.adapter.out.persistence.project.ProjectClipJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectContributionItemJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectContributionJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectMemberJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectTrackJpaRepository;
+import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectContributionItemRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectContributionRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.project.dto.request.ProjectContributionCreateRequest;
 import glitched.adlips.application.project.usecase.ProjectContributionCreateUseCase;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
@@ -30,12 +30,12 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 class ProjectContributionCreateUseCaseTest {
-    private final ProjectJpaRepository projects = mock(ProjectJpaRepository.class);
-    private final ProjectMemberJpaRepository members = mock(ProjectMemberJpaRepository.class);
-    private final ProjectContributionJpaRepository contributions = mock(ProjectContributionJpaRepository.class);
-    private final ProjectContributionItemJpaRepository contributionItems = mock(ProjectContributionItemJpaRepository.class);
-    private final ProjectTrackJpaRepository tracks = mock(ProjectTrackJpaRepository.class);
-    private final ProjectClipJpaRepository clips = mock(ProjectClipJpaRepository.class);
+    private final ProjectRepositoryPort projects = mock(ProjectRepositoryPort.class);
+    private final ProjectMemberRepositoryPort members = mock(ProjectMemberRepositoryPort.class);
+    private final ProjectContributionRepositoryPort contributions = mock(ProjectContributionRepositoryPort.class);
+    private final ProjectContributionItemRepositoryPort contributionItems = mock(ProjectContributionItemRepositoryPort.class);
+    private final ProjectTrackRepositoryPort tracks = mock(ProjectTrackRepositoryPort.class);
+    private final ProjectClipRepositoryPort clips = mock(ProjectClipRepositoryPort.class);
     private final UserRepositoryPort users = mock(UserRepositoryPort.class);
     private final User contributor = User.create("contributor@example.com").withId(2L);
     private final User owner = User.create("owner@example.com").withId(1L);
@@ -48,7 +48,7 @@ class ProjectContributionCreateUseCaseTest {
         when(members.findByProjectIdAndUserId(1L, 2L))
                 .thenReturn(Optional.of(new ProjectMember(project, contributor, ProjectMemberRole.EDITOR)));
         when(users.findById(2L)).thenReturn(Optional.of(contributor));
-        when(tracks.findByIdAndIsDeletedFalse(101L)).thenReturn(Optional.of(track));
+        when(tracks.findTrackByIdAndIsDeletedFalse(101L)).thenReturn(Optional.of(track));
         when(clips.findByTrackIdAndIsDeletedFalseOrderByStartTickAscIdAsc(101L)).thenReturn(List.of());
         when(contributions.save(any(ProjectContribution.class))).thenAnswer(invocation -> invocation.getArgument(0));
     }

@@ -4,10 +4,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import glitched.adlips.adapter.out.persistence.project.ProjectClipJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectContributionJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectMemberJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectTrackJpaRepository;
+import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectContributionRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.project.dto.request.ProjectContributionReviewRequest;
 import glitched.adlips.application.project.usecase.ProjectContributionReviewUseCase;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
@@ -62,16 +62,16 @@ class ProjectContributionReviewUseCaseTest {
             track.submitForReview();
             new ProjectContributionItem(contribution, ContributionChangeType.ADD,
                     ContributionTargetType.TRACK, 101L);
-            ProjectContributionJpaRepository contributions = mock(ProjectContributionJpaRepository.class);
-            ProjectMemberJpaRepository members = mock(ProjectMemberJpaRepository.class);
-            ProjectTrackJpaRepository tracks = mock(ProjectTrackJpaRepository.class);
-            ProjectClipJpaRepository clips = mock(ProjectClipJpaRepository.class);
+        ProjectContributionRepositoryPort contributions = mock(ProjectContributionRepositoryPort.class);
+        ProjectMemberRepositoryPort members = mock(ProjectMemberRepositoryPort.class);
+        ProjectTrackRepositoryPort tracks = mock(ProjectTrackRepositoryPort.class);
+        ProjectClipRepositoryPort clips = mock(ProjectClipRepositoryPort.class);
             UserRepositoryPort users = mock(UserRepositoryPort.class);
             when(contributions.findByIdAndProjectId(10L, 1L)).thenReturn(Optional.of(contribution));
             when(members.findByProjectIdAndUserId(1L, 1L))
                     .thenReturn(Optional.of(new ProjectMember(project, reviewer, ProjectMemberRole.OWNER)));
             when(users.findById(1L)).thenReturn(Optional.of(reviewer));
-            when(tracks.findByIdAndIsDeletedFalse(101L)).thenReturn(Optional.of(track));
+            when(tracks.findTrackByIdAndIsDeletedFalse(101L)).thenReturn(Optional.of(track));
             useCase = new ProjectContributionReviewUseCase(contributions, members, tracks, clips, users);
         }
     }

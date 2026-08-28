@@ -1,13 +1,13 @@
 package glitched.adlips.config;
 
-import glitched.adlips.adapter.out.persistence.project.ProjectClipJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectContributionItemJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectContributionJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectExportJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectMemberJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectTrackJpaRepository;
 import glitched.adlips.application.port.TransactionRunner;
+import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectContributionItemRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectContributionRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectExportRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.project.usecase.AudioClipCreateUseCase;
 import glitched.adlips.application.project.usecase.MidiClipCreateUseCase;
 import glitched.adlips.application.project.usecase.MidiClipSaveUseCase;
@@ -35,8 +35,8 @@ public class ProjectApplicationConfiguration {
     ProjectCreateUseCase projectCreateUseCase(
             UserRepositoryPort users,
             MediaFileRepositoryPort mediaFiles,
-            ProjectJpaRepository projects,
-            ProjectMemberJpaRepository members,
+            ProjectRepositoryPort projects,
+            ProjectMemberRepositoryPort members,
             TransactionRunner transactionRunner
     ) {
         return new ProjectCreateUseCase(users, mediaFiles, projects, members, transactionRunner);
@@ -44,7 +44,7 @@ public class ProjectApplicationConfiguration {
 
     @Bean
     ProjectDeleteUseCase projectDeleteUseCase(
-            ProjectJpaRepository projects,
+            ProjectRepositoryPort projects,
             Clock clock,
             TransactionRunner transactionRunner
     ) {
@@ -53,11 +53,11 @@ public class ProjectApplicationConfiguration {
 
     @Bean
     ProjectPublishUseCase projectPublishUseCase(
-            ProjectJpaRepository projects,
-            ProjectMemberJpaRepository members,
-            ProjectTrackJpaRepository tracks,
-            ProjectClipJpaRepository clips,
-            ProjectExportJpaRepository exports,
+            ProjectRepositoryPort projects,
+            ProjectMemberRepositoryPort members,
+            ProjectTrackRepositoryPort tracks,
+            ProjectClipRepositoryPort clips,
+            ProjectExportRepositoryPort exports,
             TransactionRunner transactionRunner
     ) {
         return new ProjectPublishUseCase(projects, members, tracks, clips, exports, transactionRunner);
@@ -65,9 +65,9 @@ public class ProjectApplicationConfiguration {
 
     @Bean
     TrackCreateUseCase trackCreateUseCase(
-            ProjectJpaRepository projects,
-            ProjectMemberJpaRepository members,
-            ProjectTrackJpaRepository tracks,
+            ProjectRepositoryPort projects,
+            ProjectMemberRepositoryPort members,
+            ProjectTrackRepositoryPort tracks,
             UserRepositoryPort users,
             TransactionRunner transactionRunner
     ) {
@@ -76,10 +76,10 @@ public class ProjectApplicationConfiguration {
 
     @Bean
     TrackGetListUseCase trackGetListUseCase(
-            ProjectJpaRepository projects,
-            ProjectMemberJpaRepository members,
-            ProjectTrackJpaRepository tracks,
-            ProjectClipJpaRepository clips,
+            ProjectRepositoryPort projects,
+            ProjectMemberRepositoryPort members,
+            ProjectTrackRepositoryPort tracks,
+            ProjectClipRepositoryPort clips,
             MediaFileRepositoryPort mediaFiles,
             TransactionRunner transactionRunner
     ) {
@@ -88,8 +88,8 @@ public class ProjectApplicationConfiguration {
 
     @Bean
     TrackDeleteUseCase trackDeleteUseCase(
-            ProjectTrackJpaRepository tracks,
-            ProjectContributionItemJpaRepository contributionItems,
+            ProjectTrackRepositoryPort tracks,
+            ProjectContributionItemRepositoryPort contributionItems,
             TransactionRunner transactionRunner
     ) {
         return new TrackDeleteUseCase(tracks, contributionItems, transactionRunner);
@@ -97,7 +97,7 @@ public class ProjectApplicationConfiguration {
 
     @Bean
     TrackVolumeUpdateUseCase trackVolumeUpdateUseCase(
-            ProjectTrackJpaRepository tracks,
+            ProjectTrackRepositoryPort tracks,
             TransactionRunner transactionRunner
     ) {
         return new TrackVolumeUpdateUseCase(tracks, transactionRunner);
@@ -105,10 +105,10 @@ public class ProjectApplicationConfiguration {
 
     @Bean
     AudioClipCreateUseCase audioClipCreateUseCase(
-            ProjectJpaRepository projects,
-            ProjectMemberJpaRepository members,
-            ProjectTrackJpaRepository tracks,
-            ProjectClipJpaRepository clips,
+            ProjectRepositoryPort projects,
+            ProjectMemberRepositoryPort members,
+            ProjectTrackRepositoryPort tracks,
+            ProjectClipRepositoryPort clips,
             UserRepositoryPort users,
             MediaFileRepositoryPort mediaFiles,
             TransactionRunner transactionRunner
@@ -118,10 +118,10 @@ public class ProjectApplicationConfiguration {
 
     @Bean
     MidiClipCreateUseCase midiClipCreateUseCase(
-            ProjectJpaRepository projects,
-            ProjectMemberJpaRepository members,
-            ProjectTrackJpaRepository tracks,
-            ProjectClipJpaRepository clips,
+            ProjectRepositoryPort projects,
+            ProjectMemberRepositoryPort members,
+            ProjectTrackRepositoryPort tracks,
+            ProjectClipRepositoryPort clips,
             UserRepositoryPort users,
             TransactionRunner transactionRunner
     ) {
@@ -130,7 +130,7 @@ public class ProjectApplicationConfiguration {
 
     @Bean
     MidiClipSaveUseCase midiClipSaveUseCase(
-            ProjectClipJpaRepository clips,
+            ProjectClipRepositoryPort clips,
             Clock clock,
             TransactionRunner transactionRunner
     ) {
@@ -139,12 +139,12 @@ public class ProjectApplicationConfiguration {
 
     @Bean
     ProjectContributionCreateUseCase projectContributionCreateUseCase(
-            ProjectJpaRepository projects,
-            ProjectMemberJpaRepository members,
-            ProjectContributionJpaRepository contributions,
-            ProjectContributionItemJpaRepository contributionItems,
-            ProjectTrackJpaRepository tracks,
-            ProjectClipJpaRepository clips,
+            ProjectRepositoryPort projects,
+            ProjectMemberRepositoryPort members,
+            ProjectContributionRepositoryPort contributions,
+            ProjectContributionItemRepositoryPort contributionItems,
+            ProjectTrackRepositoryPort tracks,
+            ProjectClipRepositoryPort clips,
             UserRepositoryPort users,
             TransactionRunner transactionRunner
     ) {
@@ -154,9 +154,9 @@ public class ProjectApplicationConfiguration {
 
     @Bean
     ProjectContributionGetListUseCase projectContributionGetListUseCase(
-            ProjectJpaRepository projects,
-            ProjectMemberJpaRepository members,
-            ProjectContributionJpaRepository contributions,
+            ProjectRepositoryPort projects,
+            ProjectMemberRepositoryPort members,
+            ProjectContributionRepositoryPort contributions,
             ProfileRepositoryPort profiles,
             MediaFileRepositoryPort mediaFiles,
             TransactionRunner transactionRunner
@@ -167,10 +167,10 @@ public class ProjectApplicationConfiguration {
 
     @Bean
     ProjectContributionReviewUseCase projectContributionReviewUseCase(
-            ProjectContributionJpaRepository contributions,
-            ProjectMemberJpaRepository members,
-            ProjectTrackJpaRepository tracks,
-            ProjectClipJpaRepository clips,
+            ProjectContributionRepositoryPort contributions,
+            ProjectMemberRepositoryPort members,
+            ProjectTrackRepositoryPort tracks,
+            ProjectClipRepositoryPort clips,
             UserRepositoryPort users,
             TransactionRunner transactionRunner
     ) {

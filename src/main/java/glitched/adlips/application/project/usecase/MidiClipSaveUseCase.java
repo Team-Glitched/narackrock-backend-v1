@@ -1,6 +1,6 @@
 package glitched.adlips.application.project.usecase;
 
-import glitched.adlips.adapter.out.persistence.project.ProjectClipJpaRepository;
+import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
 import glitched.adlips.application.project.ProjectApplicationException;
 import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.MidiClipSaveRequest;
@@ -16,19 +16,19 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
 public class MidiClipSaveUseCase {
-    private final ProjectClipJpaRepository clips;
+    private final ProjectClipRepositoryPort clips;
     private final Clock clock;
     private final TransactionRunner transactionRunner;
 
-    public MidiClipSaveUseCase(ProjectClipJpaRepository clips) {
+    public MidiClipSaveUseCase(ProjectClipRepositoryPort clips) {
         this(clips, Clock.systemUTC(), TransactionRunner.direct());
     }
 
-    public MidiClipSaveUseCase(ProjectClipJpaRepository clips, Clock clock) {
+    public MidiClipSaveUseCase(ProjectClipRepositoryPort clips, Clock clock) {
         this(clips, clock, TransactionRunner.direct());
     }
 
-    public MidiClipSaveUseCase(ProjectClipJpaRepository clips, Clock clock, TransactionRunner transactionRunner) {
+    public MidiClipSaveUseCase(ProjectClipRepositoryPort clips, Clock clock, TransactionRunner transactionRunner) {
         this.clips = clips;
         this.clock = clock;
         this.transactionRunner = transactionRunner;
@@ -43,7 +43,7 @@ public class MidiClipSaveUseCase {
                 || request.midiNotes() == null) {
             throw error(ProjectErrorCode.INVALID_MIDI_NOTE_DATA, "올바르지 않은 MIDI 노트 데이터입니다.");
         }
-        var clip = clips.findByIdAndIsDeletedFalse(request.clipId())
+        var clip = clips.findClipByIdAndIsDeletedFalse(request.clipId())
                 .orElseThrow(() -> error(ProjectErrorCode.CLIP_NOT_FOUND, "존재하지 않는 클립입니다."));
         if (!clip.getOwner().getId().equals(request.userId())) {
             throw error(ProjectErrorCode.CLIP_NOT_OWNED, "본인이 생성한 클립만 수정할 수 있습니다.");

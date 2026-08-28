@@ -7,8 +7,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import glitched.adlips.adapter.out.persistence.project.ProjectJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectMemberJpaRepository;
+import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.dto.request.ProjectCreateRequest;
 import glitched.adlips.application.project.dto.response.ProjectCreateResponse;
 import glitched.adlips.application.project.usecase.ProjectCreateUseCase;
@@ -28,8 +28,8 @@ class ProjectCreateUseCaseTest {
         MediaFile image = MediaFile.readyImage(1L, "https://cdn/album.png", "album/1", "album.png", "image/png", 10).withId(701L);
         UserRepositoryPort users = mock(UserRepositoryPort.class);
         MediaFileRepositoryPort media = mock(MediaFileRepositoryPort.class);
-        ProjectJpaRepository projects = mock(ProjectJpaRepository.class);
-        ProjectMemberJpaRepository members = mock(ProjectMemberJpaRepository.class);
+        ProjectRepositoryPort projects = mock(ProjectRepositoryPort.class);
+        ProjectMemberRepositoryPort members = mock(ProjectMemberRepositoryPort.class);
         when(users.findById(1L)).thenReturn(Optional.of(owner));
         when(media.findById(701L)).thenReturn(Optional.of(image));
         when(projects.save(any(Project.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -49,7 +49,8 @@ class ProjectCreateUseCaseTest {
         when(users.findById(1L)).thenReturn(Optional.of(User.create("owner@example.com").withId(1L)));
         when(media.findById(701L)).thenReturn(Optional.of(MediaFile.readyImage(
                 2L, "https://cdn/album.png", "album/1", "album.png", "image/png", 10).withId(701L)));
-        ProjectCreateUseCase useCase = new ProjectCreateUseCase(users, media, mock(ProjectJpaRepository.class), mock(ProjectMemberJpaRepository.class));
+        ProjectCreateUseCase useCase = new ProjectCreateUseCase(
+                users, media, mock(ProjectRepositoryPort.class), mock(ProjectMemberRepositoryPort.class));
 
         assertThatThrownBy(() -> useCase.execute(new ProjectCreateRequest(1L, "새 곡", null, 701L)))
                 .isInstanceOf(ProjectApplicationException.class)

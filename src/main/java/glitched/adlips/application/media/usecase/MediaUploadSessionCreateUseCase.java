@@ -1,10 +1,10 @@
 package glitched.adlips.application.media.usecase;
 
-import glitched.adlips.adapter.out.persistence.media.MediaUploadSessionJpaRepository;
 import glitched.adlips.application.media.MediaApplicationException;
 import glitched.adlips.application.media.MediaErrorCode;
 import glitched.adlips.application.media.dto.request.MediaUploadSessionCreateRequest;
 import glitched.adlips.application.media.dto.response.MediaUploadSessionCreateResponse;
+import glitched.adlips.application.media.port.out.MediaUploadSessionRepositoryPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.domain.media.MediaFile;
@@ -27,14 +27,14 @@ public class MediaUploadSessionCreateUseCase {
     );
 
     private final MediaFileRepositoryPort mediaFiles;
-    private final MediaUploadSessionJpaRepository sessions;
+    private final MediaUploadSessionRepositoryPort sessions;
     private final Clock clock;
     private final String apiBaseUrl;
     private final TransactionRunner transactionRunner;
 
     public MediaUploadSessionCreateUseCase(
             MediaFileRepositoryPort mediaFiles,
-            MediaUploadSessionJpaRepository sessions,
+            MediaUploadSessionRepositoryPort sessions,
             String apiBaseUrl
     ) {
         this(mediaFiles, sessions, Clock.systemUTC(), apiBaseUrl, TransactionRunner.direct());
@@ -42,7 +42,7 @@ public class MediaUploadSessionCreateUseCase {
 
     public MediaUploadSessionCreateUseCase(
             MediaFileRepositoryPort mediaFiles,
-            MediaUploadSessionJpaRepository sessions,
+            MediaUploadSessionRepositoryPort sessions,
             Clock clock,
             String apiBaseUrl
     ) {
@@ -51,7 +51,7 @@ public class MediaUploadSessionCreateUseCase {
 
     public MediaUploadSessionCreateUseCase(
             MediaFileRepositoryPort mediaFiles,
-            MediaUploadSessionJpaRepository sessions,
+            MediaUploadSessionRepositoryPort sessions,
             Clock clock,
             String apiBaseUrl,
             TransactionRunner transactionRunner

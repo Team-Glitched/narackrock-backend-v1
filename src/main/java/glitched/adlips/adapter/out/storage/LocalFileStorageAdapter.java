@@ -1,6 +1,7 @@
 package glitched.adlips.adapter.out.storage;
 
 import glitched.adlips.application.user.profile.dto.request.UserProfileImageUpdateRequest;
+import glitched.adlips.application.media.port.out.MediaContentStoragePort;
 import glitched.adlips.application.user.profile.port.out.FileStoragePort;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,7 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
-public class LocalFileStorageAdapter implements FileStoragePort {
+public class LocalFileStorageAdapter implements FileStoragePort, MediaContentStoragePort {
     private static final Map<String, String> EXTENSIONS = Map.of(
             "image/jpeg", ".jpg",
             "image/png", ".png",

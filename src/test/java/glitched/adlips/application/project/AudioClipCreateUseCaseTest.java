@@ -5,10 +5,10 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import glitched.adlips.adapter.out.persistence.project.ProjectClipJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectMemberJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectTrackJpaRepository;
+import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.project.dto.request.AudioClipCreateRequest;
 import glitched.adlips.application.project.usecase.AudioClipCreateUseCase;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
@@ -33,16 +33,16 @@ class AudioClipCreateUseCaseTest {
         Project project = new Project(owner, "곡", null, 701L);
         ProjectTrack track = new ProjectTrack(project, owner, "Guitar", "GUITAR", 0);
         track.replaceRenderedMedia(900L);
-        ProjectJpaRepository projects = mock(ProjectJpaRepository.class);
-        ProjectMemberJpaRepository members = mock(ProjectMemberJpaRepository.class);
-        ProjectTrackJpaRepository tracks = mock(ProjectTrackJpaRepository.class);
-        ProjectClipJpaRepository clips = mock(ProjectClipJpaRepository.class);
+        ProjectRepositoryPort projects = mock(ProjectRepositoryPort.class);
+        ProjectMemberRepositoryPort members = mock(ProjectMemberRepositoryPort.class);
+        ProjectTrackRepositoryPort tracks = mock(ProjectTrackRepositoryPort.class);
+        ProjectClipRepositoryPort clips = mock(ProjectClipRepositoryPort.class);
         UserRepositoryPort users = mock(UserRepositoryPort.class);
         MediaFileRepositoryPort mediaFiles = mock(MediaFileRepositoryPort.class);
         when(projects.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(project));
         when(members.findByProjectIdAndUserId(10L, 1L)).thenReturn(
                 Optional.of(new ProjectMember(project, owner, ProjectMemberRole.OWNER)));
-        when(tracks.findByIdAndIsDeletedFalse(21L)).thenReturn(Optional.of(track));
+        when(tracks.findTrackByIdAndIsDeletedFalse(21L)).thenReturn(Optional.of(track));
         when(users.findById(1L)).thenReturn(Optional.of(owner));
         when(mediaFiles.findById(501L)).thenReturn(Optional.of(MediaFile.restore(
                 501L, 1L, "http://localhost/files/guitar.wav", "media/1/guitar.wav", "guitar.wav",

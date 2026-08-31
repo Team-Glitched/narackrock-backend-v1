@@ -1,11 +1,11 @@
 package glitched.adlips.application.media.usecase;
 
-import glitched.adlips.adapter.out.persistence.media.MediaUploadSessionJpaRepository;
-import glitched.adlips.adapter.out.storage.LocalFileStorageAdapter;
 import glitched.adlips.application.media.MediaApplicationException;
 import glitched.adlips.application.media.MediaErrorCode;
 import glitched.adlips.application.media.dto.request.MediaUploadCompleteRequest;
 import glitched.adlips.application.media.dto.response.MediaUploadCompleteResponse;
+import glitched.adlips.application.media.port.out.MediaContentStoragePort;
+import glitched.adlips.application.media.port.out.MediaUploadSessionRepositoryPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.domain.media.MediaFile;
@@ -15,27 +15,27 @@ import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 public class MediaUploadCompleteUseCase {
     private final MediaFileRepositoryPort mediaFiles;
-    private final MediaUploadSessionJpaRepository sessions;
-    private final LocalFileStorageAdapter storage;
+    private final MediaUploadSessionRepositoryPort sessions;
+    private final MediaContentStoragePort storage;
     private final Clock clock;
     private final TransactionRunner transactionRunner;
 
     public MediaUploadCompleteUseCase(MediaFileRepositoryPort mediaFiles,
-                                      MediaUploadSessionJpaRepository sessions,
-                                      LocalFileStorageAdapter storage) {
+                                      MediaUploadSessionRepositoryPort sessions,
+                                      MediaContentStoragePort storage) {
         this(mediaFiles, sessions, storage, Clock.systemUTC(), TransactionRunner.direct());
     }
 
     public MediaUploadCompleteUseCase(MediaFileRepositoryPort mediaFiles,
-                                      MediaUploadSessionJpaRepository sessions,
-                                      LocalFileStorageAdapter storage,
+                                      MediaUploadSessionRepositoryPort sessions,
+                                      MediaContentStoragePort storage,
                                       Clock clock) {
         this(mediaFiles, sessions, storage, clock, TransactionRunner.direct());
     }
 
     public MediaUploadCompleteUseCase(MediaFileRepositoryPort mediaFiles,
-                                      MediaUploadSessionJpaRepository sessions,
-                                      LocalFileStorageAdapter storage,
+                                      MediaUploadSessionRepositoryPort sessions,
+                                      MediaContentStoragePort storage,
                                       Clock clock,
                                       TransactionRunner transactionRunner) {
         this.mediaFiles = mediaFiles;

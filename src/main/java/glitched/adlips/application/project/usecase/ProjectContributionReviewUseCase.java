@@ -1,9 +1,9 @@
 package glitched.adlips.application.project.usecase;
 
-import glitched.adlips.adapter.out.persistence.project.ProjectClipJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectContributionJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectMemberJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectTrackJpaRepository;
+import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectContributionRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.project.ProjectApplicationException;
 import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.ProjectContributionReviewRequest;
@@ -21,27 +21,27 @@ import glitched.adlips.domain.project.ProjectMemberRole;
 import java.time.LocalDateTime;
 import java.util.Map;
 public class ProjectContributionReviewUseCase {
-    private final ProjectContributionJpaRepository contributions;
-    private final ProjectMemberJpaRepository members;
-    private final ProjectTrackJpaRepository tracks;
-    private final ProjectClipJpaRepository clips;
+    private final ProjectContributionRepositoryPort contributions;
+    private final ProjectMemberRepositoryPort members;
+    private final ProjectTrackRepositoryPort tracks;
+    private final ProjectClipRepositoryPort clips;
     private final UserRepositoryPort users;
     private final TransactionRunner transactionRunner;
 
     public ProjectContributionReviewUseCase(
-            ProjectContributionJpaRepository contributions,
-            ProjectMemberJpaRepository members,
-            ProjectTrackJpaRepository tracks,
-            ProjectClipJpaRepository clips,
+            ProjectContributionRepositoryPort contributions,
+            ProjectMemberRepositoryPort members,
+            ProjectTrackRepositoryPort tracks,
+            ProjectClipRepositoryPort clips,
             UserRepositoryPort users) {
         this(contributions, members, tracks, clips, users, TransactionRunner.direct());
     }
 
     public ProjectContributionReviewUseCase(
-            ProjectContributionJpaRepository contributions,
-            ProjectMemberJpaRepository members,
-            ProjectTrackJpaRepository tracks,
-            ProjectClipJpaRepository clips,
+            ProjectContributionRepositoryPort contributions,
+            ProjectMemberRepositoryPort members,
+            ProjectTrackRepositoryPort tracks,
+            ProjectClipRepositoryPort clips,
             UserRepositoryPort users,
             TransactionRunner transactionRunner) {
         this.contributions = contributions;
@@ -110,7 +110,7 @@ public class ProjectContributionReviewUseCase {
 
     private void applyApprovedItem(ProjectContributionItem item) {
         if (item.getTargetType() == ContributionTargetType.TRACK) {
-            var track = tracks.findByIdAndIsDeletedFalse(item.getTargetId())
+            var track = tracks.findTrackByIdAndIsDeletedFalse(item.getTargetId())
                     .orElseThrow(this::invalidItem);
             switch (item.getChangeType()) {
                 case ADD -> {
@@ -122,7 +122,7 @@ public class ProjectContributionReviewUseCase {
             }
             return;
         }
-        var clip = clips.findByIdAndIsDeletedFalse(item.getTargetId())
+        var clip = clips.findClipByIdAndIsDeletedFalse(item.getTargetId())
                 .orElseThrow(this::invalidItem);
         switch (item.getChangeType()) {
             case ADD -> {
@@ -139,9 +139,9 @@ public class ProjectContributionReviewUseCase {
             return;
         }
         if (item.getTargetType() == ContributionTargetType.TRACK) {
-            tracks.findByIdAndIsDeletedFalse(item.getTargetId()).orElseThrow(this::invalidItem).reject();
+            tracks.findTrackByIdAndIsDeletedFalse(item.getTargetId()).orElseThrow(this::invalidItem).reject();
         } else {
-            clips.findByIdAndIsDeletedFalse(item.getTargetId()).orElseThrow(this::invalidItem).reject();
+            clips.findClipByIdAndIsDeletedFalse(item.getTargetId()).orElseThrow(this::invalidItem).reject();
         }
     }
 

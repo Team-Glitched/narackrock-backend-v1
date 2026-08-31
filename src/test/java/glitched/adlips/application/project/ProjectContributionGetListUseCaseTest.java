@@ -8,9 +8,9 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import glitched.adlips.adapter.out.persistence.project.ProjectContributionJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectMemberJpaRepository;
+import glitched.adlips.application.project.port.out.ProjectContributionRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.dto.request.ProjectContributionGetListRequest;
 import glitched.adlips.application.project.usecase.ProjectContributionGetListUseCase;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
@@ -44,9 +44,9 @@ class ProjectContributionGetListUseCaseTest {
         when(contribution.getItems()).thenReturn(List.of());
         when(contribution.getCreatedAt()).thenReturn(LocalDateTime.of(2026, 7, 1, 18, 10));
 
-        ProjectJpaRepository projects = mock(ProjectJpaRepository.class);
-        ProjectMemberJpaRepository members = mock(ProjectMemberJpaRepository.class);
-        ProjectContributionJpaRepository contributions = mock(ProjectContributionJpaRepository.class);
+        ProjectRepositoryPort projects = mock(ProjectRepositoryPort.class);
+        ProjectMemberRepositoryPort members = mock(ProjectMemberRepositoryPort.class);
+        ProjectContributionRepositoryPort contributions = mock(ProjectContributionRepositoryPort.class);
         ProfileRepositoryPort profiles = mock(ProfileRepositoryPort.class);
         MediaFileRepositoryPort mediaFiles = mock(MediaFileRepositoryPort.class);
         when(projects.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(project));

@@ -1,27 +1,27 @@
 package glitched.adlips.application.project.usecase;
 
-import glitched.adlips.adapter.out.persistence.project.ProjectContributionItemJpaRepository;
-import glitched.adlips.adapter.out.persistence.project.ProjectTrackJpaRepository;
 import glitched.adlips.application.project.ProjectApplicationException;
 import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.TrackDeleteRequest;
 import glitched.adlips.application.project.dto.response.ProjectVersionResponse;
 import glitched.adlips.application.project.dto.response.TrackDeleteResponse;
 import glitched.adlips.application.port.TransactionRunner;
+import glitched.adlips.application.project.port.out.ProjectContributionItemRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.domain.project.ContributionApprovalStatus;
 import glitched.adlips.domain.project.ContributionTargetType;
 public class TrackDeleteUseCase {
-    private final ProjectTrackJpaRepository tracks;
-    private final ProjectContributionItemJpaRepository contributionItems;
+    private final ProjectTrackRepositoryPort tracks;
+    private final ProjectContributionItemRepositoryPort contributionItems;
     private final TransactionRunner transactionRunner;
 
-    public TrackDeleteUseCase(ProjectTrackJpaRepository tracks,
-                              ProjectContributionItemJpaRepository contributionItems) {
+    public TrackDeleteUseCase(ProjectTrackRepositoryPort tracks,
+                              ProjectContributionItemRepositoryPort contributionItems) {
         this(tracks, contributionItems, TransactionRunner.direct());
     }
 
-    public TrackDeleteUseCase(ProjectTrackJpaRepository tracks,
-                              ProjectContributionItemJpaRepository contributionItems,
+    public TrackDeleteUseCase(ProjectTrackRepositoryPort tracks,
+                              ProjectContributionItemRepositoryPort contributionItems,
                               TransactionRunner transactionRunner) {
         this.tracks = tracks; this.contributionItems = contributionItems;
         this.transactionRunner = transactionRunner;
@@ -32,7 +32,7 @@ public class TrackDeleteUseCase {
     }
 
     private TrackDeleteResponse executeInternal(TrackDeleteRequest request) {
-        var track = tracks.findByIdAndIsDeletedFalse(request.trackId())
+        var track = tracks.findTrackByIdAndIsDeletedFalse(request.trackId())
                 .orElseThrow(() -> error(ProjectErrorCode.TRACK_NOT_FOUND, "존재하지 않는 트랙입니다."));
         Long projectOwnerId = track.getProject().getOwner().getId();
         if (!request.userId().equals(track.getOwner().getId()) && !request.userId().equals(projectOwnerId)) {

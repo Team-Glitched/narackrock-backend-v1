@@ -4,8 +4,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import glitched.adlips.adapter.out.persistence.media.MediaUploadSessionJpaRepository;
-import glitched.adlips.adapter.out.storage.LocalFileStorageAdapter;
+import glitched.adlips.application.media.port.out.MediaContentStoragePort;
+import glitched.adlips.application.media.port.out.MediaUploadSessionRepositoryPort;
 import glitched.adlips.application.media.usecase.LocalMediaContentUploadUseCase;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.domain.media.MediaFile;
@@ -18,8 +18,8 @@ class LocalMediaContentUploadUseCaseTest {
     @Test
     void rejectsOverwriteAfterUploadCompletion() {
         MediaFileRepositoryPort mediaFiles = mock(MediaFileRepositoryPort.class);
-        MediaUploadSessionJpaRepository sessions = mock(MediaUploadSessionJpaRepository.class);
-        LocalFileStorageAdapter storage = mock(LocalFileStorageAdapter.class);
+        MediaUploadSessionRepositoryPort sessions = mock(MediaUploadSessionRepositoryPort.class);
+        MediaContentStoragePort storage = mock(MediaContentStoragePort.class);
         MediaFile ready = MediaFile.restore(501L, 1L, "http://localhost/files/guitar.wav",
                 "media/1/guitar.wav", "guitar.wav", MediaFileType.AUDIO, "audio/wav", 100L,
                 MediaFileStatus.READY);

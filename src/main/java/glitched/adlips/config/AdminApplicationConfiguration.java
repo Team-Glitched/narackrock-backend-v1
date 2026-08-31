@@ -16,6 +16,28 @@ import org.springframework.context.annotation.Configuration;
 public class AdminApplicationConfiguration {
 
     @Bean
+    UserBanCreateUseCase userBanCreateUseCase(
+            UserRepositoryPort userRepositoryPort,
+            UserBanRepositoryPort userBanRepositoryPort,
+            Clock clock,
+            TransactionRunner transactionRunner
+    ) {
+        return new UserBanCreateUseCase(
+                userRepositoryPort, userBanRepositoryPort, clock, transactionRunner);
+    }
+
+    @Bean
+    UserBanCancelUseCase userBanCancelUseCase(
+            UserRepositoryPort userRepositoryPort,
+            UserBanRepositoryPort userBanRepositoryPort,
+            Clock clock,
+            TransactionRunner transactionRunner
+    ) {
+        return new UserBanCancelUseCase(
+                userRepositoryPort, userBanRepositoryPort, clock, transactionRunner);
+    }
+
+    @Bean
     ResolveReportUseCase resolveReportUseCase(
             ReportResolutionPort reportResolutionPort,
             UserRepositoryPort userRepositoryPort,

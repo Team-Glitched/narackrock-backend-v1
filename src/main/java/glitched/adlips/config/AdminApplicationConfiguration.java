@@ -57,25 +57,4 @@ public class AdminApplicationConfiguration {
         return new RejectReportUseCase(reportResolutionPort, userRepositoryPort, clock, transactionRunner);
     }
 
-    @Bean
-    UserBanCreateUseCase userBanCreateUseCase(
-            UserRepositoryPort userRepositoryPort,
-            UserBanRepositoryPort userBanRepositoryPort,
-            Clock clock,
-            TransactionRunner transactionRunner
-    ) {
-        return new UserBanCreateUseCase(
-                userRepositoryPort, userBanRepositoryPort, clock, transactionRunner);
-    }
-
-    @Bean
-    UserBanCancelUseCase userBanCancelUseCase(
-            UserRepositoryPort userRepositoryPort,
-            UserBanRepositoryPort userBanRepositoryPort,
-            Clock clock,
-            TransactionRunner transactionRunner
-    ) {
-        return new UserBanCancelUseCase(
-                userRepositoryPort, userBanRepositoryPort, clock, transactionRunner);
-    }
 }

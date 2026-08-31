@@ -5,7 +5,8 @@ import java.time.LocalDateTime;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class UserBanQueryPersistenceAdapter implements UserBanQueryPort {
+public class UserBanQueryPersistenceAdapter implements UserBanQueryPort,
+        glitched.adlips.application.community.port.out.UserBanQueryPort {
 
     private final UserBanJpaRepository userBanRepository;
 

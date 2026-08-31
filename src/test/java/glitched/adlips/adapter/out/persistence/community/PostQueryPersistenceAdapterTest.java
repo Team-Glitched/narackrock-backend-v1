@@ -72,7 +72,20 @@ class PostQueryPersistenceAdapterTest {
 
     @Test
     void 다른_갤러리_소속이면_상세조회되지_않는다() {
-        assertThat(adapter.findDetail(501L, 999L)).isEmpty();
+        assertThat(adapter.findDetail(501L, 999L, true)).isEmpty();
+    }
+
+    @Test
+    void 목록_조회시_갤러리명과_검색어와_정렬조건을_반영한다() {
+        jdbcTemplate.update(
+                "INSERT INTO posts (id, gallery_id, user_id, title, content, view_count, like_count, dislike_count, comment_count, deleted_at, created_at) "
+                        + "VALUES (504, 10, 1, '검색 결과', '기타 내용', 0, 10, 0, 0, NULL, '2026-08-23 10:00:00')");
+
+        List<PostQueryItem> posts = adapter.findPosts(10L, "기타", glitched.adlips.application.community.PostSort.POPULAR, 0, 20);
+
+        assertThat(posts).hasSize(1);
+        assertThat(posts.getFirst().galleryName()).isEqualTo("자유 갤러리");
+        assertThat(posts.getFirst().title()).isEqualTo("검색 결과");
     }
 
     @Test

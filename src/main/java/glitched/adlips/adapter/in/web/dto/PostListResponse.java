@@ -1,11 +1,19 @@
 package glitched.adlips.adapter.in.web.dto;
 
 import glitched.adlips.application.community.PostListResult;
+import glitched.adlips.application.community.PostSort;
 import glitched.adlips.application.community.port.out.PostQueryItem;
 import java.time.LocalDateTime;
 import java.util.List;
 
-public record PostListResponse(Long galleryId, long totalCount, List<PostItem> posts) {
+public record PostListResponse(
+        Long galleryId,
+        String galleryName,
+        PostSort currentSort,
+        String searchedKeyword,
+        long totalCount,
+        List<PostItem> posts
+) {
 
     public record PostItem(
             Long postId,
@@ -13,7 +21,6 @@ public record PostListResponse(Long galleryId, long totalCount, List<PostItem> p
             String title,
             int viewCount,
             int likeCount,
-            int dislikeCount,
             int commentCount,
             LocalDateTime createdAt
     ) {
@@ -26,7 +33,9 @@ public record PostListResponse(Long galleryId, long totalCount, List<PostItem> p
         List<PostItem> items = result.posts().stream()
                 .map(PostListResponse::toPostItem)
                 .toList();
-        return new PostListResponse(result.galleryId(), result.totalCount(), items);
+        return new PostListResponse(
+                result.galleryId(), result.galleryName(), result.currentSort(), result.searchedKeyword(),
+                result.totalCount(), items);
     }
 
     private static PostItem toPostItem(PostQueryItem item) {
@@ -36,7 +45,6 @@ public record PostListResponse(Long galleryId, long totalCount, List<PostItem> p
                 item.title(),
                 item.viewCount(),
                 item.likeCount(),
-                item.dislikeCount(),
                 item.commentCount(),
                 item.createdAt());
     }

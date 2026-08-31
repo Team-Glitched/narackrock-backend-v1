@@ -45,9 +45,9 @@ class DeletePostUseCaseTest {
     @Test
     void 정상_삭제시_deletedAt이_반영되어_저장된다() {
         Post post = post(1L);
-        when(port.findActivePost(501L, 10L)).thenReturn(Optional.of(post));
+        when(port.findActivePost(501L)).thenReturn(Optional.of(post));
 
-        useCase.execute(10L, 501L, 1L);
+        useCase.execute(501L, 1L);
 
         assertThat(post.getDeletedAt()).isNotNull();
         verify(port).update(post);
@@ -55,9 +55,9 @@ class DeletePostUseCaseTest {
 
     @Test
     void 존재하지_않으면_POST_NOT_FOUND가_발생한다() {
-        when(port.findActivePost(999L, 10L)).thenReturn(Optional.empty());
+        when(port.findActivePost(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.execute(10L, 999L, 1L))
+        assertThatThrownBy(() -> useCase.execute(999L, 1L))
                 .isInstanceOf(PostApplicationException.class)
                 .extracting("errorCode")
                 .isEqualTo(PostErrorCode.POST_NOT_FOUND);
@@ -65,9 +65,9 @@ class DeletePostUseCaseTest {
 
     @Test
     void 본인_게시글이_아니면_NOT_POST_OWNER가_발생하고_삭제하지_않는다() {
-        when(port.findActivePost(501L, 10L)).thenReturn(Optional.of(post(2L)));
+        when(port.findActivePost(501L)).thenReturn(Optional.of(post(2L)));
 
-        assertThatThrownBy(() -> useCase.execute(10L, 501L, 1L))
+        assertThatThrownBy(() -> useCase.execute(501L, 1L))
                 .isInstanceOf(PostApplicationException.class)
                 .extracting("errorCode")
                 .isEqualTo(PostErrorCode.NOT_POST_OWNER);

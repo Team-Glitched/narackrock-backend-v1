@@ -7,6 +7,7 @@ import glitched.adlips.application.community.GetPostsUseCase;
 import glitched.adlips.application.community.UpdatePostUseCase;
 import glitched.adlips.application.community.port.out.PostPort;
 import glitched.adlips.application.community.port.out.PostQueryPort;
+import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
 import java.time.Clock;
 import org.springframework.context.annotation.Bean;
@@ -16,8 +17,13 @@ import org.springframework.context.annotation.Configuration;
 public class CommunityApplicationConfiguration {
 
     @Bean
-    CreatePostUseCase createPostUseCase(PostPort postPort, TransactionRunner transactionRunner) {
-        return new CreatePostUseCase(postPort, transactionRunner);
+    CreatePostUseCase createPostUseCase(
+            PostPort postPort,
+            UserBanQueryPort userBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new CreatePostUseCase(postPort, userBanQueryPort, transactionRunner, clock);
     }
 
     @Bean
@@ -31,12 +37,22 @@ public class CommunityApplicationConfiguration {
     }
 
     @Bean
-    UpdatePostUseCase updatePostUseCase(PostPort postPort, TransactionRunner transactionRunner) {
-        return new UpdatePostUseCase(postPort, transactionRunner);
+    UpdatePostUseCase updatePostUseCase(
+            PostPort postPort,
+            UserBanQueryPort userBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new UpdatePostUseCase(postPort, userBanQueryPort, transactionRunner, clock);
     }
 
     @Bean
-    DeletePostUseCase deletePostUseCase(PostPort postPort, TransactionRunner transactionRunner, Clock clock) {
-        return new DeletePostUseCase(postPort, transactionRunner, clock);
+    DeletePostUseCase deletePostUseCase(
+            PostPort postPort,
+            UserBanQueryPort userBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new DeletePostUseCase(postPort, userBanQueryPort, transactionRunner, clock);
     }
 }

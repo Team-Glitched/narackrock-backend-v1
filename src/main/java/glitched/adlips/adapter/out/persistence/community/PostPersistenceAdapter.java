@@ -39,6 +39,10 @@ public class PostPersistenceAdapter implements PostPort {
     }
 
     @Override
+    public Optional<Post> findActivePost(Long postId) {
+        return postRepository.findActiveById(postId);
+    }
+
     public Optional<Post> findActivePost(Long postId, Long galleryId) {
         return postRepository.findByIdAndGalleryIdAndDeletedAtIsNull(postId, galleryId);
     }

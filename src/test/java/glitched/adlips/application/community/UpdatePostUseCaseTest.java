@@ -39,28 +39,28 @@ class UpdatePostUseCaseTest {
 
     @Test
     void 정상_수정시_postId를_반환한다() {
-        when(port.findActivePost(501L, 10L)).thenReturn(Optional.of(post(1L)));
+        when(port.findActivePost(501L)).thenReturn(Optional.of(post(1L)));
 
-        Long postId = useCase.execute(10L, 501L, 1L, "수정된 제목", "수정된 내용");
+        Long postId = useCase.execute(501L, 1L, "수정된 제목", "수정된 내용");
 
         assertThat(postId).isEqualTo(501L);
     }
 
     @Test
-    void 제목이_공백이면_VALIDATION_ERROR가_발생하고_조회하지_않는다() {
-        assertThatThrownBy(() -> useCase.execute(10L, 501L, 1L, "  ", "내용"))
+    void 제목이_공백이면_INVALID_INPUT_VALUE가_발생하고_조회하지_않는다() {
+        assertThatThrownBy(() -> useCase.execute(501L, 1L, "  ", "내용"))
                 .isInstanceOf(PostApplicationException.class)
                 .extracting("errorCode")
-                .isEqualTo(PostErrorCode.VALIDATION_ERROR);
+                .isEqualTo(PostErrorCode.INVALID_INPUT_VALUE);
 
-        verify(port, never()).findActivePost(any(), any());
+        verify(port, never()).findActivePost(any());
     }
 
     @Test
     void 존재하지_않으면_POST_NOT_FOUND가_발생한다() {
-        when(port.findActivePost(999L, 10L)).thenReturn(Optional.empty());
+        when(port.findActivePost(999L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.execute(10L, 999L, 1L, "제목", "내용"))
+        assertThatThrownBy(() -> useCase.execute(999L, 1L, "제목", "내용"))
                 .isInstanceOf(PostApplicationException.class)
                 .extracting("errorCode")
                 .isEqualTo(PostErrorCode.POST_NOT_FOUND);
@@ -68,9 +68,9 @@ class UpdatePostUseCaseTest {
 
     @Test
     void 본인_게시글이_아니면_NOT_POST_OWNER가_발생하고_수정하지_않는다() {
-        when(port.findActivePost(501L, 10L)).thenReturn(Optional.of(post(2L)));
+        when(port.findActivePost(501L)).thenReturn(Optional.of(post(2L)));
 
-        assertThatThrownBy(() -> useCase.execute(10L, 501L, 1L, "제목", "내용"))
+        assertThatThrownBy(() -> useCase.execute(501L, 1L, "제목", "내용"))
                 .isInstanceOf(PostApplicationException.class)
                 .extracting("errorCode")
                 .isEqualTo(PostErrorCode.NOT_POST_OWNER);

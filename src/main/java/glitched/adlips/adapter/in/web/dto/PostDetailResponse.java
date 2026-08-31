@@ -5,7 +5,7 @@ import java.time.LocalDateTime;
 
 public record PostDetailResponse(
         Long postId,
-        Long galleryId,
+        Gallery gallery,
         Writer writer,
         String title,
         String content,
@@ -13,15 +13,21 @@ public record PostDetailResponse(
         int likeCount,
         int dislikeCount,
         int commentCount,
-        LocalDateTime createdAt
+        boolean isLiked,
+        boolean isDisliked,
+        LocalDateTime createdAt,
+        LocalDateTime updatedAt
 ) {
+    public record Gallery(Long galleryId, String name) {
+    }
+
     public record Writer(Long userId, String nickname, String profileImageUrl) {
     }
 
     public static PostDetailResponse from(PostQueryItem item) {
         return new PostDetailResponse(
                 item.postId(),
-                item.galleryId(),
+                new Gallery(item.galleryId(), item.galleryName()),
                 new Writer(item.userId(), item.nickname(), item.profileImageUrl()),
                 item.title(),
                 item.content(),
@@ -29,6 +35,9 @@ public record PostDetailResponse(
                 item.likeCount(),
                 item.dislikeCount(),
                 item.commentCount(),
-                item.createdAt());
+                item.liked(),
+                item.disliked(),
+                item.createdAt(),
+                item.updatedAt());
     }
 }

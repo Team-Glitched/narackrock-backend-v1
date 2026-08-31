@@ -9,7 +9,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import glitched.adlips.application.community.port.out.PostPort;
+import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -18,12 +22,14 @@ class CreatePostUseCaseTest {
 
     PostPort port;
     TransactionRunner transactionRunner;
+    UserBanQueryPort userBanQueryPort;
     CreatePostUseCase useCase;
 
     @BeforeEach
     void setUp() {
         port = mock(PostPort.class);
         transactionRunner = mock(TransactionRunner.class);
+        userBanQueryPort = mock(UserBanQueryPort.class);
         when(transactionRunner.required(any())).thenAnswer(invocation ->
                 invocation.<Supplier<?>>getArgument(0).get());
         useCase = new CreatePostUseCase(port, transactionRunner);
@@ -69,6 +75,20 @@ class CreatePostUseCaseTest {
                 .extracting("errorCode")
                 .isEqualTo(PostErrorCode.GALLERY_NOT_FOUND);
 
+        verify(port, never()).save(any(), any(), any(), any());
+    }
+
+    @Test
+    void 정지된_사용자는_BANNED_USER_ACCESS_예외가_발생하고_저장하지_않는다() {
+        Clock clock = Clock.fixed(Instant.parse("2026-08-23T10:00:00Z"), ZoneOffset.UTC);
+        when(userBanQueryPort.isBanned(1L, java.time.LocalDateTime.of(2026, 8, 23, 10, 0)))
+                .thenReturn(true);
+        useCase = new CreatePostUseCase(port, userBanQueryPort, transactionRunner, clock);
+
+        assertThatThrownBy(() -> useCase.execute(10L, 1L, "제목", "내용"))
+                .isInstanceOf(PostApplicationException.class)
+                .extracting("errorCode")
+                .isEqualTo(PostErrorCode.BANNED_USER_ACCESS);
         verify(port, never()).save(any(), any(), any(), any());
     }
 }

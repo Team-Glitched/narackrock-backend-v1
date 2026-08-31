@@ -27,30 +27,18 @@ class GetPostUseCaseTest {
     void 정상_조회시_결과를_반환한다() {
         PostQueryItem item = new PostQueryItem(
                 501L, 10L, 1L, "writer", null, "제목", "내용", 0, 0, 0, 0, LocalDateTime.of(2026, 8, 23, 10, 0));
-        when(port.existsGallery(10L)).thenReturn(true);
-        when(port.findDetail(501L, 10L)).thenReturn(Optional.of(item));
+        when(port.findDetail(501L, 1L)).thenReturn(Optional.of(item));
 
-        PostQueryItem result = useCase.execute(10L, 501L);
+        PostQueryItem result = useCase.execute(501L, 1L);
 
         assertThat(result).isEqualTo(item);
     }
 
     @Test
-    void 존재하지_않는_갤러리면_GALLERY_NOT_FOUND가_발생한다() {
-        when(port.existsGallery(999L)).thenReturn(false);
-
-        assertThatThrownBy(() -> useCase.execute(999L, 501L))
-                .isInstanceOf(PostApplicationException.class)
-                .extracting("errorCode")
-                .isEqualTo(PostErrorCode.GALLERY_NOT_FOUND);
-    }
-
-    @Test
     void 존재하지_않는_게시글이면_POST_NOT_FOUND가_발생한다() {
-        when(port.existsGallery(10L)).thenReturn(true);
-        when(port.findDetail(999L, 10L)).thenReturn(Optional.empty());
+        when(port.findDetail(999L, 1L)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.execute(10L, 999L))
+        assertThatThrownBy(() -> useCase.execute(999L, 1L))
                 .isInstanceOf(PostApplicationException.class)
                 .extracting("errorCode")
                 .isEqualTo(PostErrorCode.POST_NOT_FOUND);

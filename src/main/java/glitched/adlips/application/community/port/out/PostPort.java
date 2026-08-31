@@ -8,7 +8,11 @@ public interface PostPort {
 
     Long save(Long galleryId, Long userId, String title, String content);
 
-    Optional<Post> findActivePost(Long postId, Long galleryId);
+    Optional<Post> findActivePost(Long postId);
+
+    default Optional<Post> findActivePost(Long postId, Long galleryId) {
+        return findActivePost(postId).filter(post -> post.getGalleryId().equals(galleryId));
+    }
 
     void update(Post post);
 }

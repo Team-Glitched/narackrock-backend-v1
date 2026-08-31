@@ -21,8 +21,8 @@ import glitched.adlips.application.user.profile.usecase.ProfileImageUpdateUseCas
 import glitched.adlips.application.user.profile.usecase.ProfileMuteToggleUseCase;
 import glitched.adlips.application.user.profile.usecase.ProfileShareUseCase;
 import glitched.adlips.application.user.profile.usecase.ProfileUpdateUseCase;
-import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
 import glitched.adlips.application.user.relation.port.out.CollaborationUserQueryPort;
+import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
 import glitched.adlips.application.user.relation.port.out.ProfileQueryPort;
 import glitched.adlips.application.user.relation.usecase.FollowCancelUseCase;
 import glitched.adlips.application.user.relation.usecase.FollowCreateUseCase;
@@ -37,6 +37,7 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class UserApplicationConfiguration {
+
     @Bean
     Clock clock() {
         return Clock.systemUTC();
@@ -47,10 +48,17 @@ public class UserApplicationConfiguration {
             UserRefreshTokenRepositoryPort repository,
             RefreshTokenGeneratorPort generator,
             Clock clock,
-            @Value("${app.auth.refresh-token-validity-seconds}") long validitySeconds,
+            @Value("${app.auth.refresh-token-validity-seconds}")
+            long validitySeconds,
             TransactionRunner transactionRunner
     ) {
-        return new RefreshTokenManager(repository, generator, clock, validitySeconds, transactionRunner);
+        return new RefreshTokenManager(
+                repository,
+                generator,
+                clock,
+                validitySeconds,
+                transactionRunner
+        );
     }
 
     @Bean
@@ -64,8 +72,14 @@ public class UserApplicationConfiguration {
             TransactionRunner transactionRunner
     ) {
         return new GoogleLoginUseCase(
-                googleIdentityPort, accessTokenPort, userRepository, authProviderRepository,
-                profileRepository, refreshTokenManager, transactionRunner);
+                googleIdentityPort,
+                accessTokenPort,
+                userRepository,
+                authProviderRepository,
+                profileRepository,
+                refreshTokenManager,
+                transactionRunner
+        );
     }
 
     @Bean
@@ -79,8 +93,14 @@ public class UserApplicationConfiguration {
             TransactionRunner transactionRunner
     ) {
         return new UserSignupUseCase(
-                googleIdentityPort, accessTokenPort, userRepository, authProviderRepository,
-                profileRepository, refreshTokenManager, transactionRunner);
+                googleIdentityPort,
+                accessTokenPort,
+                userRepository,
+                authProviderRepository,
+                profileRepository,
+                refreshTokenManager,
+                transactionRunner
+        );
     }
 
     @Bean
@@ -90,7 +110,12 @@ public class UserApplicationConfiguration {
             UserRepositoryPort userRepository,
             TransactionRunner transactionRunner
     ) {
-        return new TokenRefreshUseCase(refreshTokenManager, accessTokenPort, userRepository, transactionRunner);
+        return new TokenRefreshUseCase(
+                refreshTokenManager,
+                accessTokenPort,
+                userRepository,
+                transactionRunner
+        );
     }
 
     @Bean
@@ -100,7 +125,12 @@ public class UserApplicationConfiguration {
             Clock clock,
             TransactionRunner transactionRunner
     ) {
-        return new UserWithdrawUseCase(userRepository, refreshTokenManager, clock, transactionRunner);
+        return new UserWithdrawUseCase(
+                userRepository,
+                refreshTokenManager,
+                clock,
+                transactionRunner
+        );
     }
 
     @Bean
@@ -112,7 +142,12 @@ public class UserApplicationConfiguration {
             TransactionRunner transactionRunner
     ) {
         return new ProfileGetUseCase(
-                userRepository, profileRepository, mediaFileRepository, followRepository, transactionRunner);
+                userRepository,
+                profileRepository,
+                mediaFileRepository,
+                followRepository,
+                transactionRunner
+        );
     }
 
     @Bean
@@ -122,7 +157,12 @@ public class UserApplicationConfiguration {
             Clock clock,
             TransactionRunner transactionRunner
     ) {
-        return new ProfileUpdateUseCase(userRepository, profileRepository, clock, transactionRunner);
+        return new ProfileUpdateUseCase(
+                userRepository,
+                profileRepository,
+                clock,
+                transactionRunner
+        );
     }
 
     @Bean
@@ -134,7 +174,12 @@ public class UserApplicationConfiguration {
             TransactionRunner transactionRunner
     ) {
         return new ProfileImageUpdateUseCase(
-                userRepository, profileRepository, mediaFileRepository, fileStorage, transactionRunner);
+                userRepository,
+                profileRepository,
+                mediaFileRepository,
+                fileStorage,
+                transactionRunner
+        );
     }
 
     @Bean
@@ -144,7 +189,12 @@ public class UserApplicationConfiguration {
             ProfileLinkPort profileLinkPort,
             TransactionRunner transactionRunner
     ) {
-        return new ProfileShareUseCase(userRepository, profileRepository, profileLinkPort, transactionRunner);
+        return new ProfileShareUseCase(
+                userRepository,
+                profileRepository,
+                profileLinkPort,
+                transactionRunner
+        );
     }
 
     @Bean
@@ -152,7 +202,10 @@ public class UserApplicationConfiguration {
             ProfileRepositoryPort profileRepository,
             TransactionRunner transactionRunner
     ) {
-        return new ProfileMuteToggleUseCase(profileRepository, transactionRunner);
+        return new ProfileMuteToggleUseCase(
+                profileRepository,
+                transactionRunner
+        );
     }
 
     @Bean
@@ -162,7 +215,12 @@ public class UserApplicationConfiguration {
             FollowRepositoryPort followRepository,
             TransactionRunner transactionRunner
     ) {
-        return new FollowCreateUseCase(userRepository, profileRepository, followRepository, transactionRunner);
+        return new FollowCreateUseCase(
+                userRepository,
+                profileRepository,
+                followRepository,
+                transactionRunner
+        );
     }
 
     @Bean
@@ -172,7 +230,12 @@ public class UserApplicationConfiguration {
             FollowRepositoryPort followRepository,
             TransactionRunner transactionRunner
     ) {
-        return new FollowCancelUseCase(userRepository, profileRepository, followRepository, transactionRunner);
+        return new FollowCancelUseCase(
+                userRepository,
+                profileRepository,
+                followRepository,
+                transactionRunner
+        );
     }
 
     @Bean
@@ -184,7 +247,12 @@ public class UserApplicationConfiguration {
             TransactionRunner transactionRunner
     ) {
         return new FollowerGetListUseCase(
-                userRepository, profileQuery, followRepository, mediaFileRepository, transactionRunner);
+                userRepository,
+                profileQuery,
+                followRepository,
+                mediaFileRepository,
+                transactionRunner
+        );
     }
 
     @Bean
@@ -196,7 +264,12 @@ public class UserApplicationConfiguration {
             TransactionRunner transactionRunner
     ) {
         return new FollowingGetListUseCase(
-                userRepository, profileQuery, followRepository, mediaFileRepository, transactionRunner);
+                userRepository,
+                profileQuery,
+                followRepository,
+                mediaFileRepository,
+                transactionRunner
+        );
     }
 
     @Bean
@@ -208,8 +281,12 @@ public class UserApplicationConfiguration {
             TransactionRunner transactionRunner
     ) {
         return new RecommendedUserGetListUseCase(
-                profileQuery, followRepository, collaborationUserQueryPort,
-                mediaFileRepository, transactionRunner);
+                profileQuery,
+                followRepository,
+                collaborationUserQueryPort,
+                mediaFileRepository,
+                transactionRunner
+        );
     }
 
     @Bean
@@ -219,6 +296,11 @@ public class UserApplicationConfiguration {
             MediaFileRepositoryPort mediaFileRepository,
             TransactionRunner transactionRunner
     ) {
-        return new UserSearchUseCase(profileQuery, followRepository, mediaFileRepository, transactionRunner);
+        return new UserSearchUseCase(
+                profileQuery,
+                followRepository,
+                mediaFileRepository,
+                transactionRunner
+        );
     }
 }

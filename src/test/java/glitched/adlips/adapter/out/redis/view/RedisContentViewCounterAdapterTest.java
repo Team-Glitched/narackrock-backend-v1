@@ -3,6 +3,8 @@ package glitched.adlips.adapter.out.redis.view;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import glitched.adlips.application.view.ContentViewTarget;
+import glitched.adlips.application.view.ClaimedContentViews;
+import glitched.adlips.application.view.ContentViewKey;
 import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -56,7 +58,8 @@ class RedisContentViewCounterAdapterTest {
     @BeforeEach
     void setUp() {
         redisTemplate.getConnectionFactory().getConnection().serverCommands().flushDb();
-        adapter = new RedisContentViewCounterAdapter(redisTemplate, "adlips-test");
+        adapter = new RedisContentViewCounterAdapter(
+                redisTemplate, "adlips-test", () -> "batch-1");
     }
 
     @Test
@@ -95,5 +98,47 @@ class RedisContentViewCounterAdapterTest {
             assertThat(redisTemplate.opsForValue().get(adapter.pendingKey(ContentViewTarget.POST, 501L)))
                     .isEqualTo("1");
         }
+    }
+
+    @Test
+    void 대기중인_증가분을_선점하고_DB_반영_후_차감한다() {
+        adapter.recordIfFirst(ContentViewTarget.SHORT, 12L, "user:7", Duration.ofMinutes(30));
+        adapter.recordIfFirst(ContentViewTarget.SHORT, 12L, "user:8", Duration.ofMinutes(30));
+        ContentViewKey key = new ContentViewKey(ContentViewTarget.SHORT, 12L);
+
+        assertThat(adapter.findPending(10)).containsExactly(key);
+        ClaimedContentViews claimed = adapter.claim(key);
+        assertThat(claimed).isEqualTo(new ClaimedContentViews("batch-1", 2L));
+
+        adapter.complete(key, claimed.batchId(), claimed.count());
+
+        assertThat(adapter.findPending(10)).isEmpty();
+        assertThat(redisTemplate.hasKey(adapter.pendingKey(ContentViewTarget.SHORT, 12L))).isFalse();
+        assertThat(redisTemplate.hasKey(adapter.processingKey(key))).isFalse();
+    }
+
+    @Test
+    void 동기화_도중_추가된_조회수는_다음_동기화_대상으로_남긴다() {
+        adapter.recordIfFirst(ContentViewTarget.POST, 501L, "user:7", Duration.ofMinutes(30));
+        ContentViewKey key = new ContentViewKey(ContentViewTarget.POST, 501L);
+        ClaimedContentViews claimed = adapter.claim(key);
+
+        adapter.recordIfFirst(ContentViewTarget.POST, 501L, "user:8", Duration.ofMinutes(30));
+        adapter.complete(key, claimed.batchId(), claimed.count());
+
+        assertThat(redisTemplate.opsForValue().get(adapter.pendingKey(ContentViewTarget.POST, 501L)))
+                .isEqualTo("1");
+        assertThat(adapter.findPending(10)).containsExactly(key);
+    }
+
+    @Test
+    void DB_반영_실패시_선점을_해제하고_같은_증가분을_다시_선점한다() {
+        adapter.recordIfFirst(ContentViewTarget.POST, 501L, "user:7", Duration.ofMinutes(30));
+        ContentViewKey key = new ContentViewKey(ContentViewTarget.POST, 501L);
+        ClaimedContentViews claimed = adapter.claim(key);
+
+        adapter.restore(key, claimed.batchId(), claimed.count());
+
+        assertThat(adapter.claim(key)).isEqualTo(new ClaimedContentViews("batch-1", 1L));
     }
 }

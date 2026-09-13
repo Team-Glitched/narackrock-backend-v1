@@ -13,6 +13,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
@@ -71,6 +72,7 @@ public class RedisContentViewCounterAdapter implements ContentViewCounterPort, C
     private final String keyPrefix;
     private final Supplier<String> batchIdSupplier;
 
+    @Autowired
     public RedisContentViewCounterAdapter(StringRedisTemplate redisTemplate) {
         this(redisTemplate, "adlips", () -> UUID.randomUUID().toString());
     }

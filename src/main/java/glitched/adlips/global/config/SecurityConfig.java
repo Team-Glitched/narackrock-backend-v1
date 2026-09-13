@@ -53,6 +53,11 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
+                                HttpMethod.POST,
+                                "/api/v1/shorts/*/views",
+                                "/api/v1/posts/*/views"
+                        ).permitAll()
+                        .requestMatchers(
                                 HttpMethod.GET,
                                 "/api/v1/shorts",
                                 "/api/v1/users/*/relations",
@@ -103,8 +108,9 @@ public class SecurityConfig {
         );
         configuration.setAllowedHeaders(
                 List.of(
-                        "Authorization",
-                        "Content-Type"
+                                "Authorization",
+                                "Content-Type",
+                                "X-Device-Id"
                 )
         );
         configuration.setMaxAge(3600L);

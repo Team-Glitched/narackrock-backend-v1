@@ -30,6 +30,7 @@ class LocalFileStorageAdapterTest {
         Path savedPath = tempDirectory.resolve(stored.storageKey());
         assertTrue(Files.exists(savedPath));
         assertArrayEquals(content, Files.readAllBytes(savedPath));
-        assertTrue(stored.url().startsWith("http://localhost:8080/files/profiles/"));
+        assertTrue(stored.storageKey().startsWith("profiles/1/"));
+        assertTrue(stored.url().startsWith("http://localhost:8080/files/profiles/1/"));
     }
 }

@@ -23,7 +23,8 @@ public class MediaUploadSessionCreateUseCase {
             MediaFileType.AUDIO, Set.of(
                     "audio/wav", "audio/x-wav", "audio/wave", "audio/mpeg", "audio/mp4", "audio/flac"),
             MediaFileType.IMAGE, Set.of("image/jpeg", "image/png", "image/webp", "image/gif"),
-            MediaFileType.VIDEO, Set.of("video/mp4", "video/webm")
+            MediaFileType.VIDEO, Set.of("video/mp4", "video/webm"),
+            MediaFileType.WAVEFORM, Set.of("application/json")
     );
 
     private final MediaFileRepositoryPort mediaFiles;
@@ -70,7 +71,8 @@ public class MediaUploadSessionCreateUseCase {
     private MediaUploadSessionCreateResponse executeInternal(MediaUploadSessionCreateRequest request) {
         validate(request);
         String safeFileName = request.fileName().replaceAll("[^a-zA-Z0-9._-]", "_");
-        String storageKey = "media/" + request.userId() + "/" + UUID.randomUUID() + "-" + safeFileName;
+        String storageKey = storagePrefix(request.fileType()) + "/" + request.userId()
+                + "/" + UUID.randomUUID() + "-" + safeFileName;
         MediaFile saved = mediaFiles.save(MediaFile.uploading(
                 request.userId(), storageKey, request.fileName(), request.fileType(),
                 request.mimeType(), request.fileSize()));
@@ -99,6 +101,15 @@ public class MediaUploadSessionCreateUseCase {
     private MediaApplicationException validationError() {
         return new MediaApplicationException(
                 MediaErrorCode.VALIDATION_ERROR, "파일 형식, 이름, 크기를 확인해 주세요.");
+    }
+
+    private String storagePrefix(MediaFileType fileType) {
+        return switch (fileType) {
+            case IMAGE -> "images";
+            case AUDIO -> "audio";
+            case VIDEO -> "videos";
+            case WAVEFORM -> "waveforms";
+        };
     }
 
     private static String stripTrailingSlash(String value) {

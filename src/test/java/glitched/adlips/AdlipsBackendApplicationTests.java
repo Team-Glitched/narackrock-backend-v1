@@ -1,9 +1,12 @@
 package glitched.adlips;
 
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest(properties = {
         "app.auth.token-secret=test-only-secret-value-32-characters",
@@ -15,6 +18,9 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 })
 class AdlipsBackendApplicationTests {
 
+    @Autowired
+    private RedisConnectionFactory redisConnectionFactory;
+
     @Test
     void contextLoads() {
     }
@@ -22,6 +28,11 @@ class AdlipsBackendApplicationTests {
     @Test
     void postgresqlDriverIsAvailable() {
         assertDoesNotThrow(() -> Class.forName("org.postgresql.Driver"));
+    }
+
+    @Test
+    void redisConnectionFactoryIsConfigured() {
+        assertNotNull(redisConnectionFactory);
     }
 
 }

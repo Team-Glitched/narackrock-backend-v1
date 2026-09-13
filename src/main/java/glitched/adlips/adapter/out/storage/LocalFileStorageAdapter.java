@@ -38,7 +38,7 @@ public class LocalFileStorageAdapter implements FileStoragePort, MediaContentSto
         if (extension == null) {
             throw new IllegalArgumentException("지원하지 않는 이미지 형식입니다.");
         }
-        String storageKey = "profiles/" + UUID.randomUUID() + extension;
+        String storageKey = "profiles/" + image.userId() + "/" + UUID.randomUUID() + extension;
         Path target = resolve(storageKey);
         try {
             Files.createDirectories(target.getParent());

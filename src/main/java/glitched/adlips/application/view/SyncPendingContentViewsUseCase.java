@@ -40,7 +40,7 @@ public class SyncPendingContentViewsUseCase {
 
             try {
                 transactionRunner.required(() -> {
-                    persistencePort.increment(key, claimed.count());
+                    persistencePort.increment(key, claimed.batchId(), claimed.count());
                     return null;
                 });
                 pendingPort.complete(key, claimed.batchId(), claimed.count());

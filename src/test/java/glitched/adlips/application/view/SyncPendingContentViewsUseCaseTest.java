@@ -40,7 +40,7 @@ class SyncPendingContentViewsUseCaseTest {
         ContentViewSyncResult result = useCase.execute();
 
         InOrder order = inOrder(persistencePort, pendingPort);
-        order.verify(persistencePort).increment(key, 4L);
+        order.verify(persistencePort).increment(key, "batch-1", 4L);
         order.verify(pendingPort).complete(key, "batch-1", 4L);
         assertThat(result).isEqualTo(new ContentViewSyncResult(1, 4L, 0));
     }
@@ -51,7 +51,7 @@ class SyncPendingContentViewsUseCaseTest {
         when(pendingPort.findPending(100)).thenReturn(List.of(key));
         when(pendingPort.claim(key)).thenReturn(new ClaimedContentViews("batch-2", 3L));
         doThrow(new IllegalStateException("database unavailable"))
-                .when(persistencePort).increment(key, 3L);
+                .when(persistencePort).increment(key, "batch-2", 3L);
 
         ContentViewSyncResult result = useCase.execute();
 

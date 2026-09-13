@@ -4,5 +4,5 @@ import glitched.adlips.application.view.ContentViewKey;
 
 public interface ContentViewPersistencePort {
 
-    void increment(ContentViewKey key, long count);
+    void increment(ContentViewKey key, String batchId, long count);
 }

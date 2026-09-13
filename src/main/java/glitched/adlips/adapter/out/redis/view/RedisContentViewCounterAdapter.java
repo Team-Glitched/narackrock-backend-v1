@@ -2,6 +2,8 @@ package glitched.adlips.adapter.out.redis.view;
 
 import glitched.adlips.application.view.ContentViewTarget;
 import glitched.adlips.application.view.ClaimedContentViews;
+import glitched.adlips.application.view.ContentViewApplicationException;
+import glitched.adlips.application.view.ContentViewErrorCode;
 import glitched.adlips.application.view.ContentViewKey;
 import glitched.adlips.application.view.port.out.ContentViewCounterPort;
 import glitched.adlips.application.view.port.out.ContentViewPendingPort;
@@ -14,6 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.Supplier;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
@@ -98,17 +101,24 @@ public class RedisContentViewCounterAdapter implements ContentViewCounterPort, C
             String viewerId,
             Duration deduplicationWindow
     ) {
-        Long result = redisTemplate.execute(
-                RECORD_SCRIPT,
-                List.of(
-                        deduplicationKey(target, contentId, viewerId),
-                        pendingKey(target, contentId),
-                        dirtyKey()
-                ),
-                Long.toString(deduplicationWindow.toSeconds()),
-                member(target, contentId)
-        );
-        return Long.valueOf(1L).equals(result);
+        try {
+            Long result = redisTemplate.execute(
+                    RECORD_SCRIPT,
+                    List.of(
+                            deduplicationKey(target, contentId, viewerId),
+                            pendingKey(target, contentId),
+                            dirtyKey()
+                    ),
+                    Long.toString(deduplicationWindow.toSeconds()),
+                    member(target, contentId)
+            );
+            return Long.valueOf(1L).equals(result);
+        } catch (DataAccessException exception) {
+            throw new ContentViewApplicationException(
+                    ContentViewErrorCode.VIEW_COUNT_UNAVAILABLE,
+                    "조회수 집계 서비스를 일시적으로 사용할 수 없습니다."
+            );
+        }
     }
 
     @Override

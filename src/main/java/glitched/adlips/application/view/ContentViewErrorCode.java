@@ -3,5 +3,6 @@ package glitched.adlips.application.view;
 public enum ContentViewErrorCode {
     CONTENT_NOT_FOUND,
     INVALID_CONTENT_ID,
-    VIEWER_ID_REQUIRED
+    VIEWER_ID_REQUIRED,
+    VIEW_COUNT_UNAVAILABLE
 }

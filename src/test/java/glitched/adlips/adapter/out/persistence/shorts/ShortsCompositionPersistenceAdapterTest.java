@@ -27,10 +27,13 @@ class ShortsCompositionPersistenceAdapterTest {
         jdbcTemplate.update("INSERT INTO users (id, email, role, created_at) VALUES (902, 'composition@test.com', 'USER', CURRENT_TIMESTAMP)");
         insertProject(8L, "밤하늘 위 멜로디", "IN_PROGRESS", null);
         insertProject(9L, "삭제된 곡", "IN_PROGRESS", "CURRENT_TIMESTAMP");
-        insertShort(201L, 8L, "COMPLETED");
-        insertShort(202L, null, "COMPLETED");
-        insertShort(203L, 9L, "COMPLETED");
-        insertShort(204L, 8L, "IN_PROGRESS");
+        insertMedia(801L, "exports/8/20/mix.wav", "audio/wav", "AUDIO");
+        insertMedia(802L, "exports/8/20/layers.zip", "application/zip", "ARCHIVE");
+        insertExport(20L, 8L, 801L, 802L);
+        insertShort(201L, 8L, 20L, "COMPLETED");
+        insertShort(202L, null, null, "COMPLETED");
+        insertShort(203L, 9L, null, "COMPLETED");
+        insertShort(204L, 8L, null, "IN_PROGRESS");
     }
 
     @Test
@@ -44,6 +47,10 @@ class ShortsCompositionPersistenceAdapterTest {
         assertThat(item.projectTitle()).isEqualTo("밤하늘 위 멜로디");
         assertThat(item.projectStatus()).isEqualTo(ProjectStatus.IN_PROGRESS);
         assertThat(item.projectDeletedAt()).isNull();
+        assertThat(item.mixedAudioFileId()).isEqualTo(801L);
+        assertThat(item.mixedAudioUrl()).isEqualTo("/files/exports/8/20/mix.wav");
+        assertThat(item.layerArchiveFileId()).isEqualTo(802L);
+        assertThat(item.layerArchiveUrl()).isEqualTo("/files/exports/8/20/layers.zip");
     }
 
     @Test
@@ -88,14 +95,32 @@ class ShortsCompositionPersistenceAdapterTest {
         entityManager.clear();
     }
 
-    private void insertShort(long id, Long projectId, String status) {
+    private void insertMedia(long id, String key, String mimeType, String type) {
+        jdbcTemplate.update("""
+                INSERT INTO media_files (
+                    id, owner_id, file_url, storage_key, original_filename,
+                    file_type, mime_type, file_size, status, created_at
+                ) VALUES (?, 902, ?, ?, 'file', ?, ?, 10, 'READY', CURRENT_TIMESTAMP)
+                """, id, "/files/" + key, key, type, mimeType);
+    }
+
+    private void insertExport(long id, long projectId, long mixedAudioFileId, long archiveFileId) {
+        jdbcTemplate.update("""
+                INSERT INTO project_exports (
+                    id, project_id, user_id, project_major_version, project_minor_version,
+                    media_file_id, layer_archive_file_id, duration_ms, status, completed_at, created_at
+                ) VALUES (?, ?, 902, 1, 1, ?, ?, 30000, 'COMPLETED', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """, id, projectId, mixedAudioFileId, archiveFileId);
+    }
+
+    private void insertShort(long id, Long projectId, Long exportId, String status) {
         jdbcTemplate.update("""
                 INSERT INTO shorts (
-                    id, user_id, project_id, title, media_file_id, status,
+                    id, user_id, project_id, export_id, title, media_file_id, status,
                     view_count, like_count, dislike_count, comment_count, contribution_count,
                     created_at
-                ) VALUES (?, 902, ?, 'test', 1, ?, 0, 0, 0, 0, 0, CURRENT_TIMESTAMP)
-                """, id, projectId, status);
+                ) VALUES (?, 902, ?, ?, 'test', 1, ?, 0, 0, 0, 0, 0, CURRENT_TIMESTAMP)
+                """, id, projectId, exportId, status);
         entityManager.clear();
     }
 }

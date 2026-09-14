@@ -49,7 +49,9 @@ class ShortsCompositionControllerTest {
     @Test
     void 유효한_요청시_200과_작곡_진입_정보를_반환한다() throws Exception {
         when(shortsCompositionEntryUseCase.execute(12L, 1L)).thenReturn(new ShortsCompositionQueryItem(
-                12L, 8L, "밤하늘 위 멜로디", ProjectStatus.IN_PROGRESS, null));
+                12L, 8L, "밤하늘 위 멜로디", ProjectStatus.IN_PROGRESS, null,
+                801L, "/files/exports/8/20/mix.wav",
+                802L, "/files/exports/8/20/layers.zip"));
 
         mockMvc.perform(get("/api/v1/shorts/12/composition")
                         .header("Authorization", "Bearer " + validToken))
@@ -60,7 +62,9 @@ class ShortsCompositionControllerTest {
                 .andExpect(jsonPath("$.data.projectId").value(8))
                 .andExpect(jsonPath("$.data.compositionUrl").value("/composition/projects/8"))
                 .andExpect(jsonPath("$.data.title").value("밤하늘 위 멜로디"))
-                .andExpect(jsonPath("$.data.status").value("IN_PROGRESS"));
+                .andExpect(jsonPath("$.data.status").value("IN_PROGRESS"))
+                .andExpect(jsonPath("$.data.layerArchiveFileId").value(802))
+                .andExpect(jsonPath("$.data.layerArchiveUrl").value("/files/exports/8/20/layers.zip"));
 
         verify(shortsCompositionEntryUseCase).execute(12L, 1L);
     }

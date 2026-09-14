@@ -15,9 +15,14 @@ interface ShortFormJpaRepository extends JpaRepository<ShortForm, Long> {
 
     @Query("""
             SELECT new glitched.adlips.application.shorts.port.out.ShortsCompositionQueryItem(
-                s.id, p.id, p.title, p.status, p.deletedAt)
+                s.id, p.id, p.title, p.status, p.deletedAt,
+                export.mediaFileId, mixedAudio.fileUrl,
+                export.layerArchiveFileId, layerArchive.fileUrl)
             FROM ShortForm s
             LEFT JOIN s.project p
+            LEFT JOIN ProjectExport export ON export.id = s.exportId
+            LEFT JOIN MediaFileJpaEntity mixedAudio ON mixedAudio.id = export.mediaFileId
+            LEFT JOIN MediaFileJpaEntity layerArchive ON layerArchive.id = export.layerArchiveFileId
             WHERE s.id = :shortId
               AND s.status = glitched.adlips.domain.shorts.ShortStatus.COMPLETED
               AND s.deletedAt IS NULL

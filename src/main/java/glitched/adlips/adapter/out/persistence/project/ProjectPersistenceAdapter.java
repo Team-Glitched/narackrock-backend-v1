@@ -176,6 +176,11 @@ public class ProjectPersistenceAdapter implements
     }
 
     @Override
+    public Optional<ProjectExport> findExportByIdAndProjectId(Long id, Long projectId) {
+        return exports.findExportByIdAndProjectId(id, projectId);
+    }
+
+    @Override
     public ProjectExport save(ProjectExport projectExport) {
         return exports.save(projectExport);
     }

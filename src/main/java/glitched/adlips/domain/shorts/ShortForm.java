@@ -15,9 +15,12 @@ import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.LocalDateTime;
+import java.util.Objects;
+import lombok.Getter;
 
 @Entity
 @Table(name = "shorts")
+@Getter
 public class ShortForm extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -66,5 +69,23 @@ public class ShortForm extends BaseTimeEntity {
     private LocalDateTime deletedAt;
 
     protected ShortForm() {
+    }
+
+    public static ShortForm completedFromExport(
+            Project project,
+            Long exportId,
+            Long mixedAudioFileId
+    ) {
+        Objects.requireNonNull(project, "project must not be null");
+        ShortForm shortForm = new ShortForm();
+        shortForm.user = project.getOwner();
+        shortForm.project = project;
+        shortForm.exportId = Objects.requireNonNull(exportId, "exportId must not be null");
+        shortForm.title = project.getTitle();
+        shortForm.albumImageFileId = project.getAlbumImageFileId();
+        shortForm.mediaFileId = Objects.requireNonNull(
+                mixedAudioFileId, "mixedAudioFileId must not be null");
+        shortForm.status = ShortStatus.COMPLETED;
+        return shortForm;
     }
 }

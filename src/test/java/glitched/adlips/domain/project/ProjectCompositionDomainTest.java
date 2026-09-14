@@ -207,17 +207,22 @@ class ProjectCompositionDomainTest {
 
     @Test
     void completesAnExportWithTheFinalMixedAudio() {
-        ProjectExport export = new ProjectExport(project("곡"), owner);
+        Project project = project("곡");
+        project.startPublishing();
+        ProjectExport export = new ProjectExport(project, owner);
         LocalDateTime completedAt = LocalDateTime.of(2026, 7, 1, 18, 0);
 
         export.startProcessing();
-        export.complete(9001L, 9002L, 45_000, completedAt);
+        export.complete(9001L, 9002L, 9003L, 45_000, completedAt);
 
         assertThat(export.getStatus()).isEqualTo(ExportStatus.COMPLETED);
         assertThat(export.getMediaFileId()).isEqualTo(9001L);
         assertThat(export.getLayerArchiveFileId()).isEqualTo(9002L);
+        assertThat(export.getShortId()).isEqualTo(9003L);
         assertThat(export.getDurationMs()).isEqualTo(45_000);
         assertThat(export.getCompletedAt()).isEqualTo(completedAt);
+        assertThat(export.getProject().getStatus()).isEqualTo(ProjectStatus.COMPLETED);
+        assertThat(export.getProject().isPublic()).isTrue();
     }
 
     private Project project(String title) {

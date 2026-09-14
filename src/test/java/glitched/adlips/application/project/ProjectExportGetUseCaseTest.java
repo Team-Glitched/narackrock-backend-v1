@@ -65,8 +65,9 @@ class ProjectExportGetUseCaseTest {
 
     @Test
     void returnsGeneratedMediaUrlsForCompletedExport() {
+        project.startPublishing();
         export.startProcessing();
-        export.complete(801L, 802L, 32_000, LocalDateTime.of(2026, 9, 14, 10, 0));
+        export.complete(801L, 802L, 901L, 32_000, LocalDateTime.of(2026, 9, 14, 10, 0));
         when(mediaFiles.findById(801L)).thenReturn(Optional.of(media(801L, "/files/audio/mix.wav")));
         when(mediaFiles.findById(701L)).thenReturn(Optional.of(media(701L, "/files/images/album.png")));
 
@@ -75,6 +76,7 @@ class ProjectExportGetUseCaseTest {
         assertThat(response.mixedAudioFileId()).isEqualTo(801L);
         assertThat(response.mixedAudioUrl()).isEqualTo("/files/audio/mix.wav");
         assertThat(response.layerArchiveFileId()).isEqualTo(802L);
+        assertThat(response.shortId()).isEqualTo(901L);
         assertThat(response.albumImageUrl()).isEqualTo("/files/images/album.png");
         assertThat(response.durationMs()).isEqualTo(32_000);
         assertThat(response.completedAt()).isEqualTo(LocalDateTime.of(2026, 9, 14, 10, 0));

@@ -75,6 +75,15 @@ public class LocalFileStorageAdapter implements FileStoragePort, MediaContentSto
         }
     }
 
+    @Override
+    public byte[] get(String storageKey) {
+        try {
+            return Files.readAllBytes(resolve(storageKey));
+        } catch (IOException exception) {
+            throw new IllegalStateException("로컬 파일 읽기에 실패했습니다.", exception);
+        }
+    }
+
     public boolean exists(String storageKey) {
         return Files.isRegularFile(resolve(storageKey));
     }

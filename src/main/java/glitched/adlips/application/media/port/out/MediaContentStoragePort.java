@@ -4,6 +4,8 @@ public interface MediaContentStoragePort {
 
     void put(String storageKey, byte[] content, String contentType);
 
+    byte[] get(String storageKey);
+
     boolean exists(String storageKey);
 
     long size(String storageKey);

@@ -1,11 +1,14 @@
 package glitched.adlips.config;
 
 import glitched.adlips.application.port.TransactionRunner;
+import glitched.adlips.application.media.port.out.MediaContentStoragePort;
+import glitched.adlips.application.project.port.out.ProjectAudioMixerPort;
 import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectContributionItemRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectContributionRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectExportRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectLayerArchivePort;
 import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.project.usecase.AudioClipCreateUseCase;
@@ -17,6 +20,7 @@ import glitched.adlips.application.project.usecase.ProjectContributionReviewUseC
 import glitched.adlips.application.project.usecase.ProjectCreateUseCase;
 import glitched.adlips.application.project.usecase.ProjectDeleteUseCase;
 import glitched.adlips.application.project.usecase.ProjectExportGetUseCase;
+import glitched.adlips.application.project.usecase.ProcessPendingProjectExportsUseCase;
 import glitched.adlips.application.project.usecase.ProjectPublishUseCase;
 import glitched.adlips.application.project.usecase.TrackCreateUseCase;
 import glitched.adlips.application.project.usecase.TrackDeleteUseCase;
@@ -28,8 +32,11 @@ import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
 import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 @Configuration
+@EnableScheduling
 public class ProjectApplicationConfiguration {
 
     @Bean
@@ -73,6 +80,24 @@ public class ProjectApplicationConfiguration {
             TransactionRunner transactionRunner
     ) {
         return new ProjectExportGetUseCase(projects, members, exports, mediaFiles, transactionRunner);
+    }
+
+    @Bean
+    ProcessPendingProjectExportsUseCase processPendingProjectExportsUseCase(
+            ProjectExportRepositoryPort exports,
+            ProjectTrackRepositoryPort tracks,
+            ProjectClipRepositoryPort clips,
+            MediaFileRepositoryPort mediaFiles,
+            MediaContentStoragePort storage,
+            ProjectAudioMixerPort mixer,
+            ProjectLayerArchivePort archiver,
+            Clock clock,
+            @Value("${app.project.export-processing-batch-size:5}") int batchSize,
+            TransactionRunner transactionRunner
+    ) {
+        return new ProcessPendingProjectExportsUseCase(
+                exports, tracks, clips, mediaFiles, storage, mixer, archiver,
+                clock, batchSize, transactionRunner);
     }
 
     @Bean

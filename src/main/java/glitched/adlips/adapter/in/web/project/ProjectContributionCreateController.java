@@ -1,5 +1,8 @@
 package glitched.adlips.adapter.in.web.project;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.application.project.dto.request.ProjectContributionCreateRequest;
@@ -14,6 +17,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "프로젝트 기여", description = "프로젝트 기여 생성 API")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/v1/projects/{projectId}/contributions")
 public class ProjectContributionCreateController {

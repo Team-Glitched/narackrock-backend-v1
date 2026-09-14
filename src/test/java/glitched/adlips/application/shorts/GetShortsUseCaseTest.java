@@ -7,9 +7,11 @@ import static org.mockito.Mockito.verify;
 import glitched.adlips.application.shorts.port.out.ShortsParticipantQueryItem;
 import glitched.adlips.application.shorts.port.out.ShortsQueryItem;
 import glitched.adlips.application.shorts.port.out.ShortsQueryPort;
+import glitched.adlips.application.shorts.port.out.ShortReactionCountCachePort;
 import glitched.adlips.domain.shorts.ShortStatus;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,11 +24,14 @@ class GetShortsUseCaseTest {
     @Mock
     private ShortsQueryPort shortsQueryPort;
 
+    @Mock
+    private ShortReactionCountCachePort reactionCountCache;
+
     private GetShortsUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new GetShortsUseCase(shortsQueryPort);
+        useCase = new GetShortsUseCase(shortsQueryPort, reactionCountCache);
     }
 
     @Test
@@ -75,6 +80,25 @@ class GetShortsUseCaseTest {
         assertThat(result.participants()).containsExactly(
                 new ParticipantSummary(456L, "beat_sky", "DRUM")
         );
+        verify(reactionCountCache).put(12L, new ShortReactionCounts(128, 4));
+    }
+
+    @Test
+    void usesRedisReactionCountsWhenCached() {
+        ShortsQueryItem item = item(12L);
+        given(shortsQueryPort.findByCursor(
+                null, ShortsSource.SHORTS_FEED, ShortStatus.COMPLETED, 21, null))
+                .willReturn(List.of(item));
+        given(shortsQueryPort.findParticipants(List.of(12L))).willReturn(List.of());
+        given(reactionCountCache.findAll(List.of(12L)))
+                .willReturn(Map.of(12L, new ShortReactionCounts(999, 8)));
+
+        ShortSummary result = useCase.get(
+                null, ShortsSource.SHORTS_FEED, ShortStatus.COMPLETED, 20, null)
+                .items().getFirst();
+
+        assertThat(result.likeCount()).isEqualTo(999);
+        assertThat(result.dislikeCount()).isEqualTo(8);
     }
 
     @Test

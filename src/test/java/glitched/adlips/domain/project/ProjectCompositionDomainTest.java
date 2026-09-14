@@ -211,10 +211,11 @@ class ProjectCompositionDomainTest {
         LocalDateTime completedAt = LocalDateTime.of(2026, 7, 1, 18, 0);
 
         export.startProcessing();
-        export.complete(9001L, 45_000, completedAt);
+        export.complete(9001L, 9002L, 45_000, completedAt);
 
         assertThat(export.getStatus()).isEqualTo(ExportStatus.COMPLETED);
         assertThat(export.getMediaFileId()).isEqualTo(9001L);
+        assertThat(export.getLayerArchiveFileId()).isEqualTo(9002L);
         assertThat(export.getDurationMs()).isEqualTo(45_000);
         assertThat(export.getCompletedAt()).isEqualTo(completedAt);
     }

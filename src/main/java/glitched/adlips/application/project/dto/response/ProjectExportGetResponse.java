@@ -9,6 +9,8 @@ public record ProjectExportGetResponse(
         ProjectVersionResponse projectVersion,
         Long mixedAudioFileId,
         String mixedAudioUrl,
+        Long layerArchiveFileId,
+        String layerArchiveUrl,
         Long shortId,
         Long shortVideoFileId,
         String shortVideoUrl,

@@ -33,4 +33,16 @@ class LocalFileStorageAdapterTest {
         assertTrue(stored.storageKey().startsWith("profiles/1/"));
         assertTrue(stored.url().startsWith("http://localhost:8080/files/profiles/1/"));
     }
+
+    @Test
+    void readsStoredMediaContent() {
+        LocalFileStorageAdapter adapter = new LocalFileStorageAdapter(
+                tempDirectory.toString(),
+                "http://localhost:8080/files"
+        );
+        byte[] content = new byte[]{1, 2, 3, 4};
+        adapter.put("audio/1/source.wav", content, "audio/wav");
+
+        assertArrayEquals(content, adapter.get("audio/1/source.wav"));
+    }
 }

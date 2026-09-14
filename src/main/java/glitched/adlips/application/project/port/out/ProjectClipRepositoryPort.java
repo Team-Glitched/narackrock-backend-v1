@@ -14,5 +14,8 @@ public interface ProjectClipRepositoryPort {
     long countByTrackIdInAndApprovalStatusAndIsDeletedFalse(
             List<Long> trackIds, ApprovalStatus status);
 
+    List<ProjectClip> findByTrackIdAndApprovalStatusAndIsDeletedFalseOrderByStartTickAscIdAsc(
+            Long trackId, ApprovalStatus status);
+
     ProjectClip save(ProjectClip clip);
 }

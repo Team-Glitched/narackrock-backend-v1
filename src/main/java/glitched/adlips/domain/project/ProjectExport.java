@@ -52,6 +52,9 @@ public class ProjectExport extends BaseCreatedEntity {
     @Column(name = "media_file_id")
     private Long mediaFileId;
 
+    @Column(name = "layer_archive_file_id")
+    private Long layerArchiveFileId;
+
     @Column(name = "duration_ms")
     private Integer durationMs;
 
@@ -79,7 +82,12 @@ public class ProjectExport extends BaseCreatedEntity {
         status = ExportStatus.PROCESSING;
     }
 
-    public void complete(Long mediaFileId, int durationMs, LocalDateTime completedAt) {
+    public void complete(
+            Long mediaFileId,
+            Long layerArchiveFileId,
+            int durationMs,
+            LocalDateTime completedAt
+    ) {
         if (status != ExportStatus.PROCESSING) {
             throw new IllegalStateException("only processing exports can complete");
         }
@@ -87,6 +95,8 @@ public class ProjectExport extends BaseCreatedEntity {
             throw new IllegalArgumentException("durationMs must be positive");
         }
         this.mediaFileId = Objects.requireNonNull(mediaFileId, "mediaFileId must not be null");
+        this.layerArchiveFileId = Objects.requireNonNull(
+                layerArchiveFileId, "layerArchiveFileId must not be null");
         this.durationMs = durationMs;
         this.completedAt = Objects.requireNonNull(completedAt, "completedAt must not be null");
         this.status = ExportStatus.COMPLETED;

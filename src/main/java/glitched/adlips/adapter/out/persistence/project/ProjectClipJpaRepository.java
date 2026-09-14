@@ -11,4 +11,6 @@ public interface ProjectClipJpaRepository extends JpaRepository<ProjectClip, Lon
     List<ProjectClip> findByTrackIdAndIsDeletedFalseOrderByStartTickAscIdAsc(Long trackId);
     long countByProjectIdAndApprovalStatusAndIsDeletedFalse(Long projectId, ApprovalStatus status);
     long countByTrackIdInAndApprovalStatusAndIsDeletedFalse(List<Long> trackIds, ApprovalStatus status);
+    List<ProjectClip> findByTrackIdAndApprovalStatusAndIsDeletedFalseOrderByStartTickAscIdAsc(
+            Long trackId, ApprovalStatus status);
 }

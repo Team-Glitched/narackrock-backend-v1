@@ -70,6 +70,8 @@ public class ProjectExportGetUseCase {
                 version,
                 mixedAudioFileId,
                 url(mixedAudioFileId),
+                export.getLayerArchiveFileId(),
+                url(export.getLayerArchiveFileId()),
                 null,
                 null,
                 null,

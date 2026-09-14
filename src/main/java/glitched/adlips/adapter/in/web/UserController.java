@@ -1,5 +1,7 @@
 package glitched.adlips.adapter.in.web;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import glitched.adlips.adapter.in.web.dto.ApiResponse;
 import glitched.adlips.adapter.in.web.dto.LoginResponse;
 import glitched.adlips.adapter.in.web.dto.SignUpRequest;
@@ -14,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "레거시 사용자", description = "레거시 회원가입 API")
 @RestController
 @ConditionalOnProperty(name = "app.legacy-auth.enabled", havingValue = "true")
 @RequestMapping("/api/v1/users")

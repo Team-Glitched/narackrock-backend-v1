@@ -10,6 +10,7 @@ import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.domain.project.ApprovalStatus;
 import glitched.adlips.domain.project.ContributionApprovalStatus;
 import glitched.adlips.domain.project.ContributionTargetType;
+import glitched.adlips.domain.project.ExportStatus;
 import glitched.adlips.domain.project.Project;
 import glitched.adlips.domain.project.ProjectClip;
 import glitched.adlips.domain.project.ProjectContribution;
@@ -21,6 +22,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
+import org.springframework.data.domain.PageRequest;
 
 @Repository
 public class ProjectPersistenceAdapter implements
@@ -121,6 +123,13 @@ public class ProjectPersistenceAdapter implements
     }
 
     @Override
+    public List<ProjectClip> findByTrackIdAndApprovalStatusAndIsDeletedFalseOrderByStartTickAscIdAsc(
+            Long trackId, ApprovalStatus status) {
+        return clips.findByTrackIdAndApprovalStatusAndIsDeletedFalseOrderByStartTickAscIdAsc(
+                trackId, status);
+    }
+
+    @Override
     public ProjectClip save(ProjectClip clip) {
         return clips.save(clip);
     }
@@ -178,6 +187,16 @@ public class ProjectPersistenceAdapter implements
     @Override
     public Optional<ProjectExport> findExportByIdAndProjectId(Long id, Long projectId) {
         return exports.findExportByIdAndProjectId(id, projectId);
+    }
+
+    @Override
+    public Optional<ProjectExport> findExportByIdForUpdate(Long id) {
+        return exports.findExportByIdForUpdate(id);
+    }
+
+    @Override
+    public List<Long> findQueuedExportIds(int limit) {
+        return exports.findIdsByStatus(ExportStatus.QUEUED, PageRequest.of(0, limit));
     }
 
     @Override

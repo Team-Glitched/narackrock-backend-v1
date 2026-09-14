@@ -4,5 +4,6 @@ public enum MediaFileType {
     IMAGE,
     AUDIO,
     VIDEO,
-    WAVEFORM
+    WAVEFORM,
+    ARCHIVE
 }

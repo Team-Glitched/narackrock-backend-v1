@@ -53,7 +53,8 @@ class ProjectExportControllerTest {
         var completedAt = LocalDateTime.of(2026, 9, 14, 10, 0);
         when(useCase.execute(request)).thenReturn(new ProjectExportGetResponse(
                 10L, 20L, new ProjectVersionResponse(1, 1, "v1.1"),
-                801L, "/files/audio/mix.wav", 901L, null, null,
+                801L, "/files/audio/mix.wav", 802L, "/files/archives/layers.zip",
+                901L, null, null,
                 701L, "/files/images/album.png", 32_000, ExportStatus.COMPLETED,
                 null, LocalDateTime.of(2026, 9, 14, 9, 59), completedAt));
 

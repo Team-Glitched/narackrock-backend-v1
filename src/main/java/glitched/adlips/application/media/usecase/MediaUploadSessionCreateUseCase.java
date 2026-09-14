@@ -109,6 +109,7 @@ public class MediaUploadSessionCreateUseCase {
             case AUDIO -> "audio";
             case VIDEO -> "videos";
             case WAVEFORM -> "waveforms";
+            case ARCHIVE -> "archives";
         };
     }
 

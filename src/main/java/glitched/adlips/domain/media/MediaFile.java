@@ -66,6 +66,24 @@ public final class MediaFile {
         );
     }
 
+    public static MediaFile readyGenerated(
+            Long ownerId,
+            String fileUrl,
+            String storageKey,
+            String originalFilename,
+            MediaFileType fileType,
+            String mimeType,
+            long fileSize
+    ) {
+        if (fileSize <= 0) {
+            throw new IllegalArgumentException("파일 크기는 0보다 커야 합니다.");
+        }
+        return new MediaFile(
+                null, ownerId, fileUrl, storageKey, originalFilename,
+                fileType, mimeType, fileSize, MediaFileStatus.READY
+        );
+    }
+
     public static MediaFile restore(
             Long id,
             Long ownerId,

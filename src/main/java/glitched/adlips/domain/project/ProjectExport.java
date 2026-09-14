@@ -55,6 +55,9 @@ public class ProjectExport extends BaseCreatedEntity {
     @Column(name = "layer_archive_file_id")
     private Long layerArchiveFileId;
 
+    @Column(name = "short_id")
+    private Long shortId;
+
     @Column(name = "duration_ms")
     private Integer durationMs;
 
@@ -85,6 +88,7 @@ public class ProjectExport extends BaseCreatedEntity {
     public void complete(
             Long mediaFileId,
             Long layerArchiveFileId,
+            Long shortId,
             int durationMs,
             LocalDateTime completedAt
     ) {
@@ -97,10 +101,12 @@ public class ProjectExport extends BaseCreatedEntity {
         this.mediaFileId = Objects.requireNonNull(mediaFileId, "mediaFileId must not be null");
         this.layerArchiveFileId = Objects.requireNonNull(
                 layerArchiveFileId, "layerArchiveFileId must not be null");
+        this.shortId = Objects.requireNonNull(shortId, "shortId must not be null");
         this.durationMs = durationMs;
         this.completedAt = Objects.requireNonNull(completedAt, "completedAt must not be null");
         this.status = ExportStatus.COMPLETED;
         this.errorMessage = null;
+        project.completePublishing(completedAt);
     }
 
     public void fail(String errorMessage, LocalDateTime completedAt) {

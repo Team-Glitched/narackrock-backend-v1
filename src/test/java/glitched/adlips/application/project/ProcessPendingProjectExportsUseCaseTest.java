@@ -12,6 +12,7 @@ import glitched.adlips.application.project.port.out.ProjectAudioMixerPort;
 import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectExportRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectLayerArchivePort;
+import glitched.adlips.application.project.port.out.PublishedShortPort;
 import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.project.usecase.ProcessPendingProjectExportsUseCase;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
@@ -47,6 +48,7 @@ class ProcessPendingProjectExportsUseCaseTest {
     private final MediaContentStoragePort storage = mock(MediaContentStoragePort.class);
     private final ProjectAudioMixerPort mixer = mock(ProjectAudioMixerPort.class);
     private final ProjectLayerArchivePort archiver = mock(ProjectLayerArchivePort.class);
+    private final PublishedShortPort publishedShorts = mock(PublishedShortPort.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-09-14T01:00:00Z"), ZoneOffset.UTC);
 
     private User owner;
@@ -58,6 +60,7 @@ class ProcessPendingProjectExportsUseCaseTest {
         owner = User.create("owner@example.com").withId(1L);
         project = new Project(owner, "곡", null, 701L);
         ReflectionTestUtils.setField(project, "id", 10L);
+        project.startPublishing();
         export = new ProjectExport(project, owner);
         ReflectionTestUtils.setField(export, "id", 20L);
         when(exports.findQueuedExportIds(10)).thenReturn(List.of(20L));
@@ -85,6 +88,7 @@ class ProcessPendingProjectExportsUseCaseTest {
         AtomicLong generatedId = new AtomicLong(800L);
         when(mediaFiles.save(any(MediaFile.class)))
                 .thenAnswer(invocation -> invocation.<MediaFile>getArgument(0).withId(generatedId.incrementAndGet()));
+        when(publishedShorts.publish(project, 20L, 801L)).thenReturn(901L);
 
         var result = useCase().execute();
 
@@ -93,6 +97,7 @@ class ProcessPendingProjectExportsUseCaseTest {
         assertThat(export.getStatus()).isEqualTo(ExportStatus.COMPLETED);
         assertThat(export.getMediaFileId()).isEqualTo(801L);
         assertThat(export.getLayerArchiveFileId()).isEqualTo(802L);
+        assertThat(export.getShortId()).isEqualTo(901L);
         verify(storage).put("exports/10/20/mix.wav", new byte[]{4, 5}, "audio/wav");
         verify(storage).put("exports/10/20/layers.zip", new byte[]{6, 7, 8}, "application/zip");
     }
@@ -121,7 +126,8 @@ class ProcessPendingProjectExportsUseCaseTest {
 
     private ProcessPendingProjectExportsUseCase useCase() {
         return new ProcessPendingProjectExportsUseCase(
-                exports, tracks, clips, mediaFiles, storage, mixer, archiver, clock, 10);
+                exports, tracks, clips, mediaFiles, storage, mixer, archiver,
+                publishedShorts, clock, 10);
     }
 
     private ProjectTrack approvedTrack(Long id, String instrument) {

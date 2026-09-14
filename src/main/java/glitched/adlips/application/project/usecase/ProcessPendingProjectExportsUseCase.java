@@ -10,6 +10,7 @@ import glitched.adlips.application.project.port.out.ProjectExportRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectLayerArchivePort;
 import glitched.adlips.application.project.port.out.ProjectLayerArchivePort.Layer;
 import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
+import glitched.adlips.application.project.port.out.PublishedShortPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.media.MediaFileStatus;
@@ -39,6 +40,7 @@ public class ProcessPendingProjectExportsUseCase {
     private final MediaContentStoragePort storage;
     private final ProjectAudioMixerPort mixer;
     private final ProjectLayerArchivePort archiver;
+    private final PublishedShortPort publishedShorts;
     private final Clock clock;
     private final int batchSize;
     private final TransactionRunner transactionRunner;
@@ -51,10 +53,11 @@ public class ProcessPendingProjectExportsUseCase {
             MediaContentStoragePort storage,
             ProjectAudioMixerPort mixer,
             ProjectLayerArchivePort archiver,
+            PublishedShortPort publishedShorts,
             Clock clock,
             int batchSize
     ) {
-        this(exports, tracks, clips, mediaFiles, storage, mixer, archiver,
+        this(exports, tracks, clips, mediaFiles, storage, mixer, archiver, publishedShorts,
                 clock, batchSize, TransactionRunner.direct());
     }
 
@@ -66,6 +69,7 @@ public class ProcessPendingProjectExportsUseCase {
             MediaContentStoragePort storage,
             ProjectAudioMixerPort mixer,
             ProjectLayerArchivePort archiver,
+            PublishedShortPort publishedShorts,
             Clock clock,
             int batchSize,
             TransactionRunner transactionRunner
@@ -80,6 +84,7 @@ public class ProcessPendingProjectExportsUseCase {
         this.storage = storage;
         this.mixer = mixer;
         this.archiver = archiver;
+        this.publishedShorts = publishedShorts;
         this.clock = clock;
         this.batchSize = batchSize;
         this.transactionRunner = transactionRunner;
@@ -232,7 +237,10 @@ public class ProcessPendingProjectExportsUseCase {
                     "layers.zip", MediaFileType.ARCHIVE, ARCHIVE_MIME_TYPE, archive.length));
             var export = exports.findExportByIdForUpdate(claimed.exportId())
                     .orElseThrow(() -> new IllegalStateException("처리 중인 Export를 찾을 수 없습니다."));
-            export.complete(mixedAudio.getId(), layerArchive.getId(), mixed.durationMs(), now());
+            Long shortId = publishedShorts.publish(
+                    export.getProject(), export.getId(), mixedAudio.getId());
+            export.complete(
+                    mixedAudio.getId(), layerArchive.getId(), shortId, mixed.durationMs(), now());
             exports.save(export);
             return null;
         });

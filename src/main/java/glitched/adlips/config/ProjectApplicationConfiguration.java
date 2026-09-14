@@ -11,6 +11,7 @@ import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectLayerArchivePort;
 import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
+import glitched.adlips.application.project.port.out.PublishedShortPort;
 import glitched.adlips.application.project.usecase.AudioClipCreateUseCase;
 import glitched.adlips.application.project.usecase.MidiClipCreateUseCase;
 import glitched.adlips.application.project.usecase.MidiClipSaveUseCase;
@@ -91,13 +92,14 @@ public class ProjectApplicationConfiguration {
             MediaContentStoragePort storage,
             ProjectAudioMixerPort mixer,
             ProjectLayerArchivePort archiver,
+            PublishedShortPort publishedShorts,
             Clock clock,
             @Value("${app.project.export-processing-batch-size:5}") int batchSize,
             TransactionRunner transactionRunner
     ) {
         return new ProcessPendingProjectExportsUseCase(
                 exports, tracks, clips, mediaFiles, storage, mixer, archiver,
-                clock, batchSize, transactionRunner);
+                publishedShorts, clock, batchSize, transactionRunner);
     }
 
     @Bean

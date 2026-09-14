@@ -1,5 +1,7 @@
 package glitched.adlips.adapter.in.web.user;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.application.user.admin.dto.request.UserBanCancelRequest;
 import glitched.adlips.application.user.admin.dto.request.UserBanCreateRequest;
@@ -16,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "사용자 제재", description = "사용자 제재 API")
+@SecurityRequirement(name = "bearerAuth")
 @RequestMapping("/api/v1/admin/users/{userId}/bans")
 public class AdminUserBanController {
     private final UserBanCreateUseCase userBanCreateUseCase;

@@ -53,8 +53,11 @@ public class ShortsApplicationConfiguration {
     }
 
     @Bean
-    GetShortsUseCase getShortsUseCase(ShortsQueryPort shortsQueryPort) {
-        return new GetShortsUseCase(shortsQueryPort);
+    GetShortsUseCase getShortsUseCase(
+            ShortsQueryPort shortsQueryPort,
+            ShortReactionCountCachePort shortReactionCountCachePort
+    ) {
+        return new GetShortsUseCase(shortsQueryPort, shortReactionCountCachePort);
     }
 
     @Bean

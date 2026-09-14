@@ -23,7 +23,7 @@ public class ToggleShortLikeUseCase {
     }
 
     public ShortLikeResult toggle(Long userId, Long shortId) {
-        ReactionUpdate update = transactionRunner.required(() -> {
+        ShortLikeResult result = transactionRunner.required(() -> {
             validateActiveShort(shortId);
             Optional<ReactionType> existing = reactionPort.findReaction(userId, shortId);
             boolean isLiked;
@@ -41,14 +41,10 @@ public class ToggleShortLikeUseCase {
                 reactionPort.adjustLikeCount(shortId, +1);
                 isLiked = true;
             }
-            return new ReactionUpdate(
-                    isLiked,
-                    new ShortReactionCounts(
-                            reactionPort.getLikeCount(shortId),
-                            reactionPort.getDislikeCount(shortId)));
+            return new ShortLikeResult(shortId, isLiked, reactionPort.getLikeCount(shortId));
         });
-        reactionCountCache.put(shortId, update.counts());
-        return new ShortLikeResult(shortId, update.selected(), update.counts().likeCount());
+        reactionCountCache.evict(shortId);
+        return result;
     }
 
     private void validateActiveShort(Long shortId) {
@@ -60,6 +56,4 @@ public class ToggleShortLikeUseCase {
         }
     }
 
-    private record ReactionUpdate(boolean selected, ShortReactionCounts counts) {
-    }
 }

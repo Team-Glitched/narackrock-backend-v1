@@ -9,4 +9,6 @@ public interface ShortReactionCountCachePort {
     Map<Long, ShortReactionCounts> findAll(List<Long> shortIds);
 
     void put(Long shortId, ShortReactionCounts counts);
+
+    void evict(Long shortId);
 }

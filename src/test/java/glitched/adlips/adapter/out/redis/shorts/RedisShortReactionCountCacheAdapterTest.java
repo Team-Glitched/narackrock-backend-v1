@@ -69,5 +69,9 @@ class RedisShortReactionCountCacheAdapterTest {
         assertThat(result).containsEntry(13L, new ShortReactionCounts(7, 2));
         assertThat(result).doesNotContainKey(14L);
         assertThat(redisTemplate.getExpire(adapter.key(12L))).isPositive();
+
+        adapter.evict(12L);
+
+        assertThat(adapter.findAll(List.of(12L))).isEmpty();
     }
 }

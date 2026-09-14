@@ -82,6 +82,16 @@ public class RedisShortReactionCountCacheAdapter implements ShortReactionCountCa
         }
     }
 
+    @Override
+    public void evict(Long shortId) {
+        Objects.requireNonNull(shortId, "shortId must not be null");
+        try {
+            redisTemplate.delete(key(shortId));
+        } catch (DataAccessException exception) {
+            log.warn("Redis 숏폼 반응 수 캐시 삭제 실패: shortId={}", shortId, exception);
+        }
+    }
+
     String key(Long shortId) {
         return keyPrefix + ":shorts:reaction-counts:" + shortId;
     }

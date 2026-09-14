@@ -38,13 +38,12 @@ class ToggleShortDislikeUseCaseTest {
         when(reactionPort.lockActiveShort(12L)).thenReturn(true);
         when(reactionPort.findReaction(1L, 12L)).thenReturn(Optional.empty());
         when(reactionPort.getDislikeCount(12L)).thenReturn(129);
-        when(reactionPort.getLikeCount(12L)).thenReturn(8);
 
         ShortDislikeResult result = useCase.toggle(1L, 12L);
 
         verify(reactionPort).saveReaction(1L, 12L, ReactionType.DISLIKE);
         verify(reactionPort).adjustDislikeCount(12L, +1);
-        verify(reactionCountCache).put(12L, new ShortReactionCounts(8, 129));
+        verify(reactionCountCache).evict(12L);
         assertThat(result.isDisliked()).isTrue();
         assertThat(result.dislikeCount()).isEqualTo(129);
         assertThat(result.shortId()).isEqualTo(12L);

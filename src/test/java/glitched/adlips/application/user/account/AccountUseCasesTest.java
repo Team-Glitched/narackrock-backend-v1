@@ -24,7 +24,11 @@ import glitched.adlips.application.user.account.usecase.UserWithdrawUseCase;
 import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
+import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
+import glitched.adlips.domain.media.MediaFile;
+import glitched.adlips.domain.media.MediaFileStatus;
+import glitched.adlips.domain.media.MediaFileType;
 import glitched.adlips.domain.user.AuthProvider;
 import glitched.adlips.domain.user.Profile;
 import glitched.adlips.domain.user.User;
@@ -44,6 +48,7 @@ class AccountUseCasesTest {
     private InMemoryUserRepository users;
     private InMemoryAuthProviderRepository authProviders;
     private InMemoryProfileRepository profiles;
+    private InMemoryMediaRepository media;
     private UserSignupUseCase userSignupUseCase;
     private GoogleLoginUseCase googleLoginUseCase;
     private UserWithdrawUseCase userWithdrawUseCase;
@@ -53,6 +58,7 @@ class AccountUseCasesTest {
         users = new InMemoryUserRepository();
         authProviders = new InMemoryAuthProviderRepository();
         profiles = new InMemoryProfileRepository();
+        media = new InMemoryMediaRepository();
         GoogleIdentityPort google = token -> new GoogleIdentityResponse("google-sub", "user@example.com", true);
         AccessTokenPort accessTokens = new AccessTokenPort() {
             @Override
@@ -72,7 +78,7 @@ class AccountUseCasesTest {
                 google, accessTokens, users, authProviders, profiles, refreshTokens
         );
         googleLoginUseCase = new GoogleLoginUseCase(
-                google, accessTokens, users, authProviders, profiles, refreshTokens
+                google, accessTokens, users, authProviders, profiles, media, refreshTokens
         );
         userWithdrawUseCase = new UserWithdrawUseCase(users, refreshTokens, clock);
     }
@@ -127,6 +133,28 @@ class AccountUseCasesTest {
         assertEquals("access-1", result.accessToken());
         assertEquals("refresh-1", result.refreshToken());
         assertEquals("guitar_moon", result.user().nickname());
+    }
+
+    @Test
+    void returnsProfileImageUrlWhenRegisteredGoogleUserHasImage() {
+        User user = users.save(User.create("user@example.com"));
+        profiles.save(Profile.restore(user.getId(), "guitar_moon", 10L, null, null, false, 0, 0, null));
+        media.save(MediaFile.restore(
+                10L,
+                user.getId(),
+                "https://cdn.test/profile.png",
+                "profile",
+                "profile.png",
+                MediaFileType.IMAGE,
+                "image/png",
+                1L,
+                MediaFileStatus.READY
+        ));
+        authProviders.save(UserAuthProvider.google(user.getId(), "google-sub", true));
+
+        GoogleLoginResponse result = googleLoginUseCase.execute(new GoogleLoginRequest("valid-token"));
+
+        assertEquals("https://cdn.test/profile.png", result.user().profileImageUrl());
     }
 
     @Test
@@ -203,6 +231,21 @@ class AccountUseCasesTest {
         public Profile save(Profile profile) {
             values.put(profile.getUserId(), profile);
             return profile;
+        }
+    }
+
+    private static final class InMemoryMediaRepository implements MediaFileRepositoryPort {
+        private final Map<Long, MediaFile> values = new HashMap<>();
+
+        @Override
+        public Optional<MediaFile> findById(Long id) {
+            return Optional.ofNullable(values.get(id));
+        }
+
+        @Override
+        public MediaFile save(MediaFile file) {
+            values.put(file.getId(), file);
+            return file;
         }
     }
 }

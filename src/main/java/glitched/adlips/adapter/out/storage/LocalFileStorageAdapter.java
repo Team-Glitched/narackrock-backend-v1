@@ -1,6 +1,7 @@
 package glitched.adlips.adapter.out.storage;
 
 import glitched.adlips.application.user.profile.dto.request.UserProfileImageUpdateRequest;
+import glitched.adlips.application.media.port.out.MediaContentStoragePort;
 import glitched.adlips.application.user.profile.port.out.FileStoragePort;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -12,7 +13,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 @Component
-public class LocalFileStorageAdapter implements FileStoragePort {
+public class LocalFileStorageAdapter implements FileStoragePort, MediaContentStoragePort {
     private static final Map<String, String> EXTENSIONS = Map.of(
             "image/jpeg", ".jpg",
             "image/png", ".png",
@@ -37,7 +38,7 @@ public class LocalFileStorageAdapter implements FileStoragePort {
         if (extension == null) {
             throw new IllegalArgumentException("지원하지 않는 이미지 형식입니다.");
         }
-        String storageKey = "profiles/" + UUID.randomUUID() + extension;
+        String storageKey = "profiles/" + image.userId() + "/" + UUID.randomUUID() + extension;
         Path target = resolve(storageKey);
         try {
             Files.createDirectories(target.getParent());
@@ -62,6 +63,51 @@ public class LocalFileStorageAdapter implements FileStoragePort {
         }
     }
 
+    public void put(String storageKey, byte[] content, String contentType) {
+        Path target = resolve(storageKey);
+        try {
+            Files.createDirectories(target.getParent());
+            Files.write(target, content, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            Files.writeString(metadataPath(target), contentType,
+                    StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+        } catch (IOException exception) {
+            throw new IllegalStateException("로컬 파일 저장에 실패했습니다.", exception);
+        }
+    }
+
+    @Override
+    public byte[] get(String storageKey) {
+        try {
+            return Files.readAllBytes(resolve(storageKey));
+        } catch (IOException exception) {
+            throw new IllegalStateException("로컬 파일 읽기에 실패했습니다.", exception);
+        }
+    }
+
+    public boolean exists(String storageKey) {
+        return Files.isRegularFile(resolve(storageKey));
+    }
+
+    public long size(String storageKey) {
+        try {
+            return Files.size(resolve(storageKey));
+        } catch (IOException exception) {
+            throw new IllegalStateException("로컬 파일 크기 확인에 실패했습니다.", exception);
+        }
+    }
+
+    public String contentType(String storageKey) {
+        try {
+            return Files.readString(metadataPath(resolve(storageKey)));
+        } catch (IOException exception) {
+            throw new IllegalStateException("로컬 파일 형식 확인에 실패했습니다.", exception);
+        }
+    }
+
+    public String publicUrl(String storageKey) {
+        return publicBaseUrl + "/" + storageKey;
+    }
+
     public Path getRootDirectory() {
         return rootDirectory;
     }
@@ -72,6 +118,10 @@ public class LocalFileStorageAdapter implements FileStoragePort {
             throw new IllegalArgumentException("유효하지 않은 파일 경로입니다.");
         }
         return target;
+    }
+
+    private Path metadataPath(Path target) {
+        return target.resolveSibling(target.getFileName() + ".content-type");
     }
 
     private static String stripTrailingSlash(String value) {

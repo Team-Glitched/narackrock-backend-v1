@@ -11,6 +11,7 @@ import glitched.adlips.application.auth.SignUpWithGoogleUseCase;
 import glitched.adlips.application.exception.AlreadyRegisteredException;
 import glitched.adlips.application.exception.AuthFailedException;
 import glitched.adlips.application.exception.DuplicateNicknameException;
+import glitched.adlips.application.user.account.port.out.AccessTokenPort;
 import glitched.adlips.global.config.SecurityConfig;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,6 +30,9 @@ class UserControllerTest {
 
     @MockitoBean
     private SignUpWithGoogleUseCase signUpUseCase;
+
+    @MockitoBean
+    private AccessTokenPort accessTokenPort;
 
     @Test
     void signUpSuccessfully() throws Exception {

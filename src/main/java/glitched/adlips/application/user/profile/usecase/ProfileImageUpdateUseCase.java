@@ -9,13 +9,10 @@ import glitched.adlips.application.user.profile.port.out.FileStoragePort;
 import glitched.adlips.application.user.profile.port.out.FileStoragePort.StoredFile;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.user.Profile;
 import java.util.Set;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
 public class ProfileImageUpdateUseCase {
     private static final Set<String> SUPPORTED_IMAGE_TYPES = Set.of(
             "image/jpeg", "image/png", "image/webp", "image/gif"
@@ -25,6 +22,7 @@ public class ProfileImageUpdateUseCase {
     private final ProfileRepositoryPort profileRepository;
     private final MediaFileRepositoryPort mediaFileRepository;
     private final FileStoragePort fileStorage;
+    private final TransactionRunner transactionRunner;
 
     public ProfileImageUpdateUseCase(
             UserRepositoryPort userRepository,
@@ -32,14 +30,28 @@ public class ProfileImageUpdateUseCase {
             MediaFileRepositoryPort mediaFileRepository,
             FileStoragePort fileStorage
     ) {
+        this(userRepository, profileRepository, mediaFileRepository, fileStorage, TransactionRunner.direct());
+    }
+
+    public ProfileImageUpdateUseCase(
+            UserRepositoryPort userRepository,
+            ProfileRepositoryPort profileRepository,
+            MediaFileRepositoryPort mediaFileRepository,
+            FileStoragePort fileStorage,
+            TransactionRunner transactionRunner
+    ) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.mediaFileRepository = mediaFileRepository;
         this.fileStorage = fileStorage;
+        this.transactionRunner = transactionRunner;
     }
 
-    @Transactional
     public UserProfileImageUpdateResponse execute(UserProfileImageUpdateRequest image) {
+        return transactionRunner.required(() -> executeInternal(image));
+    }
+
+    private UserProfileImageUpdateResponse executeInternal(UserProfileImageUpdateRequest image) {
         Long userId = image == null ? null : image.userId();
         validateImage(image);
         requireActiveUser(userId);

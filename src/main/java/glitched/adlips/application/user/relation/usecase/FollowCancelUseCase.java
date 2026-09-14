@@ -7,28 +7,39 @@ import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
 import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.user.Profile;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
 public class FollowCancelUseCase {
     private final UserRepositoryPort userRepository;
     private final ProfileRepositoryPort profileRepository;
     private final FollowRepositoryPort followRepository;
+    private final TransactionRunner transactionRunner;
 
     public FollowCancelUseCase(
             UserRepositoryPort userRepository,
             ProfileRepositoryPort profileRepository,
             FollowRepositoryPort followRepository
     ) {
+        this(userRepository, profileRepository, followRepository, TransactionRunner.direct());
+    }
+
+    public FollowCancelUseCase(
+            UserRepositoryPort userRepository,
+            ProfileRepositoryPort profileRepository,
+            FollowRepositoryPort followRepository,
+            TransactionRunner transactionRunner
+    ) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.followRepository = followRepository;
+        this.transactionRunner = transactionRunner;
     }
 
-    @Transactional
     public FollowCancelResponse execute(FollowCancelRequest request) {
+        return transactionRunner.required(() -> executeInternal(request));
+    }
+
+    private FollowCancelResponse executeInternal(FollowCancelRequest request) {
         Long requesterId = request.requesterId();
         Long targetUserId = request.targetUserId();
         if (requesterId != null && requesterId.equals(targetUserId)) {

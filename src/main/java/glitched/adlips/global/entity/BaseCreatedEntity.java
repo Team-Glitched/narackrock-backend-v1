@@ -16,4 +16,8 @@ public abstract class BaseCreatedEntity {
             createdAt = LocalDateTime.now();
         }
     }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
 }

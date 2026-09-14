@@ -26,7 +26,7 @@ public final class MediaFile {
     ) {
         this.id = id;
         this.ownerId = Objects.requireNonNull(ownerId);
-        this.fileUrl = requireText(fileUrl);
+        this.fileUrl = status == MediaFileStatus.READY ? requireText(fileUrl) : fileUrl;
         this.storageKey = requireText(storageKey);
         this.originalFilename = originalFilename;
         this.fileType = Objects.requireNonNull(fileType);
@@ -46,6 +46,41 @@ public final class MediaFile {
         return new MediaFile(
                 null, ownerId, fileUrl, storageKey, originalFilename,
                 MediaFileType.IMAGE, mimeType, fileSize, MediaFileStatus.READY
+        );
+    }
+
+    public static MediaFile uploading(
+            Long ownerId,
+            String storageKey,
+            String originalFilename,
+            MediaFileType fileType,
+            String mimeType,
+            long fileSize
+    ) {
+        if (fileSize <= 0) {
+            throw new IllegalArgumentException("파일 크기는 0보다 커야 합니다.");
+        }
+        return new MediaFile(
+                null, ownerId, null, storageKey, originalFilename,
+                fileType, mimeType, fileSize, MediaFileStatus.UPLOADING
+        );
+    }
+
+    public static MediaFile readyGenerated(
+            Long ownerId,
+            String fileUrl,
+            String storageKey,
+            String originalFilename,
+            MediaFileType fileType,
+            String mimeType,
+            long fileSize
+    ) {
+        if (fileSize <= 0) {
+            throw new IllegalArgumentException("파일 크기는 0보다 커야 합니다.");
+        }
+        return new MediaFile(
+                null, ownerId, fileUrl, storageKey, originalFilename,
+                fileType, mimeType, fileSize, MediaFileStatus.READY
         );
     }
 
@@ -71,6 +106,29 @@ public final class MediaFile {
                 Objects.requireNonNull(id), ownerId, fileUrl, storageKey, originalFilename,
                 fileType, mimeType, fileSize, status
         );
+    }
+
+    public MediaFile processing() {
+        if (status != MediaFileStatus.UPLOADING) {
+            throw new IllegalStateException("업로드 중인 파일만 처리할 수 있습니다.");
+        }
+        return withStatus(MediaFileStatus.PROCESSING, fileUrl);
+    }
+
+    public MediaFile ready(String fileUrl) {
+        if (status != MediaFileStatus.PROCESSING) {
+            throw new IllegalStateException("처리 중인 파일만 완료할 수 있습니다.");
+        }
+        return withStatus(MediaFileStatus.READY, requireText(fileUrl));
+    }
+
+    public MediaFile failed() {
+        return withStatus(MediaFileStatus.FAILED, fileUrl);
+    }
+
+    private MediaFile withStatus(MediaFileStatus status, String fileUrl) {
+        return new MediaFile(id, ownerId, fileUrl, storageKey, originalFilename,
+                fileType, mimeType, fileSize, status);
     }
 
     public Long getId() {

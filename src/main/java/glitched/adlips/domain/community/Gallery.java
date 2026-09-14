@@ -14,4 +14,15 @@ public class Gallery extends BaseCreatedEntity {
 
     @Column(name = "description")
     private String description;
+
+    protected Gallery() {
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public String getName() {
+        return name;
+    }
 }

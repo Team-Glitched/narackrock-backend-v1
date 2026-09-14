@@ -7,27 +7,38 @@ import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileLinkPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-@Service
-@Transactional(readOnly = true)
+import glitched.adlips.application.port.TransactionRunner;
 public class ProfileShareUseCase {
     private final UserRepositoryPort userRepository;
     private final ProfileRepositoryPort profileRepository;
     private final ProfileLinkPort profileLinkPort;
+    private final TransactionRunner transactionRunner;
 
     public ProfileShareUseCase(
             UserRepositoryPort userRepository,
             ProfileRepositoryPort profileRepository,
             ProfileLinkPort profileLinkPort
     ) {
+        this(userRepository, profileRepository, profileLinkPort, TransactionRunner.direct());
+    }
+
+    public ProfileShareUseCase(
+            UserRepositoryPort userRepository,
+            ProfileRepositoryPort profileRepository,
+            ProfileLinkPort profileLinkPort,
+            TransactionRunner transactionRunner
+    ) {
         this.userRepository = userRepository;
         this.profileRepository = profileRepository;
         this.profileLinkPort = profileLinkPort;
+        this.transactionRunner = transactionRunner;
     }
 
     public UserProfileShareResponse execute(UserProfileShareRequest request) {
+        return transactionRunner.readOnly(() -> executeInternal(request));
+    }
+
+    private UserProfileShareResponse executeInternal(UserProfileShareRequest request) {
         Long userId = request.userId();
         userRepository.findById(userId)
                 .filter(user -> user.isActive())

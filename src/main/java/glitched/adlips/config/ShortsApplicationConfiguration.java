@@ -27,6 +27,7 @@ import glitched.adlips.application.shorts.port.out.ShortCommentReactionPort;
 import glitched.adlips.application.shorts.port.out.ShortCommentReportPort;
 import glitched.adlips.application.shorts.port.out.ShortPlaybackPort;
 import glitched.adlips.application.shorts.port.out.ShortReactionPort;
+import glitched.adlips.application.shorts.port.out.ShortReactionCountCachePort;
 import glitched.adlips.application.shorts.port.out.ShortReportPort;
 import glitched.adlips.application.shorts.port.out.UserBanQueryPort;
 import glitched.adlips.application.shorts.port.out.ShortsComposersQueryPort;
@@ -59,17 +60,21 @@ public class ShortsApplicationConfiguration {
     @Bean
     ToggleShortLikeUseCase toggleShortLikeUseCase(
             ShortReactionPort shortReactionPort,
+            ShortReactionCountCachePort shortReactionCountCachePort,
             TransactionRunner transactionRunner
     ) {
-        return new ToggleShortLikeUseCase(shortReactionPort, transactionRunner);
+        return new ToggleShortLikeUseCase(
+                shortReactionPort, shortReactionCountCachePort, transactionRunner);
     }
 
     @Bean
     ToggleShortDislikeUseCase toggleShortDislikeUseCase(
             ShortReactionPort shortReactionPort,
+            ShortReactionCountCachePort shortReactionCountCachePort,
             TransactionRunner transactionRunner
     ) {
-        return new ToggleShortDislikeUseCase(shortReactionPort, transactionRunner);
+        return new ToggleShortDislikeUseCase(
+                shortReactionPort, shortReactionCountCachePort, transactionRunner);
     }
 
     @Bean

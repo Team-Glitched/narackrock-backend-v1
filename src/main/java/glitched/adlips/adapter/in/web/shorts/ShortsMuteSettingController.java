@@ -1,5 +1,7 @@
 package glitched.adlips.adapter.in.web.shorts;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.adapter.in.web.dto.ShortsMuteResponse;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
@@ -11,6 +13,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "숏폼 음소거", description = "숏폼 음소거 설정 API")
+@SecurityRequirement(name = "bearerAuth")
 @RequestMapping("/api/v1/shorts")
 public class ShortsMuteSettingController {
 

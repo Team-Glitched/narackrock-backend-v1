@@ -1,5 +1,7 @@
 package glitched.adlips.adapter.in.web.community;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import glitched.adlips.adapter.in.web.dto.ApiResponse;
 import glitched.adlips.adapter.in.web.dto.PostCreateRequest;
 import glitched.adlips.adapter.in.web.dto.PostCreateResponse;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PutMapping;
 
+@Tag(name = "게시글", description = "게시글 API")
 @RestController
 @RequestMapping("/api/v1")
 public class PostController {

@@ -7,7 +7,11 @@ public record ShortsCompositionResponse(
         Long projectId,
         String compositionUrl,
         String title,
-        String status
+        String status,
+        Long mixedAudioFileId,
+        String mixedAudioUrl,
+        Long layerArchiveFileId,
+        String layerArchiveUrl
 ) {
     public static ShortsCompositionResponse from(ShortsCompositionQueryItem item) {
         return new ShortsCompositionResponse(
@@ -15,7 +19,11 @@ public record ShortsCompositionResponse(
                 item.projectId(),
                 "/composition/projects/" + item.projectId(),
                 item.projectTitle(),
-                item.projectStatus().name()
+                item.projectStatus().name(),
+                item.mixedAudioFileId(),
+                item.mixedAudioUrl(),
+                item.layerArchiveFileId(),
+                item.layerArchiveUrl()
         );
     }
 }

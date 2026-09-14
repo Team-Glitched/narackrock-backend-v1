@@ -39,7 +39,8 @@ class ShortsCompositionEntryUseCaseTest {
     @Test
     void 프로젝트가_연결된_숏폼이면_조회_결과를_그대로_반환한다() {
         ShortsCompositionQueryItem item = new ShortsCompositionQueryItem(
-                12L, 8L, "밤하늘 위 멜로디", ProjectStatus.IN_PROGRESS, null);
+                12L, 8L, "밤하늘 위 멜로디", ProjectStatus.IN_PROGRESS, null,
+                801L, "/files/mix.wav", 802L, "/files/layers.zip");
         when(queryPort.findByShortId(12L)).thenReturn(Optional.of(item));
 
         ShortsCompositionQueryItem result = useCase.execute(12L, 3L);
@@ -61,7 +62,7 @@ class ShortsCompositionEntryUseCaseTest {
     @Test
     void 프로젝트가_연결되지_않은_숏폼이면_PROJECT_NOT_LINKED_예외가_발생한다() {
         ShortsCompositionQueryItem item = new ShortsCompositionQueryItem(
-                12L, null, null, null, null);
+                12L, null, null, null, null, null, null, null, null);
         when(queryPort.findByShortId(12L)).thenReturn(Optional.of(item));
 
         assertThatThrownBy(() -> useCase.execute(12L, 3L))
@@ -73,7 +74,8 @@ class ShortsCompositionEntryUseCaseTest {
     @Test
     void 연결된_프로젝트가_삭제되었으면_PROJECT_NOT_LINKED_예외가_발생한다() {
         ShortsCompositionQueryItem item = new ShortsCompositionQueryItem(
-                12L, 8L, "밤하늘 위 멜로디", ProjectStatus.IN_PROGRESS, LocalDateTime.now());
+                12L, 8L, "밤하늘 위 멜로디", ProjectStatus.IN_PROGRESS, LocalDateTime.now(),
+                null, null, null, null);
         when(queryPort.findByShortId(12L)).thenReturn(Optional.of(item));
 
         assertThatThrownBy(() -> useCase.execute(12L, 3L))

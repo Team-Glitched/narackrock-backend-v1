@@ -8,6 +8,10 @@ public record ShortsCompositionQueryItem(
         Long projectId,
         String projectTitle,
         ProjectStatus projectStatus,
-        LocalDateTime projectDeletedAt
+        LocalDateTime projectDeletedAt,
+        Long mixedAudioFileId,
+        String mixedAudioUrl,
+        Long layerArchiveFileId,
+        String layerArchiveUrl
 ) {
 }

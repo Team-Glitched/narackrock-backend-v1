@@ -1,5 +1,6 @@
 package glitched.adlips.adapter.in.web.shorts;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.adapter.in.web.dto.ShortsResponse;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "숏폼", description = "숏폼 조회 API")
 @RequestMapping("/api/v1/shorts")
 public class ShortsController {
     private static final int MAX_PAGE_SIZE = 100;

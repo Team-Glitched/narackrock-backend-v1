@@ -65,6 +65,18 @@ class SecurityConfigTest {
     }
 
     @Test
+    void allowsOpenApiDocumentWithoutToken() throws Exception {
+        mockMvc.perform(get("/v3/api-docs"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void allowsSwaggerUiWithoutToken() throws Exception {
+        mockMvc.perform(get("/swagger-ui/index.html"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void allowsUserRelationsGetWithoutToken() throws Exception {
         mockMvc.perform(get("/api/v1/users/1/relations?type=following"))
                 .andExpect(status().isOk())
@@ -82,6 +94,16 @@ class SecurityConfigTest {
         @GetMapping("/api/v1/users/{userId}/relations")
         public String relations() {
             return "relations";
+        }
+
+        @GetMapping("/v3/api-docs")
+        public String openApiDocument() {
+            return "openapi";
+        }
+
+        @GetMapping("/swagger-ui/index.html")
+        public String swaggerUi() {
+            return "swagger-ui";
         }
     }
 

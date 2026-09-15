@@ -1,5 +1,7 @@
 package glitched.adlips.adapter.in.web.project;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.application.project.dto.request.TrackVolumeUpdateRequest;
@@ -13,6 +15,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "트랙 볼륨", description = "트랙 볼륨 API")
+@SecurityRequirement(name = "bearerAuth")
 @RequestMapping("/api/v1/tracks/{trackId}/volume")
 public class TrackVolumeController {
     private final TrackVolumeUpdateUseCase trackVolumeUpdateUseCase;

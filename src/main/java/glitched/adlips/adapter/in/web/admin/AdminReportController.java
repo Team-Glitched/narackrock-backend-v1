@@ -1,5 +1,8 @@
 package glitched.adlips.adapter.in.web.admin;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.adapter.in.web.dto.ReportRejectRequest;
 import glitched.adlips.adapter.in.web.dto.ReportRejectResponse;
@@ -17,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "관리자 신고", description = "신고 처리 관리자 API")
+@SecurityRequirement(name = "bearerAuth")
 @RestController
 @RequestMapping("/api/v1/admin/reports")
 public class AdminReportController {

@@ -1,5 +1,6 @@
 package glitched.adlips.adapter.in.web.user;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.application.user.relation.dto.request.FollowCancelRequest;
 import glitched.adlips.application.user.relation.dto.request.FollowCreateRequest;
@@ -30,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "사용자 관계", description = "사용자 팔로우 및 관계 API")
 @RequestMapping("/api/v1/users")
 public class UserRelationController {
     private final FollowCreateUseCase followCreateUseCase;

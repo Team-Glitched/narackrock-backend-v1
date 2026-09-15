@@ -1,5 +1,7 @@
 package glitched.adlips.adapter.in.web.shorts;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.adapter.in.web.dto.ShortDislikeResponse;
 import glitched.adlips.adapter.in.web.dto.ShortLikeResponse;
@@ -16,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "숏폼 반응", description = "숏폼 좋아요 및 싫어요 API")
+@SecurityRequirement(name = "bearerAuth")
 @RequestMapping("/api/v1/shorts")
 public class ShortsReactionController {
 

@@ -14,7 +14,7 @@ public class OpenApiConfig {
     public OpenAPI adlipsOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Adlips API")
+                        .title("Narackrock API")
                         .description("Adlips Backend API 문서")
                         .version("v1.0.0"))
                 .components(new Components()

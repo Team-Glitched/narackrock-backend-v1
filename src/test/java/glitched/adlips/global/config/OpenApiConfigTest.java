@@ -11,7 +11,7 @@ class OpenApiConfigTest {
 
     @Test
     void describesAdlipsApi() {
-        assertThat(openAPI.getInfo().getTitle()).isEqualTo("Adlips API");
+        assertThat(openAPI.getInfo().getTitle()).isEqualTo("Narackrock API");
         assertThat(openAPI.getInfo().getVersion()).isEqualTo("v1.0.0");
     }
 

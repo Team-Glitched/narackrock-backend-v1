@@ -27,6 +27,6 @@ public class ProjectPublishController {
             @PathVariable Long projectId, @RequestHeader("Authorization") String authorization) {
         var response = useCase.execute(new ProjectPublishRequest(projectId, resolver.requireUserId(authorization)));
         return ResponseEntity.status(HttpStatus.ACCEPTED)
-                .body(ApiResponse.success("곡 공개 및 최종 믹싱 작업이 시작되었습니다.", response));
+                .body(ApiResponse.success("곡 공개를 위한 믹싱 작업이 시작되었습니다.", response));
     }
 }

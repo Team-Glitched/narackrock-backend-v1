@@ -35,7 +35,7 @@ class ProjectMemberJoinUseCaseTest {
                 .extracting("errorCode")
                 .isEqualTo(ProjectErrorCode.PROJECT_ACCESS_DENIED);
 
-        verify(members, never()).existsByProjectIdAndUserId(any(), any());
+        verify(members).existsByProjectIdAndUserId(8L, 1L);
         verify(members, never()).saveEditor(any(), any());
         verify(users, never()).findById(any());
     }
@@ -46,6 +46,7 @@ class ProjectMemberJoinUseCaseTest {
         UserRepositoryPort users = mock(UserRepositoryPort.class);
         Project project = mock(Project.class);
         when(members.findActiveProjectForUpdate(8L)).thenReturn(Optional.of(project));
+        when(project.getStatus()).thenReturn(ProjectStatus.COMPLETED);
         when(members.existsByProjectIdAndUserId(8L, 1L)).thenReturn(true);
         ProjectMemberJoinUseCase useCase = new ProjectMemberJoinUseCase(members, users);
 

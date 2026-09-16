@@ -28,7 +28,7 @@ public class PublishedShortPersistenceAdapter implements PublishedShortPort {
     @Override
     public Long publish(Project project, Long exportId, Long mixedAudioFileId) {
         ShortForm shortForm = shortForms.save(
-                ShortForm.completedFromExport(project, exportId, mixedAudioFileId));
+                ShortForm.fromExport(project, exportId, mixedAudioFileId));
         List<ShortParticipant> shortParticipants = projectMembers
                 .findByProjectIdOrderByIdAsc(project.getId())
                 .stream()
@@ -37,5 +37,10 @@ public class PublishedShortPersistenceAdapter implements PublishedShortPort {
                 .toList();
         participants.saveAll(shortParticipants);
         return shortForm.getId();
+    }
+
+    @Override
+    public void completeProject(Long projectId) {
+        shortForms.findByProjectIdAndDeletedAtIsNull(projectId).forEach(ShortForm::complete);
     }
 }

@@ -23,8 +23,11 @@ public class JpaContentViewPersistenceAdapter
         String query = switch (target) {
             case SHORT -> """
                     SELECT COUNT(s.id) FROM ShortForm s
+                    LEFT JOIN s.project p
                     WHERE s.id = :contentId
-                      AND s.status = glitched.adlips.domain.shorts.ShortStatus.COMPLETED
+                      AND (s.status = glitched.adlips.domain.shorts.ShortStatus.COMPLETED
+                           OR (s.status = glitched.adlips.domain.shorts.ShortStatus.IN_PROGRESS
+                               AND p.isPublic = true))
                       AND s.deletedAt IS NULL
                     """;
             case POST -> """
@@ -48,7 +51,10 @@ public class JpaContentViewPersistenceAdapter
             case SHORT -> """
                     UPDATE ShortForm s SET s.viewCount = s.viewCount + :count
                     WHERE s.id = :contentId
-                      AND s.status = glitched.adlips.domain.shorts.ShortStatus.COMPLETED
+                      AND (s.status = glitched.adlips.domain.shorts.ShortStatus.COMPLETED
+                           OR (s.status = glitched.adlips.domain.shorts.ShortStatus.IN_PROGRESS
+                               AND EXISTS (SELECT 1 FROM Project p
+                                           WHERE p = s.project AND p.isPublic = true)))
                       AND s.deletedAt IS NULL
                     """;
             case POST -> """

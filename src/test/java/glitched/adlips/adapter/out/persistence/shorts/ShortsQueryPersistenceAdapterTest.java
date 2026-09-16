@@ -39,7 +39,7 @@ class ShortsQueryPersistenceAdapterTest {
         assertThat(items).hasSize(1);
         ShortsQueryItem item = items.getFirst();
         assertThat(item.shortId()).isEqualTo(12L);
-        assertThat(item.mediaUrl()).isEqualTo("https://cdn.example.com/short.mp4");
+        assertThat(item.mediaUrl()).isEqualTo("https://cdn.example.com/mix.wav");
         assertThat(item.albumImageUrl()).isEqualTo("https://cdn.example.com/album.png");
         assertThat(item.authorProfileImageUrl()).isEqualTo("https://cdn.example.com/profile.png");
         assertThat(item.commentCount()).isEqualTo(23);
@@ -63,19 +63,31 @@ class ShortsQueryPersistenceAdapterTest {
 
         assertThat(completed).extracting(ShortsQueryItem::shortId).containsExactly(12L);
         assertThat(inProgress).extracting(ShortsQueryItem::shortId).containsExactly(11L);
+        assertThat(inProgress.getFirst().mediaUrl()).isEqualTo("https://cdn.example.com/mix.wav");
+    }
+
+    @Test
+    void defaultFeedIncludesPublicInProgressAndCompletedShortsOnly() {
+        List<ShortsQueryItem> items = adapter.findByCursor(
+                null, ShortsSource.SHORTS_FEED, null, 20, null);
+
+        assertThat(items).extracting(ShortsQueryItem::shortId).containsExactly(12L, 11L);
     }
 
     private void insertFixture() {
         jdbcTemplate.update("INSERT INTO users (id, email, role, created_at) VALUES (99, 'viewer@test.com', 'USER', CURRENT_TIMESTAMP)");
         jdbcTemplate.update("INSERT INTO users (id, email, role, created_at) VALUES (123, 'author@test.com', 'USER', CURRENT_TIMESTAMP)");
         jdbcTemplate.update("INSERT INTO profiles (user_id, nickname, is_private, follower_count, following_count) VALUES (123, 'guitar_moon', false, 0, 0)");
-        insertMedia(101L, 123L, "https://cdn.example.com/short.mp4", "VIDEO");
+        jdbcTemplate.update("INSERT INTO projects (id, owner_id, title, album_image_file_id, bpm, time_signature_numerator, time_signature_denominator, ppq, max_duration_ms, major_version, minor_version, status, is_public, created_at) VALUES (8, 123, '공개곡', 102, 120, 4, 4, 480, 60000, 1, 1, 'IN_PROGRESS', true, CURRENT_TIMESTAMP)");
+        jdbcTemplate.update("INSERT INTO projects (id, owner_id, title, album_image_file_id, bpm, time_signature_numerator, time_signature_denominator, ppq, max_duration_ms, major_version, minor_version, status, is_public, created_at) VALUES (9, 123, '비공개곡', 102, 120, 4, 4, 480, 60000, 1, 1, 'IN_PROGRESS', false, CURRENT_TIMESTAMP)");
+        insertMedia(101L, 123L, "https://cdn.example.com/mix.wav", "AUDIO");
         insertMedia(102L, 123L, "https://cdn.example.com/album.png", "IMAGE");
         insertMedia(103L, 123L, "https://cdn.example.com/profile.png", "IMAGE");
         jdbcTemplate.update("UPDATE profiles SET profile_image_file_id = 103 WHERE user_id = 123");
-        jdbcTemplate.update("INSERT INTO shorts (id, user_id, title, media_file_id, status, view_count, like_count, dislike_count, comment_count, contribution_count, created_at) VALUES (11, 123, '작업 중인 곡', 101, 'IN_PROGRESS', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP)");
+        jdbcTemplate.update("INSERT INTO shorts (id, user_id, project_id, title, media_file_id, status, view_count, like_count, dislike_count, comment_count, contribution_count, created_at) VALUES (11, 123, 8, '공개된 작업 중 곡', 101, 'IN_PROGRESS', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP)");
         jdbcTemplate.update("INSERT INTO shorts (id, user_id, title, album_image_file_id, media_file_id, status, view_count, like_count, dislike_count, comment_count, contribution_count, created_at) VALUES (12, 123, '밤하늘 위 멜로디', 102, 101, 'COMPLETED', 1200, 128, 4, 23, 5, CURRENT_TIMESTAMP)");
         jdbcTemplate.update("INSERT INTO shorts (id, user_id, title, media_file_id, status, view_count, like_count, dislike_count, comment_count, contribution_count, deleted_at, created_at) VALUES (13, 123, '삭제됨', 101, 'COMPLETED', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+        jdbcTemplate.update("INSERT INTO shorts (id, user_id, project_id, title, media_file_id, status, view_count, like_count, dislike_count, comment_count, contribution_count, created_at) VALUES (14, 123, 9, '비공개 작업 중 곡', 101, 'IN_PROGRESS', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP)");
         jdbcTemplate.update("INSERT INTO reactions (user_id, target_type, target_id, reaction_type, created_at) VALUES (99, 'SHORT', 12, 'LIKE', CURRENT_TIMESTAMP)");
         jdbcTemplate.update("INSERT INTO shorts_bookmarks (user_id, shorts_id, created_at) VALUES (99, 12, CURRENT_TIMESTAMP)");
     }

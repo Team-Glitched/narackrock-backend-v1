@@ -142,16 +142,24 @@ public class Project extends BaseTimeEntity {
         if (deletedAt != null) {
             throw new IllegalStateException("deleted project cannot be published");
         }
-        status = ProjectStatus.IN_PROGRESS;
+        if (status != ProjectStatus.COMPLETED) {
+            status = ProjectStatus.IN_PROGRESS;
+        }
     }
 
-    public void completePublishing(LocalDateTime publishedAt) {
-        if (status != ProjectStatus.IN_PROGRESS) {
-            throw new IllegalStateException("only publishing project can be completed");
+    public void publish(LocalDateTime publishedAt) {
+        if (status != ProjectStatus.IN_PROGRESS && status != ProjectStatus.COMPLETED) {
+            throw new IllegalStateException("only exporting project can be published");
         }
         this.publishedAt = Objects.requireNonNull(publishedAt, "publishedAt must not be null");
-        this.status = ProjectStatus.COMPLETED;
         this.isPublic = true;
+    }
+
+    public void complete() {
+        if (status != ProjectStatus.IN_PROGRESS || !isPublic) {
+            throw new IllegalStateException("only public in-progress project can be completed");
+        }
+        status = ProjectStatus.COMPLETED;
     }
 
     public void delete(LocalDateTime deletedAt) {

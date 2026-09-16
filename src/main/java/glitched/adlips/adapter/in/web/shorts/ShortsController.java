@@ -53,6 +53,6 @@ public class ShortsController {
         if (completionStatus != null) {
             return completionStatus;
         }
-        return legacyStatus != null ? legacyStatus : ShortStatus.COMPLETED;
+        return legacyStatus;
     }
 }

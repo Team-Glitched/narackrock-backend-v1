@@ -32,6 +32,7 @@ public class ShortsQueryPersistenceAdapter implements ShortsQueryPort {
             throw new IllegalArgumentException("지원하지 않는 숏폼 조회 경로입니다.");
         }
         String cursorCondition = cursor == null ? "" : " AND s.id < :cursor";
+        String statusCondition = status == null ? "" : " AND s.status = :status";
         String likedExpression = reactionExpression(currentUserId, "LIKE");
         String dislikedExpression = reactionExpression(currentUserId, "DISLIKE");
         String bookmarkedExpression = currentUserId == null
@@ -47,17 +48,22 @@ public class ShortsQueryPersistenceAdapter implements ShortsQueryPort {
                   FROM shorts s
                   JOIN profiles p ON p.user_id = s.user_id
                   JOIN media_files media ON media.id = s.media_file_id
+             LEFT JOIN projects source_project ON source_project.id = s.project_id
              LEFT JOIN media_files album ON album.id = s.album_image_file_id
              LEFT JOIN media_files profile_image ON profile_image.id = p.profile_image_file_id
-                 WHERE s.status = :status
-                   AND s.deleted_at IS NULL
+                 WHERE s.deleted_at IS NULL
+                   AND (s.status = 'COMPLETED'
+                        OR (s.status = 'IN_PROGRESS' AND source_project.is_public = true))
                 """.formatted(likedExpression, dislikedExpression, bookmarkedExpression)
+                + statusCondition
                 + cursorCondition
                 + " ORDER BY s.id DESC";
 
         Query query = entityManager.createNativeQuery(sql)
-                .setParameter("status", status.name())
                 .setMaxResults(limit);
+        if (status != null) {
+            query.setParameter("status", status.name());
+        }
         if (cursor != null) {
             query.setParameter("cursor", cursor);
         }

@@ -46,19 +46,31 @@ class ShortsControllerTest {
         when(getShortsUseCase.get(
                 nullable(Long.class),
                 any(ShortsSource.class),
-                any(ShortStatus.class),
+                nullable(ShortStatus.class),
                 anyInt(),
                 nullable(Long.class)
         )).thenReturn(emptyShortsPage(20));
     }
 
     @Test
-    void 상태_파라미터가_없으면_COMPLETED를_기본값으로_사용한다() throws Exception {
+    void 상태_파라미터가_없으면_공개된_전체_숏폼을_조회한다() throws Exception {
         mockMvc.perform(get("/api/v1/shorts"))
                 .andExpect(status().isOk());
 
         verify(getShortsUseCase).get(
-                isNull(), eq(ShortsSource.SHORTS_FEED), eq(ShortStatus.COMPLETED), eq(20), isNull());
+                isNull(), eq(ShortsSource.SHORTS_FEED), isNull(), eq(20), isNull());
+    }
+
+    @Test
+    void 공개된_미완성_곡의_재생_음원_URL을_반환한다() throws Exception {
+        when(getShortsUseCase.get(isNull(), eq(ShortsSource.SHORTS_FEED),
+                isNull(), eq(20), isNull())).thenReturn(singleItemPage());
+
+        mockMvc.perform(get("/api/v1/shorts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[0].completionStatus").value("IN_PROGRESS"))
+                .andExpect(jsonPath("$.data.items[0].mediaUrl")
+                        .value("https://cdn.example.com/exports/8/20/mix.wav"));
     }
 
     @Test
@@ -176,9 +188,9 @@ class ShortsControllerTest {
     private ShortsPage singleItemPage() {
         ShortSummary item = new ShortSummary(
                 12L, 8L, "밤하늘 위 멜로디",
-                "https://cdn.example.com/shorts/12.mp4",
+                "https://cdn.example.com/exports/8/20/mix.wav",
                 "https://cdn.example.com/albums/12.png",
-                "COMPLETED", 1200, 128, 4, 23L, 5,
+                "IN_PROGRESS", 1200, 128, 4, 23L, 5,
                 false, false, false,
                 new AuthorSummary(123L, "guitar_moon", null),
                 List.of(),

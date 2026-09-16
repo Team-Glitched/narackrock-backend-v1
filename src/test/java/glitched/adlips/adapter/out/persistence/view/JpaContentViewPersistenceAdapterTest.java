@@ -26,8 +26,10 @@ class JpaContentViewPersistenceAdapterTest {
                 "INSERT INTO users (id, email, role, created_at) VALUES (902, 'view@test.com', 'USER', CURRENT_TIMESTAMP)");
         jdbcTemplate.update(
                 "INSERT INTO galleries (id, name, created_at) VALUES (10, 'view gallery', CURRENT_TIMESTAMP)");
+        jdbcTemplate.update("INSERT INTO projects (id, owner_id, title, album_image_file_id, bpm, time_signature_numerator, time_signature_denominator, ppq, max_duration_ms, major_version, minor_version, status, is_public, created_at) VALUES (8, 902, '공개곡', 1, 120, 4, 4, 480, 60000, 1, 1, 'IN_PROGRESS', true, CURRENT_TIMESTAMP)");
         insertShort(12L, "COMPLETED", null);
         insertShort(13L, "IN_PROGRESS", null);
+        jdbcTemplate.update("UPDATE shorts SET project_id = 8 WHERE id = 13");
         insertPost(501L, null);
         insertPost(502L, "CURRENT_TIMESTAMP");
         entityManager.clear();
@@ -36,7 +38,7 @@ class JpaContentViewPersistenceAdapterTest {
     @Test
     void 공개된_숏폼과_삭제되지_않은_게시글만_조회_대상이다() {
         assertThat(adapter.exists(ContentViewTarget.SHORT, 12L)).isTrue();
-        assertThat(adapter.exists(ContentViewTarget.SHORT, 13L)).isFalse();
+        assertThat(adapter.exists(ContentViewTarget.SHORT, 13L)).isTrue();
         assertThat(adapter.exists(ContentViewTarget.POST, 501L)).isTrue();
         assertThat(adapter.exists(ContentViewTarget.POST, 502L)).isFalse();
     }
@@ -44,10 +46,12 @@ class JpaContentViewPersistenceAdapterTest {
     @Test
     void 숏폼과_게시글의_조회수를_원자적으로_증가시킨다() {
         adapter.increment(new ContentViewKey(ContentViewTarget.SHORT, 12L), "batch-short", 3L);
+        adapter.increment(new ContentViewKey(ContentViewTarget.SHORT, 13L), "batch-public-short", 1L);
         adapter.increment(new ContentViewKey(ContentViewTarget.POST, 501L), "batch-post", 2L);
         entityManager.flush();
 
         assertThat(viewCount("shorts", 12L)).isEqualTo(3);
+        assertThat(viewCount("shorts", 13L)).isEqualTo(1);
         assertThat(viewCount("posts", 501L)).isEqualTo(2);
     }
 

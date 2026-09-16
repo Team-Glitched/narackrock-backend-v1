@@ -2,8 +2,8 @@ package glitched.adlips.adapter.out.persistence.shorts;
 
 import glitched.adlips.application.shorts.port.out.ShortsCompositionQueryItem;
 import glitched.adlips.domain.shorts.ShortForm;
-import glitched.adlips.domain.shorts.ShortStatus;
 import jakarta.persistence.LockModeType;
+import java.util.List;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
@@ -24,7 +24,9 @@ interface ShortFormJpaRepository extends JpaRepository<ShortForm, Long> {
             LEFT JOIN MediaFileJpaEntity mixedAudio ON mixedAudio.id = export.mediaFileId
             LEFT JOIN MediaFileJpaEntity layerArchive ON layerArchive.id = export.layerArchiveFileId
             WHERE s.id = :shortId
-              AND s.status = glitched.adlips.domain.shorts.ShortStatus.COMPLETED
+              AND (s.status = glitched.adlips.domain.shorts.ShortStatus.COMPLETED
+                   OR (s.status = glitched.adlips.domain.shorts.ShortStatus.IN_PROGRESS
+                       AND p.isPublic = true))
               AND s.deletedAt IS NULL
             """)
     Optional<ShortsCompositionQueryItem> findCompositionInfo(@Param("shortId") Long shortId);
@@ -33,8 +35,11 @@ interface ShortFormJpaRepository extends JpaRepository<ShortForm, Long> {
     @Query("""
             SELECT s
             FROM ShortForm s
+            LEFT JOIN s.project p
             WHERE s.id = :shortId
-              AND s.status = glitched.adlips.domain.shorts.ShortStatus.COMPLETED
+              AND (s.status = glitched.adlips.domain.shorts.ShortStatus.COMPLETED
+                   OR (s.status = glitched.adlips.domain.shorts.ShortStatus.IN_PROGRESS
+                       AND p.isPublic = true))
               AND s.deletedAt IS NULL
             """)
     Optional<ShortForm> findActiveByIdForUpdate(@Param("shortId") Long shortId);
@@ -53,7 +58,17 @@ interface ShortFormJpaRepository extends JpaRepository<ShortForm, Long> {
     @Query("SELECT s.dislikeCount FROM ShortForm s WHERE s.id = :shortId")
     Integer getDislikeCount(@Param("shortId") Long shortId);
 
-    boolean existsByIdAndStatusAndDeletedAtIsNull(Long id, ShortStatus status);
+    @Query("""
+            SELECT COUNT(s) > 0 FROM ShortForm s
+            LEFT JOIN s.project p
+            WHERE s.id = :shortId AND s.deletedAt IS NULL
+              AND (s.status = glitched.adlips.domain.shorts.ShortStatus.COMPLETED
+                   OR (s.status = glitched.adlips.domain.shorts.ShortStatus.IN_PROGRESS
+                       AND p.isPublic = true))
+            """)
+    boolean existsPlayableById(@Param("shortId") Long shortId);
+
+    List<ShortForm> findByProjectIdAndDeletedAtIsNull(Long projectId);
 
     boolean existsByIdAndDeletedAtIsNull(Long id);
 

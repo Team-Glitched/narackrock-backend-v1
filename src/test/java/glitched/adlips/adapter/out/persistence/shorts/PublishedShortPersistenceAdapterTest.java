@@ -23,7 +23,7 @@ class PublishedShortPersistenceAdapterTest {
     @Autowired ProjectMemberJpaRepository projectMembers;
 
     @Test
-    void publishesCompletedShortWithProjectMembers() {
+    void publishesPlayableInProgressShortWithProjectMembers() {
         User owner = User.create("owner-export@example.com");
         User editor = User.create("editor-export@example.com");
         entityManager.persist(owner);
@@ -41,9 +41,15 @@ class PublishedShortPersistenceAdapterTest {
         entityManager.clear();
 
         ShortForm saved = shortForms.findById(shortId).orElseThrow();
-        assertThat(saved.getStatus()).isEqualTo(ShortStatus.COMPLETED);
+        assertThat(saved.getStatus()).isEqualTo(ShortStatus.IN_PROGRESS);
         assertThat(saved.getExportId()).isEqualTo(20L);
         assertThat(saved.getMediaFileId()).isEqualTo(801L);
         assertThat(participants.countByShortsId(shortId)).isEqualTo(2L);
+
+        adapter.completeProject(project.getId());
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(shortForms.findById(shortId).orElseThrow().getStatus())
+                .isEqualTo(ShortStatus.COMPLETED);
     }
 }

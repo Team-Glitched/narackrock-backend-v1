@@ -19,6 +19,7 @@ import glitched.adlips.application.project.usecase.ProjectContributionCreateUseC
 import glitched.adlips.application.project.usecase.ProjectContributionGetListUseCase;
 import glitched.adlips.application.project.usecase.ProjectContributionReviewUseCase;
 import glitched.adlips.application.project.usecase.ProjectCreateUseCase;
+import glitched.adlips.application.project.usecase.ProjectCompleteUseCase;
 import glitched.adlips.application.project.usecase.ProjectDeleteUseCase;
 import glitched.adlips.application.project.usecase.ProjectExportGetUseCase;
 import glitched.adlips.application.project.usecase.ProcessPendingProjectExportsUseCase;
@@ -58,6 +59,16 @@ public class ProjectApplicationConfiguration {
             TransactionRunner transactionRunner
     ) {
         return new ProjectDeleteUseCase(projects, clock, transactionRunner);
+    }
+
+    @Bean
+    ProjectCompleteUseCase projectCompleteUseCase(
+            ProjectRepositoryPort projects,
+            ProjectMemberRepositoryPort members,
+            PublishedShortPort publishedShorts,
+            TransactionRunner transactionRunner
+    ) {
+        return new ProjectCompleteUseCase(projects, members, publishedShorts, transactionRunner);
     }
 
     @Bean

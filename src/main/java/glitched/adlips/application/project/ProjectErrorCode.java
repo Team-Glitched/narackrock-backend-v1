@@ -3,6 +3,7 @@ package glitched.adlips.application.project;
 public enum ProjectErrorCode {
     VALIDATION_ERROR,
     PROJECT_NOT_FOUND,
+    PROJECT_NOT_PUBLIC,
     TRACK_NOT_FOUND,
     TRACK_NOT_IN_PROJECT,
     INVALID_AUDIO_SOURCE_TYPE,

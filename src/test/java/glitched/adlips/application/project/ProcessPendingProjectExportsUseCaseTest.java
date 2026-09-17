@@ -21,6 +21,7 @@ import glitched.adlips.domain.media.MediaFileStatus;
 import glitched.adlips.domain.media.MediaFileType;
 import glitched.adlips.domain.project.ApprovalStatus;
 import glitched.adlips.domain.project.ClipSourceType;
+import glitched.adlips.domain.project.ClipType;
 import glitched.adlips.domain.project.ExportStatus;
 import glitched.adlips.domain.project.MidiNote;
 import glitched.adlips.domain.project.Project;
@@ -111,10 +112,17 @@ class ProcessPendingProjectExportsUseCaseTest {
                 List.of(new MidiNote(60, 0, 480, 100, null, Map.of())), 0);
         clip.approve();
         ReflectionTestUtils.setField(clip, "id", 22L);
+        ProjectClip detachedClip = mock(ProjectClip.class);
+        when(detachedClip.getId()).thenReturn(clip.getId());
+        when(detachedClip.getClipType()).thenReturn(ClipType.MIDI);
+        when(detachedClip.getMidiNotes()).thenReturn(clip.getMidiNotes());
+        when(detachedClip.getDurationMs()).thenReturn(clip.getDurationMs());
+        when(detachedClip.getStartTimeMs()).thenReturn(clip.getStartTimeMs());
+        when(detachedClip.getProject()).thenThrow(new IllegalStateException("detached project proxy"));
         when(tracks.findByProjectIdAndApprovalStatusAndIsDeletedFalse(10L, ApprovalStatus.APPROVED))
                 .thenReturn(List.of(track));
         when(clips.findByTrackIdAndApprovalStatusAndIsDeletedFalseOrderByStartTickAscIdAsc(
-                12L, ApprovalStatus.APPROVED)).thenReturn(List.of(clip));
+                12L, ApprovalStatus.APPROVED)).thenReturn(List.of(detachedClip));
         when(midiRenderer.render(clip.getMidiNotes(), project.getBpm(), project.getPpq(), clip.getDurationMs()))
                 .thenReturn(new byte[]{1, 2, 3});
         when(mixer.mix(any())).thenReturn(new ProjectAudioMixerPort.MixedAudio(new byte[]{4, 5}, 500));

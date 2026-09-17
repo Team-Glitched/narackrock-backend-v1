@@ -127,7 +127,9 @@ public class ProcessPendingProjectExportsUseCase {
                             export.getId(),
                             export.getProject().getId(),
                             export.getUser().getId(),
-                            export.getProject().getMaxDurationMs());
+                            export.getProject().getMaxDurationMs(),
+                            export.getProject().getBpm(),
+                            export.getProject().getPpq());
                 })
                 .orElse(null));
     }
@@ -203,7 +205,7 @@ public class ProcessPendingProjectExportsUseCase {
         for (ProjectClip clip : approvedClips) {
             if (clip.getClipType() == ClipType.MIDI) {
                 byte[] rendered = midiRenderer.render(clip.getMidiNotes(),
-                        clip.getProject().getBpm(), clip.getProject().getPpq(), clip.getDurationMs());
+                        claimed.bpm(), claimed.ppq(), clip.getDurationMs());
                 audioLayers.add(new AudioLayer(rendered, clip.getStartTimeMs(), 0,
                         clip.getDurationMs(), track.getVolume(), track.getPan()));
             } else {
@@ -276,7 +278,8 @@ public class ProcessPendingProjectExportsUseCase {
         return LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC);
     }
 
-    private record ClaimedExport(Long exportId, Long projectId, Long ownerId, int maxDurationMs) {
+    private record ClaimedExport(Long exportId, Long projectId, Long ownerId, int maxDurationMs,
+                                 int bpm, int ppq) {
     }
 
     private record StoredAudio(byte[] content, String originalFilename) {

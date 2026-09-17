@@ -39,5 +39,8 @@ class LocalTestAuthenticationFilterTest {
         assertThatThrownBy(() -> new LocalTestAuthenticationFilter(mock(AccessTokenPort.class), 1L,
                 "jdbc:postgresql://aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres"))
                 .isInstanceOf(IllegalStateException.class);
+        assertThatThrownBy(() -> new LocalTestAuthenticationFilter(mock(AccessTokenPort.class), 1L,
+                "jdbc:h2:tcp://remote.example.com/test"))
+                .isInstanceOf(IllegalStateException.class);
     }
 }

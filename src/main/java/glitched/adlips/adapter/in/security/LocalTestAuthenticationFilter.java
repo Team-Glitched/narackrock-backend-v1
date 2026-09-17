@@ -33,7 +33,8 @@ public class LocalTestAuthenticationFilter extends OncePerRequestFilter {
             @Value("${spring.datasource.url}") String datasourceUrl
     ) {
         if (userId == null || userId <= 0) throw new IllegalArgumentException("테스트 사용자 ID가 필요합니다.");
-        if (datasourceUrl == null || !(datasourceUrl.startsWith("jdbc:h2:")
+        if (datasourceUrl == null || !(datasourceUrl.startsWith("jdbc:h2:mem:")
+                || datasourceUrl.startsWith("jdbc:h2:file:")
                 || datasourceUrl.matches("jdbc:postgresql://(localhost|127\\.0\\.0\\.1|\\[::1\\]):[0-9]+/.*"))) {
             throw new IllegalStateException("테스트 인증 우회는 로컬 데이터베이스에서만 사용할 수 있습니다.");
         }

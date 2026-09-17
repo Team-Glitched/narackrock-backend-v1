@@ -3,6 +3,7 @@ package glitched.adlips.adapter.out.persistence.community;
 import glitched.adlips.domain.community.Post;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -13,4 +14,8 @@ interface PostJpaRepository extends JpaRepository<Post, Long> {
 
     @Query("SELECT p FROM Post p WHERE p.id = :id AND p.gallery.id = :galleryId AND p.deletedAt IS NULL")
     Optional<Post> findByIdAndGalleryIdAndDeletedAtIsNull(@Param("id") Long id, @Param("galleryId") Long galleryId);
+
+    @Modifying
+    @Query("UPDATE Post p SET p.commentCount = p.commentCount + :delta WHERE p.id = :id")
+    void adjustCommentCount(@Param("id") Long id, @Param("delta") int delta);
 }

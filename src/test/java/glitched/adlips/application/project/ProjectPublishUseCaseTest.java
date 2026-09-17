@@ -1,6 +1,7 @@
 package glitched.adlips.application.project;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -18,6 +19,22 @@ import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class ProjectPublishUseCaseTest {
+    @Test
+    void rejectsDraftWithoutAlbumMetadata() {
+        User owner = User.create("owner@example.com").withId(1L);
+        Project project = new Project(owner, "제목 없는 곡", null, 0L);
+        ProjectRepositoryPort projects = mock(ProjectRepositoryPort.class);
+        ProjectMemberRepositoryPort members = mock(ProjectMemberRepositoryPort.class);
+        when(projects.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(project));
+        when(members.findByProjectIdAndUserId(10L, 1L)).thenReturn(Optional.of(new ProjectMember(project, owner, ProjectMemberRole.OWNER)));
+
+        assertThatThrownBy(() -> new ProjectPublishUseCase(projects, members,
+                mock(ProjectTrackRepositoryPort.class), mock(ProjectClipRepositoryPort.class),
+                mock(ProjectExportRepositoryPort.class)).execute(new ProjectPublishRequest(10L, 1L)))
+                .isInstanceOf(ProjectApplicationException.class)
+                .extracting("errorCode").isEqualTo(ProjectErrorCode.VALIDATION_ERROR);
+    }
+
     @Test
     void queuesExportForApprovedTrackAndClip() {
         User owner = User.create("owner@example.com").withId(1L);

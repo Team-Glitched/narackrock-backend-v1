@@ -71,7 +71,7 @@ public class TrackGetListUseCase {
     }
 
     private String url(Long id) {
-        return id == null ? null : mediaFiles.findById(id).map(it -> it.getFileUrl()).orElse(null);
+        return id == null || id <= 0 ? null : mediaFiles.findById(id).map(it -> it.getFileUrl()).orElse(null);
     }
     private ProjectApplicationException error(ProjectErrorCode code, String message) {
         return new ProjectApplicationException(code, message);

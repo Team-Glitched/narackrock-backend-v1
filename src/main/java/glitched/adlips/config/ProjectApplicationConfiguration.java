@@ -102,6 +102,7 @@ public class ProjectApplicationConfiguration {
             MediaFileRepositoryPort mediaFiles,
             MediaContentStoragePort storage,
             ProjectAudioMixerPort mixer,
+            glitched.adlips.application.project.port.out.MidiAudioRendererPort midiRenderer,
             ProjectLayerArchivePort archiver,
             PublishedShortPort publishedShorts,
             Clock clock,
@@ -109,7 +110,7 @@ public class ProjectApplicationConfiguration {
             TransactionRunner transactionRunner
     ) {
         return new ProcessPendingProjectExportsUseCase(
-                exports, tracks, clips, mediaFiles, storage, mixer, archiver,
+                exports, tracks, clips, mediaFiles, storage, mixer, midiRenderer, archiver,
                 publishedShorts, clock, batchSize, transactionRunner);
     }
 

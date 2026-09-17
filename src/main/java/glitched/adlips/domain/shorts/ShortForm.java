@@ -94,4 +94,14 @@ public class ShortForm extends BaseTimeEntity {
     public void complete() {
         status = ShortStatus.COMPLETED;
     }
+
+    public void refreshFromExport(Long exportId, Long mixedAudioFileId) {
+        if (status != ShortStatus.IN_PROGRESS || deletedAt != null) {
+            throw new IllegalStateException("only an active in-progress short can be refreshed");
+        }
+        this.exportId = Objects.requireNonNull(exportId, "exportId must not be null");
+        this.mediaFileId = Objects.requireNonNull(mixedAudioFileId, "mixedAudioFileId must not be null");
+        this.title = project.getTitle();
+        this.albumImageFileId = project.getAlbumImageFileId();
+    }
 }

@@ -29,6 +29,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Project extends BaseTimeEntity {
+    public static final String UNTITLED_DRAFT = "제목 없는 곡";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -117,8 +118,8 @@ public class Project extends BaseTimeEntity {
         if (status != ProjectStatus.DRAFT || deletedAt != null) {
             throw new IllegalStateException("only draft metadata can be updated");
         }
-        if (title == null || title.isBlank() || albumImageFileId == null || albumImageFileId <= 0) {
-            throw new IllegalArgumentException("title and album image are required");
+        if (title == null || title.isBlank() || albumImageFileId == null || albumImageFileId < 0) {
+            throw new IllegalArgumentException("title and a valid album image reference are required");
         }
         this.title = title;
         this.albumImageFileId = albumImageFileId;

@@ -38,7 +38,7 @@ class ProjectPublishUseCaseTest {
     @Test
     void queuesExportForApprovedTrackAndClip() {
         User owner = User.create("owner@example.com").withId(1L);
-        Project project = new Project(owner, "곡", null, 701L);
+        Project project = new Project(owner, "곡", null, 0L);
         ProjectTrack track = new ProjectTrack(project, owner, "트랙", "GUITAR", 0);
         track.approve();
         ProjectRepositoryPort projects = mock(ProjectRepositoryPort.class);

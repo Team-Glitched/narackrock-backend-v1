@@ -2,9 +2,12 @@ package glitched.adlips.config;
 
 import glitched.adlips.application.community.CreatePostUseCase;
 import glitched.adlips.application.community.DeletePostUseCase;
+import glitched.adlips.application.community.GetGalleriesUseCase;
 import glitched.adlips.application.community.GetPostUseCase;
 import glitched.adlips.application.community.GetPostsUseCase;
+import glitched.adlips.application.community.GetSubscribedGalleriesUseCase;
 import glitched.adlips.application.community.UpdatePostUseCase;
+import glitched.adlips.application.community.port.out.GalleryQueryPort;
 import glitched.adlips.application.community.port.out.PostPort;
 import glitched.adlips.application.community.port.out.PostQueryPort;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
@@ -24,6 +27,22 @@ public class CommunityApplicationConfiguration {
             Clock clock
     ) {
         return new CreatePostUseCase(postPort, userBanQueryPort, transactionRunner, clock);
+    }
+
+    @Bean
+    GetGalleriesUseCase getGalleriesUseCase(
+            GalleryQueryPort galleryQueryPort,
+            TransactionRunner transactionRunner
+    ) {
+        return new GetGalleriesUseCase(galleryQueryPort, transactionRunner);
+    }
+
+    @Bean
+    GetSubscribedGalleriesUseCase getSubscribedGalleriesUseCase(
+            GalleryQueryPort galleryQueryPort,
+            TransactionRunner transactionRunner
+    ) {
+        return new GetSubscribedGalleriesUseCase(galleryQueryPort, transactionRunner);
     }
 
     @Bean

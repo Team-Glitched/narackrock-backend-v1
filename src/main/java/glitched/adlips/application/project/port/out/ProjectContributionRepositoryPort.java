@@ -8,6 +8,8 @@ import java.util.Optional;
 
 public interface ProjectContributionRepositoryPort {
 
+    List<ProjectContribution> findPendingForOwner(Long ownerId, int limit);
+
     Optional<ProjectContribution> findByIdAndProjectId(Long id, Long projectId);
 
     List<ProjectContribution> findByProjectIdAndApprovalStatusInOrderByIdDesc(

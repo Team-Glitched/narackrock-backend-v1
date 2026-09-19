@@ -17,6 +17,7 @@ import glitched.adlips.application.project.usecase.MidiClipCreateUseCase;
 import glitched.adlips.application.project.usecase.MidiClipSaveUseCase;
 import glitched.adlips.application.project.usecase.ProjectContributionCreateUseCase;
 import glitched.adlips.application.project.usecase.ProjectContributionGetListUseCase;
+import glitched.adlips.application.project.usecase.ProjectContributionInboxUseCase;
 import glitched.adlips.application.project.usecase.ProjectContributionReviewUseCase;
 import glitched.adlips.application.project.usecase.ProjectCreateUseCase;
 import glitched.adlips.application.project.usecase.ProjectDraftCreateUseCase;
@@ -233,15 +234,25 @@ public class ProjectApplicationConfiguration {
     }
 
     @Bean
+    ProjectContributionInboxUseCase projectContributionInboxUseCase(
+            ProjectContributionRepositoryPort contributions,
+            ProfileRepositoryPort profiles,
+            TransactionRunner transactions
+    ) {
+        return new ProjectContributionInboxUseCase(contributions, profiles, transactions);
+    }
+
+    @Bean
     ProjectContributionReviewUseCase projectContributionReviewUseCase(
             ProjectContributionRepositoryPort contributions,
             ProjectMemberRepositoryPort members,
             ProjectTrackRepositoryPort tracks,
             ProjectClipRepositoryPort clips,
             UserRepositoryPort users,
+            ProjectExportRepositoryPort exports,
             TransactionRunner transactionRunner
     ) {
         return new ProjectContributionReviewUseCase(
-                contributions, members, tracks, clips, users, transactionRunner);
+                contributions, members, tracks, clips, users, exports, transactionRunner);
     }
 }

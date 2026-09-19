@@ -140,6 +140,11 @@ public class ProjectPersistenceAdapter implements
     }
 
     @Override
+    public List<ProjectContribution> findPendingForOwner(Long ownerId, int limit) {
+        return contributions.findForOwner(ownerId, ContributionApprovalStatus.PENDING, PageRequest.of(0, limit));
+    }
+
+    @Override
     public List<ProjectContribution> findByProjectIdAndApprovalStatusInOrderByIdDesc(
             Long projectId, Collection<ContributionApprovalStatus> statuses, int pageSize) {
         return contributions.findByProjectIdAndApprovalStatusInOrderByIdDesc(projectId, statuses, pageSize);

@@ -36,7 +36,7 @@ public class ProjectDraftCreateUseCase {
         return transactions.required(() -> {
             User owner = users.findById(ownerId).filter(User::isActive).orElseThrow(() ->
                     new ProjectApplicationException(ProjectErrorCode.PROJECT_ACCESS_DENIED, "프로젝트를 생성할 권한이 없습니다."));
-            Project draft = projects.save(new Project(owner, "제목 없는 곡", null, 0L));
+            Project draft = projects.save(new Project(owner, Project.UNTITLED_DRAFT, null, 0L));
             members.save(new ProjectMember(draft, owner, ProjectMemberRole.OWNER));
             return new ProjectCreateResponse(draft.getId(), draft.getTitle(), draft.getDescription(),
                     draft.getAlbumImageFileId(), null, ownerId,

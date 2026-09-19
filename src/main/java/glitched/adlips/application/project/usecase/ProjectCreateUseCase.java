@@ -48,27 +48,32 @@ public class ProjectCreateUseCase {
     }
 
     private ProjectCreateResponse executeInternal(ProjectCreateRequest request) {
-        if (request == null || request.ownerId() == null || request.albumImageFileId() == null
+        if (request == null || request.ownerId() == null
+                || (request.albumImageFileId() != null && request.albumImageFileId() < 0)
                 || request.title() == null || request.title().isBlank()) {
-            throw error(ProjectErrorCode.VALIDATION_ERROR, "곡 이름과 앨범 이미지는 필수입니다.");
+            throw error(ProjectErrorCode.VALIDATION_ERROR, "곡 이름을 확인해 주세요.");
         }
         User owner = userRepository.findById(request.ownerId()).filter(User::isActive)
                 .orElseThrow(() -> error(ProjectErrorCode.PROJECT_ACCESS_DENIED, "프로젝트를 생성할 권한이 없습니다."));
-        MediaFile image = mediaFileRepository.findById(request.albumImageFileId())
-                .orElseThrow(() -> error(ProjectErrorCode.MEDIA_FILE_NOT_FOUND, "존재하지 않는 미디어 파일입니다."));
-        if (!owner.getId().equals(image.getOwnerId())) {
-            throw error(ProjectErrorCode.MEDIA_FILE_ACCESS_DENIED, "해당 미디어 파일을 사용할 권한이 없습니다.");
+        MediaFile image = null;
+        if (request.albumImageFileId() != null && request.albumImageFileId() > 0) {
+            image = mediaFileRepository.findById(request.albumImageFileId())
+                    .orElseThrow(() -> error(ProjectErrorCode.MEDIA_FILE_NOT_FOUND, "존재하지 않는 미디어 파일입니다."));
+            if (!owner.getId().equals(image.getOwnerId())) {
+                throw error(ProjectErrorCode.MEDIA_FILE_ACCESS_DENIED, "해당 미디어 파일을 사용할 권한이 없습니다.");
+            }
+            if (image.getFileType() != MediaFileType.IMAGE) {
+                throw error(ProjectErrorCode.INVALID_ALBUM_IMAGE, "사용할 수 없는 앨범 표지 이미지입니다.");
+            }
+            if (image.getStatus() != MediaFileStatus.READY) {
+                throw error(ProjectErrorCode.MEDIA_FILE_NOT_READY, "앨범 이미지 파일의 업로드 처리가 완료되지 않았습니다.");
+            }
         }
-        if (image.getFileType() != MediaFileType.IMAGE) {
-            throw error(ProjectErrorCode.INVALID_ALBUM_IMAGE, "사용할 수 없는 앨범 표지 이미지입니다.");
-        }
-        if (image.getStatus() != MediaFileStatus.READY) {
-            throw error(ProjectErrorCode.MEDIA_FILE_NOT_READY, "앨범 이미지 파일의 업로드 처리가 완료되지 않았습니다.");
-        }
-        Project saved = projectRepository.save(new Project(owner, request.title().trim(), request.description(), image.getId()));
+        Project saved = projectRepository.save(new Project(owner, request.title().trim(), request.description(),
+                image == null ? 0L : image.getId()));
         memberRepository.save(new ProjectMember(saved, owner, ProjectMemberRole.OWNER));
-        return new ProjectCreateResponse(saved.getId(), saved.getTitle(), saved.getDescription(), image.getId(),
-                image.getFileUrl(), owner.getId(),
+        return new ProjectCreateResponse(saved.getId(), saved.getTitle(), saved.getDescription(),
+                saved.getAlbumImageFileId(), image == null ? null : image.getFileUrl(), owner.getId(),
                 new ProjectVersionResponse(saved.getMajorVersion(), saved.getMinorVersion(), saved.getDisplayVersion()),
                 saved.getStatus(), saved.isPublic(), saved.getCreatedAt());
     }

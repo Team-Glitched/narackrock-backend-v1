@@ -4,6 +4,7 @@ import glitched.adlips.application.media.port.out.MediaContentStoragePort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.project.ProjectExportProcessingResult;
 import glitched.adlips.application.project.port.out.ProjectAudioMixerPort;
+import glitched.adlips.application.project.port.out.MidiAudioRendererPort;
 import glitched.adlips.application.project.port.out.ProjectAudioMixerPort.AudioLayer;
 import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectExportRepositoryPort;
@@ -39,6 +40,7 @@ public class ProcessPendingProjectExportsUseCase {
     private final MediaFileRepositoryPort mediaFiles;
     private final MediaContentStoragePort storage;
     private final ProjectAudioMixerPort mixer;
+    private final MidiAudioRendererPort midiRenderer;
     private final ProjectLayerArchivePort archiver;
     private final PublishedShortPort publishedShorts;
     private final Clock clock;
@@ -52,12 +54,13 @@ public class ProcessPendingProjectExportsUseCase {
             MediaFileRepositoryPort mediaFiles,
             MediaContentStoragePort storage,
             ProjectAudioMixerPort mixer,
+            MidiAudioRendererPort midiRenderer,
             ProjectLayerArchivePort archiver,
             PublishedShortPort publishedShorts,
             Clock clock,
             int batchSize
     ) {
-        this(exports, tracks, clips, mediaFiles, storage, mixer, archiver, publishedShorts,
+        this(exports, tracks, clips, mediaFiles, storage, mixer, midiRenderer, archiver, publishedShorts,
                 clock, batchSize, TransactionRunner.direct());
     }
 
@@ -68,6 +71,7 @@ public class ProcessPendingProjectExportsUseCase {
             MediaFileRepositoryPort mediaFiles,
             MediaContentStoragePort storage,
             ProjectAudioMixerPort mixer,
+            MidiAudioRendererPort midiRenderer,
             ProjectLayerArchivePort archiver,
             PublishedShortPort publishedShorts,
             Clock clock,
@@ -83,6 +87,7 @@ public class ProcessPendingProjectExportsUseCase {
         this.mediaFiles = mediaFiles;
         this.storage = storage;
         this.mixer = mixer;
+        this.midiRenderer = midiRenderer;
         this.archiver = archiver;
         this.publishedShorts = publishedShorts;
         this.clock = clock;
@@ -122,7 +127,9 @@ public class ProcessPendingProjectExportsUseCase {
                             export.getId(),
                             export.getProject().getId(),
                             export.getUser().getId(),
-                            export.getProject().getMaxDurationMs());
+                            export.getProject().getMaxDurationMs(),
+                            export.getProject().getBpm(),
+                            export.getProject().getPpq());
                 })
                 .orElse(null));
     }
@@ -195,16 +202,17 @@ public class ProcessPendingProjectExportsUseCase {
                     track.getVolume(), track.getPan()));
             return;
         }
-        if (approvedClips.stream().anyMatch(clip -> clip.getClipType() == ClipType.MIDI)) {
-            throw new IllegalStateException(
-                    "MIDI 트랙 렌더링 결과가 없습니다. SoundFont 렌더러를 구성한 뒤 다시 시도해 주세요.");
-        }
         for (ProjectClip clip : approvedClips) {
-            StoredAudio source = sourceCache.computeIfAbsent(
-                    clip.getMediaFileId(), this::loadAudio);
-            audioLayers.add(new AudioLayer(
-                    source.content(), clip.getStartTimeMs(), clip.getClipOffsetMs(),
-                    clip.getDurationMs(), track.getVolume(), track.getPan()));
+            if (clip.getClipType() == ClipType.MIDI) {
+                byte[] rendered = midiRenderer.render(clip.getMidiNotes(),
+                        claimed.bpm(), claimed.ppq(), clip.getDurationMs());
+                audioLayers.add(new AudioLayer(rendered, clip.getStartTimeMs(), 0,
+                        clip.getDurationMs(), track.getVolume(), track.getPan()));
+            } else {
+                StoredAudio source = sourceCache.computeIfAbsent(clip.getMediaFileId(), this::loadAudio);
+                audioLayers.add(new AudioLayer(source.content(), clip.getStartTimeMs(), clip.getClipOffsetMs(),
+                        clip.getDurationMs(), track.getVolume(), track.getPan()));
+            }
         }
     }
 
@@ -270,7 +278,8 @@ public class ProcessPendingProjectExportsUseCase {
         return LocalDateTime.ofInstant(clock.instant(), ZoneOffset.UTC);
     }
 
-    private record ClaimedExport(Long exportId, Long projectId, Long ownerId, int maxDurationMs) {
+    private record ClaimedExport(Long exportId, Long projectId, Long ownerId, int maxDurationMs,
+                                 int bpm, int ppq) {
     }
 
     private record StoredAudio(byte[] content, String originalFilename) {

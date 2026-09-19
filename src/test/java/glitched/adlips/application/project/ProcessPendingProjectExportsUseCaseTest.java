@@ -3,7 +3,6 @@ package glitched.adlips.application.project;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -12,6 +11,7 @@ import glitched.adlips.application.project.port.out.ProjectAudioMixerPort;
 import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectExportRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectLayerArchivePort;
+import glitched.adlips.application.project.port.out.MidiAudioRendererPort;
 import glitched.adlips.application.project.port.out.PublishedShortPort;
 import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.project.usecase.ProcessPendingProjectExportsUseCase;
@@ -21,6 +21,7 @@ import glitched.adlips.domain.media.MediaFileStatus;
 import glitched.adlips.domain.media.MediaFileType;
 import glitched.adlips.domain.project.ApprovalStatus;
 import glitched.adlips.domain.project.ClipSourceType;
+import glitched.adlips.domain.project.ClipType;
 import glitched.adlips.domain.project.ExportStatus;
 import glitched.adlips.domain.project.MidiNote;
 import glitched.adlips.domain.project.Project;
@@ -47,6 +48,7 @@ class ProcessPendingProjectExportsUseCaseTest {
     private final MediaFileRepositoryPort mediaFiles = mock(MediaFileRepositoryPort.class);
     private final MediaContentStoragePort storage = mock(MediaContentStoragePort.class);
     private final ProjectAudioMixerPort mixer = mock(ProjectAudioMixerPort.class);
+    private final MidiAudioRendererPort midiRenderer = mock(MidiAudioRendererPort.class);
     private final ProjectLayerArchivePort archiver = mock(ProjectLayerArchivePort.class);
     private final PublishedShortPort publishedShorts = mock(PublishedShortPort.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-09-14T01:00:00Z"), ZoneOffset.UTC);
@@ -103,30 +105,46 @@ class ProcessPendingProjectExportsUseCaseTest {
     }
 
     @Test
-    void marksExportFailedWhenMidiHasNoRenderedTrackAudio() {
+    void rendersMidiAndPublishesPlayableInProgressShort() {
         ProjectTrack track = approvedTrack(12L, "피아노");
         ProjectClip clip = ProjectClip.createMidi(
                 project, track, owner, 0, 1_920,
                 List.of(new MidiNote(60, 0, 480, 100, null, Map.of())), 0);
         clip.approve();
         ReflectionTestUtils.setField(clip, "id", 22L);
+        ProjectClip detachedClip = mock(ProjectClip.class);
+        when(detachedClip.getId()).thenReturn(clip.getId());
+        when(detachedClip.getClipType()).thenReturn(ClipType.MIDI);
+        when(detachedClip.getMidiNotes()).thenReturn(clip.getMidiNotes());
+        when(detachedClip.getDurationMs()).thenReturn(clip.getDurationMs());
+        when(detachedClip.getStartTimeMs()).thenReturn(clip.getStartTimeMs());
+        when(detachedClip.getProject()).thenThrow(new IllegalStateException("detached project proxy"));
         when(tracks.findByProjectIdAndApprovalStatusAndIsDeletedFalse(10L, ApprovalStatus.APPROVED))
                 .thenReturn(List.of(track));
         when(clips.findByTrackIdAndApprovalStatusAndIsDeletedFalseOrderByStartTickAscIdAsc(
-                12L, ApprovalStatus.APPROVED)).thenReturn(List.of(clip));
+                12L, ApprovalStatus.APPROVED)).thenReturn(List.of(detachedClip));
+        when(midiRenderer.render(clip.getMidiNotes(), project.getBpm(), project.getPpq(), clip.getDurationMs()))
+                .thenReturn(new byte[]{1, 2, 3});
+        when(mixer.mix(any())).thenReturn(new ProjectAudioMixerPort.MixedAudio(new byte[]{4, 5}, 500));
+        when(archiver.archive(any())).thenReturn(new byte[]{6});
+        when(storage.publicUrl(any())).thenAnswer(invocation -> "/files/" + invocation.getArgument(0));
+        AtomicLong generatedId = new AtomicLong(800L);
+        when(mediaFiles.save(any(MediaFile.class)))
+                .thenAnswer(invocation -> invocation.<MediaFile>getArgument(0).withId(generatedId.incrementAndGet()));
+        when(publishedShorts.publish(project, 20L, 801L)).thenReturn(901L);
 
         var result = useCase().execute();
 
-        assertThat(result.completedCount()).isZero();
-        assertThat(result.failedCount()).isEqualTo(1);
-        assertThat(export.getStatus()).isEqualTo(ExportStatus.FAILED);
-        assertThat(export.getErrorMessage()).contains("MIDI");
-        verify(mixer, never()).mix(any());
+        assertThat(result.completedCount()).isEqualTo(1);
+        assertThat(result.failedCount()).isZero();
+        assertThat(export.getStatus()).isEqualTo(ExportStatus.COMPLETED);
+        verify(midiRenderer).render(clip.getMidiNotes(), project.getBpm(), project.getPpq(), clip.getDurationMs());
+        verify(publishedShorts).publish(project, 20L, 801L);
     }
 
     private ProcessPendingProjectExportsUseCase useCase() {
         return new ProcessPendingProjectExportsUseCase(
-                exports, tracks, clips, mediaFiles, storage, mixer, archiver,
+                exports, tracks, clips, mediaFiles, storage, mixer, midiRenderer, archiver,
                 publishedShorts, clock, 10);
     }
 

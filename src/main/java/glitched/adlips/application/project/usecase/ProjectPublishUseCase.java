@@ -47,6 +47,9 @@ public class ProjectPublishUseCase {
         members.findByProjectIdAndUserId(request.projectId(), request.userId())
                 .filter(member -> member.getRole() == ProjectMemberRole.OWNER)
                 .orElseThrow(() -> error(ProjectErrorCode.PROJECT_ACCESS_DENIED, "곡을 공개할 권한이 없습니다."));
+        if (project.getAlbumImageFileId() == null || project.getAlbumImageFileId() <= 0) {
+            throw error(ProjectErrorCode.VALIDATION_ERROR, "발행 전에 곡 이름과 앨범 이미지를 등록해 주세요.");
+        }
         List<Long> approvedTrackIds = tracks.findByProjectIdAndApprovalStatusAndIsDeletedFalse(
                 request.projectId(), ApprovalStatus.APPROVED).stream().map(it -> it.getId()).toList();
         if (approvedTrackIds.isEmpty() || clips.countByTrackIdInAndApprovalStatusAndIsDeletedFalse(

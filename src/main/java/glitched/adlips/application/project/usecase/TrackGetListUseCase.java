@@ -64,13 +64,14 @@ public class TrackGetListUseCase {
                         .stream().map(clip -> new TrackGetListResponse.ClipSummary(clip.getId(), clip.getOwner().getId(),
                                 clip.getClipType(), clip.getSourceType(), clip.getMediaFileId(), url(clip.getMediaFileId()),
                                 url(clip.getWaveformFileId()), clip.getStartTick(), clip.getDurationTick(),
-                                clip.getStartTimeMs(), clip.getDurationMs(), clip.getClipOffsetMs(), clip.getApprovalStatus()))
+                                clip.getStartTimeMs(), clip.getDurationMs(), clip.getClipOffsetMs(),
+                                clip.getApprovalStatus(), clip.getMidiNotes()))
                         .toList())).toList();
         return new TrackGetListResponse(permission, projectSummary, summaries);
     }
 
     private String url(Long id) {
-        return id == null ? null : mediaFiles.findById(id).map(it -> it.getFileUrl()).orElse(null);
+        return id == null || id <= 0 ? null : mediaFiles.findById(id).map(it -> it.getFileUrl()).orElse(null);
     }
     private ProjectApplicationException error(ProjectErrorCode code, String message) {
         return new ProjectApplicationException(code, message);

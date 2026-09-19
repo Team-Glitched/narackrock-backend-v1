@@ -113,6 +113,17 @@ public class Project extends BaseTimeEntity {
         return (long) maxDurationMs * bpm * ppq / 60_000;
     }
 
+    public void updateMetadata(String title, Long albumImageFileId) {
+        if (status != ProjectStatus.DRAFT || deletedAt != null) {
+            throw new IllegalStateException("only draft metadata can be updated");
+        }
+        if (title == null || title.isBlank() || albumImageFileId == null || albumImageFileId <= 0) {
+            throw new IllegalArgumentException("title and album image are required");
+        }
+        this.title = title;
+        this.albumImageFileId = albumImageFileId;
+    }
+
     public int tickToMilliseconds(int tick) {
         if (tick < 0) {
             throw new IllegalArgumentException(

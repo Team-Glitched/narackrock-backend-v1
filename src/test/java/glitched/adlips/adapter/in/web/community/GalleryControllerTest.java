@@ -1,14 +1,22 @@
 package glitched.adlips.adapter.in.web.community;
 
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.adapter.out.token.JwtTokenIssuerAdapter;
+import glitched.adlips.application.community.GalleryApplicationException;
+import glitched.adlips.application.community.GalleryErrorCode;
 import glitched.adlips.application.community.GetGalleriesUseCase;
 import glitched.adlips.application.community.GetSubscribedGalleriesUseCase;
+import glitched.adlips.application.community.SubscribeGalleryUseCase;
+import glitched.adlips.application.community.UnsubscribeGalleryUseCase;
 import glitched.adlips.application.community.port.out.GalleryQueryItem;
 import glitched.adlips.application.user.account.port.out.AccessTokenPort;
 import glitched.adlips.global.config.SecurityConfig;
@@ -31,6 +39,8 @@ class GalleryControllerTest {
 
     @MockitoBean GetGalleriesUseCase getGalleriesUseCase;
     @MockitoBean GetSubscribedGalleriesUseCase getSubscribedGalleriesUseCase;
+    @MockitoBean SubscribeGalleryUseCase subscribeGalleryUseCase;
+    @MockitoBean UnsubscribeGalleryUseCase unsubscribeGalleryUseCase;
     @MockitoBean AuthenticatedUserResolver authenticatedUserResolver;
     @MockitoBean AccessTokenPort accessTokenPort;
 
@@ -85,6 +95,82 @@ class GalleryControllerTest {
                 .andExpect(jsonPath("$.message").value("가입한 갤러리 목록 조회가 완료되었습니다."))
                 .andExpect(jsonPath("$.data[0].galleryId").value(1))
                 .andExpect(jsonPath("$.data[0].subscriberCount").value(128));
+    }
+
+    @Test
+    void 갤러리_구독은_201과_갤러리ID를_반환한다() throws Exception {
+        mockMvc.perform(post("/api/v1/galleries/10/subscriptions")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("해당 갤러리를 성공적으로 구독하였습니다."))
+                .andExpect(jsonPath("$.data.galleryId").value(10));
+
+        verify(subscribeGalleryUseCase).execute(1L, 10L);
+    }
+
+    @Test
+    void 갤러리_구독은_인증이_없으면_401을_반환한다() throws Exception {
+        mockMvc.perform(post("/api/v1/galleries/10/subscriptions"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 이미_구독한_갤러리면_409를_반환한다() throws Exception {
+        doThrow(new GalleryApplicationException(
+                GalleryErrorCode.ALREADY_SUBSCRIBED, "이미 구독 중인 갤러리입니다."))
+                .when(subscribeGalleryUseCase).execute(1L, 10L);
+
+        mockMvc.perform(post("/api/v1/galleries/10/subscriptions")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.success").value(false))
+                .andExpect(jsonPath("$.errorCode").value("ALREADY_SUBSCRIBED"))
+                .andExpect(jsonPath("$.message").value("이미 구독 중인 갤러리입니다."));
+    }
+
+    @Test
+    void 존재하지_않는_갤러리를_구독하면_404를_반환한다() throws Exception {
+        doThrow(new GalleryApplicationException(
+                GalleryErrorCode.GALLERY_NOT_FOUND, "존재하지 않거나 삭제된 갤러리입니다."))
+                .when(subscribeGalleryUseCase).execute(1L, 999L);
+
+        mockMvc.perform(post("/api/v1/galleries/999/subscriptions")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("GALLERY_NOT_FOUND"))
+                .andExpect(jsonPath("$.message").value("존재하지 않거나 삭제된 갤러리입니다."));
+    }
+
+    @Test
+    void 갤러리_구독_취소는_200을_반환한다() throws Exception {
+        mockMvc.perform(delete("/api/v1/galleries/10/subscriptions")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("해당 갤러리의 구독을 취소하였습니다."))
+                .andExpect(jsonPath("$.data").doesNotExist());
+
+        verify(unsubscribeGalleryUseCase).execute(1L, 10L);
+    }
+
+    @Test
+    void 갤러리_구독_취소는_인증이_없으면_401을_반환한다() throws Exception {
+        mockMvc.perform(delete("/api/v1/galleries/10/subscriptions"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 구독하지_않은_갤러리를_취소하면_404를_반환한다() throws Exception {
+        doThrow(new GalleryApplicationException(
+                GalleryErrorCode.NOT_SUBSCRIBED, "구독 중인 갤러리가 아닙니다."))
+                .when(unsubscribeGalleryUseCase).execute(1L, 10L);
+
+        mockMvc.perform(delete("/api/v1/galleries/10/subscriptions")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("NOT_SUBSCRIBED"))
+                .andExpect(jsonPath("$.message").value("구독 중인 갤러리가 아닙니다."));
     }
 
     private GalleryQueryItem sampleItem() {

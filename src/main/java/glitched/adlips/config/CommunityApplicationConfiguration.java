@@ -6,8 +6,11 @@ import glitched.adlips.application.community.GetGalleriesUseCase;
 import glitched.adlips.application.community.GetPostUseCase;
 import glitched.adlips.application.community.GetPostsUseCase;
 import glitched.adlips.application.community.GetSubscribedGalleriesUseCase;
+import glitched.adlips.application.community.SubscribeGalleryUseCase;
+import glitched.adlips.application.community.UnsubscribeGalleryUseCase;
 import glitched.adlips.application.community.UpdatePostUseCase;
 import glitched.adlips.application.community.port.out.GalleryQueryPort;
+import glitched.adlips.application.community.port.out.GallerySubscriptionPort;
 import glitched.adlips.application.community.port.out.PostPort;
 import glitched.adlips.application.community.port.out.PostQueryPort;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
@@ -43,6 +46,22 @@ public class CommunityApplicationConfiguration {
             TransactionRunner transactionRunner
     ) {
         return new GetSubscribedGalleriesUseCase(galleryQueryPort, transactionRunner);
+    }
+
+    @Bean
+    SubscribeGalleryUseCase subscribeGalleryUseCase(
+            GallerySubscriptionPort gallerySubscriptionPort,
+            TransactionRunner transactionRunner
+    ) {
+        return new SubscribeGalleryUseCase(gallerySubscriptionPort, transactionRunner);
+    }
+
+    @Bean
+    UnsubscribeGalleryUseCase unsubscribeGalleryUseCase(
+            GallerySubscriptionPort gallerySubscriptionPort,
+            TransactionRunner transactionRunner
+    ) {
+        return new UnsubscribeGalleryUseCase(gallerySubscriptionPort, transactionRunner);
     }
 
     @Bean

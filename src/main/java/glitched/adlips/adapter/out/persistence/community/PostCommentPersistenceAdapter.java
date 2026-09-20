@@ -5,6 +5,7 @@ import glitched.adlips.domain.community.Post;
 import glitched.adlips.domain.community.PostComment;
 import glitched.adlips.domain.user.User;
 import jakarta.persistence.EntityManager;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
@@ -53,6 +54,11 @@ public class PostCommentPersistenceAdapter implements PostCommentPort {
     @Override
     public void adjustParentReplyCount(Long parentCommentId, int delta) {
         postCommentRepository.adjustReplyCount(parentCommentId, delta);
+    }
+
+    @Override
+    public int softDeleteActiveReplies(Long parentCommentId, LocalDateTime deletedAt) {
+        return postCommentRepository.softDeleteActiveReplies(parentCommentId, deletedAt);
     }
 
     @Override

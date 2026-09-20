@@ -38,4 +38,8 @@ class PostCommentQueryPersistenceAdapterTest {
         assertThat(adapter.existsActiveParentComment(5L,1L)).isFalse();
         assertThat(adapter.existsActiveParentComment(4L,1L)).isFalse();
     }
+
+    @Test void replyCannotBeUsedAsParentComment() {
+        assertThat(adapter.existsActiveParentComment(3L, 1L)).isFalse();
+    }
 }

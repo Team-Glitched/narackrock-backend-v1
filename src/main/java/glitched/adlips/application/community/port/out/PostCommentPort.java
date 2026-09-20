@@ -1,6 +1,7 @@
 package glitched.adlips.application.community.port.out;
 
 import glitched.adlips.domain.community.PostComment;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface PostCommentPort {
@@ -13,6 +14,8 @@ public interface PostCommentPort {
     void adjustPostCommentCount(Long postId, int delta);
 
     void adjustParentReplyCount(Long parentCommentId, int delta);
+
+    int softDeleteActiveReplies(Long parentCommentId, LocalDateTime deletedAt);
 
     Optional<PostComment> findActiveComment(Long commentId);
 

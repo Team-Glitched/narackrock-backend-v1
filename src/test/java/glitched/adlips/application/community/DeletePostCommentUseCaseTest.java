@@ -63,6 +63,18 @@ class DeletePostCommentUseCaseTest {
     }
 
     @Test
+    void 대댓글이_있는_댓글을_삭제하면_활성_대댓글도_삭제하고_전체_댓글수를_줄인다() {
+        PostComment comment = comment(1L, null);
+        when(port.findActiveComment(7721L)).thenReturn(Optional.of(comment));
+        when(port.softDeleteActiveReplies(7721L, NOW)).thenReturn(2);
+
+        useCase.execute(7721L, 1L);
+
+        verify(port).softDeleteActiveReplies(7721L, NOW);
+        verify(port).adjustPostCommentCount(10L, -3);
+    }
+
+    @Test
     void 대댓글을_삭제하면_부모_댓글의_답글수도_1_줄인다() {
         PostComment comment = comment(1L, 7000L);
         when(port.findActiveComment(7722L)).thenReturn(Optional.of(comment));
@@ -71,6 +83,7 @@ class DeletePostCommentUseCaseTest {
 
         verify(port).adjustPostCommentCount(10L, -1);
         verify(port).adjustParentReplyCount(7000L, -1);
+        verify(port, never()).softDeleteActiveReplies(any(), any());
     }
 
     @Test

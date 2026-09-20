@@ -11,7 +11,8 @@ interface PostCommentJpaRepository extends JpaRepository<PostComment, Long> {
 
     @Query("""
             SELECT COUNT(c) > 0 FROM PostComment c
-             WHERE c.id = :id AND c.post.id = :postId AND c.deletedAt IS NULL
+             WHERE c.id = :id AND c.post.id = :postId
+               AND c.parentComment IS NULL AND c.deletedAt IS NULL
             """)
     boolean existsActiveByIdAndPostId(@Param("id") Long id, @Param("postId") Long postId);
 
@@ -21,4 +22,13 @@ interface PostCommentJpaRepository extends JpaRepository<PostComment, Long> {
     @Modifying
     @Query("UPDATE PostComment c SET c.replyCount = c.replyCount + :delta WHERE c.id = :id")
     void adjustReplyCount(@Param("id") Long id, @Param("delta") int delta);
+
+    @Modifying
+    @Query("""
+            UPDATE PostComment c SET c.deletedAt = :deletedAt
+             WHERE c.parentComment.id = :parentId AND c.deletedAt IS NULL
+            """)
+    int softDeleteActiveReplies(
+            @Param("parentId") Long parentId,
+            @Param("deletedAt") java.time.LocalDateTime deletedAt);
 }

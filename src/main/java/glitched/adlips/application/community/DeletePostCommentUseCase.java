@@ -48,7 +48,11 @@ public class DeletePostCommentUseCase {
             Long parentCommentId = comment.getParentCommentId();
             comment.delete(now);
             port.update(comment);
-            port.adjustPostCommentCount(postId, -1);
+            int deletedCount = 1;
+            if (parentCommentId == null) {
+                deletedCount += port.softDeleteActiveReplies(commentId, now);
+            }
+            port.adjustPostCommentCount(postId, -deletedCount);
             if (parentCommentId != null) {
                 port.adjustParentReplyCount(parentCommentId, -1);
             }

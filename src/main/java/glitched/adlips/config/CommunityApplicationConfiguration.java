@@ -7,9 +7,15 @@ import glitched.adlips.application.community.GetPostCommentsUseCase;
 import glitched.adlips.application.community.port.out.PostCommentQueryPort;
 import glitched.adlips.application.community.CreatePostUseCase;
 import glitched.adlips.application.community.DeletePostUseCase;
+import glitched.adlips.application.community.GetGalleriesUseCase;
 import glitched.adlips.application.community.GetPostUseCase;
 import glitched.adlips.application.community.GetPostsUseCase;
+import glitched.adlips.application.community.GetSubscribedGalleriesUseCase;
+import glitched.adlips.application.community.SubscribeGalleryUseCase;
+import glitched.adlips.application.community.UnsubscribeGalleryUseCase;
 import glitched.adlips.application.community.UpdatePostUseCase;
+import glitched.adlips.application.community.port.out.GalleryQueryPort;
+import glitched.adlips.application.community.port.out.GallerySubscriptionPort;
 import glitched.adlips.application.community.port.out.PostCommentPort;
 import glitched.adlips.application.community.port.out.PostPort;
 import glitched.adlips.application.community.port.out.PostQueryPort;
@@ -37,6 +43,38 @@ public class CommunityApplicationConfiguration {
             Clock clock
     ) {
         return new CreatePostUseCase(postPort, userBanQueryPort, transactionRunner, clock);
+    }
+
+    @Bean
+    GetGalleriesUseCase getGalleriesUseCase(
+            GalleryQueryPort galleryQueryPort,
+            TransactionRunner transactionRunner
+    ) {
+        return new GetGalleriesUseCase(galleryQueryPort, transactionRunner);
+    }
+
+    @Bean
+    GetSubscribedGalleriesUseCase getSubscribedGalleriesUseCase(
+            GalleryQueryPort galleryQueryPort,
+            TransactionRunner transactionRunner
+    ) {
+        return new GetSubscribedGalleriesUseCase(galleryQueryPort, transactionRunner);
+    }
+
+    @Bean
+    SubscribeGalleryUseCase subscribeGalleryUseCase(
+            GallerySubscriptionPort gallerySubscriptionPort,
+            TransactionRunner transactionRunner
+    ) {
+        return new SubscribeGalleryUseCase(gallerySubscriptionPort, transactionRunner);
+    }
+
+    @Bean
+    UnsubscribeGalleryUseCase unsubscribeGalleryUseCase(
+            GallerySubscriptionPort gallerySubscriptionPort,
+            TransactionRunner transactionRunner
+    ) {
+        return new UnsubscribeGalleryUseCase(gallerySubscriptionPort, transactionRunner);
     }
 
     @Bean

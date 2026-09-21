@@ -1,0 +1,13 @@
+.git
+.github
+.gradle
+.idea
+.vscode
+build
+out
+*.env
+.env*
+storage
+compose*.yml
+docs
+HELP.md

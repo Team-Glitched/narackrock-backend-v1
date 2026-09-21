@@ -1,0 +1,107 @@
+name: adlips
+
+services:
+  backend:
+    image: ${ADLIPS_APP_IMAGE:-adlips-backend:latest}
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file:
+      - ${ADLIPS_ENV_FILE:-compose.env}
+    environment:
+      SERVER_PORT: "8080"
+      ADLIPS_UPLOAD_DIR: /var/lib/adlips/storage
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:?POSTGRES_DB must be set}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:?POSTGRES_USER must be set}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+    ports:
+      - "${ADLIPS_APP_BIND_ADDRESS:-127.0.0.1}:${ADLIPS_APP_PORT:-8080}:8080"
+    volumes:
+      - ${ADLIPS_STORAGE_PATH:-./storage}:/var/lib/adlips/storage
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    networks:
+      - application
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      TZ: ${TZ:-Asia/Seoul}
+    command:
+      - postgres
+      - -c
+      - password_encryption=scram-sha-256
+      - -c
+      - timezone=${TZ:-Asia/Seoul}
+    expose:
+      - "5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 60s
+    networks:
+      - application
+
+  redis:
+    image: redis:8.10.1-alpine
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+      TZ: ${TZ:-Asia/Seoul}
+    command:
+      - sh
+      - -c
+      - >-
+        exec redis-server
+        --appendonly yes
+        --appendfsync everysec
+        --maxmemory-policy noeviction
+        --requirepass "$$REDIS_PASSWORD"
+    expose:
+      - "6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    networks:
+      - application
+
+networks:
+  application:
+    name: adlips-application
+    driver: bridge
+
+volumes:
+  postgres-data:
+    name: adlips-postgres-data
+  redis-data:
+    name: adlips-redis-data

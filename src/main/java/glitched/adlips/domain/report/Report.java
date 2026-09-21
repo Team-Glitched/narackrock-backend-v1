@@ -82,12 +82,24 @@ public class Report extends BaseTimeEntity {
         return id;
     }
 
+    public Long reporterId() {
+        return reporter.getId();
+    }
+
     public ReportTargetType getTargetType() {
         return targetType;
     }
 
     public Long getTargetId() {
         return targetId;
+    }
+
+    public String getReason() {
+        return reason;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
     public ReportStatus getStatus() {

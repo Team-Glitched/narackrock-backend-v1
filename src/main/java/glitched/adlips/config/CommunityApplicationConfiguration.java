@@ -21,12 +21,33 @@ import glitched.adlips.application.community.port.out.PostPort;
 import glitched.adlips.application.community.port.out.PostQueryPort;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
+import glitched.adlips.application.report.port.out.ReportSubmissionPort;
+import glitched.adlips.application.report.port.out.ReportTargetQueryPort;
+import glitched.adlips.application.report.port.out.ReportUserRestrictionPort;
+import glitched.adlips.application.report.usecase.SubmitReportUseCase;
 import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class CommunityApplicationConfiguration {
+
+    @Bean
+    SubmitReportUseCase submitReportUseCase(
+            ReportTargetQueryPort targetQueryPort,
+            ReportSubmissionPort submissionPort,
+            ReportUserRestrictionPort restrictionPort,
+            Clock clock,
+            TransactionRunner transactionRunner
+    ) {
+        return new SubmitReportUseCase(
+                targetQueryPort,
+                submissionPort,
+                restrictionPort,
+                clock,
+                transactionRunner
+        );
+    }
 
     @Bean
     GetPostCommentsUseCase getPostCommentsUseCase(

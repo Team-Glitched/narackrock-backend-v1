@@ -27,7 +27,10 @@ class CollaborationUserQueryPersistenceAdapterTest {
                 VALUES
                     (1, 'me@test.com', 'USER', CURRENT_TIMESTAMP),
                     (2, 'collab@test.com', 'USER', CURRENT_TIMESTAMP),
-                    (3, 'deleted@test.com', 'USER', CURRENT_TIMESTAMP)
+                    (3, 'deleted@test.com', 'USER', CURRENT_TIMESTAMP),
+                    (4, 'member@test.com', 'USER', CURRENT_TIMESTAMP),
+                    (5, 'approved@test.com', 'USER', CURRENT_TIMESTAMP),
+                    (6, 'rejected@test.com', 'USER', CURRENT_TIMESTAMP)
                 """);
         jdbcTemplate.update("""
                 INSERT INTO shorts (
@@ -47,10 +50,41 @@ class CollaborationUserQueryPersistenceAdapterTest {
                     (22, 11, 1, 'OWNER', CURRENT_TIMESTAMP),
                     (23, 11, 3, 'COMPOSER', CURRENT_TIMESTAMP)
                 """);
+        jdbcTemplate.update("""
+                INSERT INTO projects (
+                    id, owner_id, title, album_image_file_id, bpm,
+                    time_signature_numerator, time_signature_denominator, ppq,
+                    max_duration_ms, major_version, minor_version, status,
+                    is_public, created_at
+                ) VALUES (
+                    30, 1, 'collaboration', 100, 120,
+                    4, 4, 480, 60000, 1, 1, 'IN_PROGRESS',
+                    false, CURRENT_TIMESTAMP
+                )
+                """);
+        jdbcTemplate.update("""
+                INSERT INTO project_members (id, project_id, user_id, role, joined_at)
+                VALUES
+                    (40, 30, 1, 'OWNER', CURRENT_TIMESTAMP),
+                    (41, 30, 4, 'EDITOR', CURRENT_TIMESTAMP)
+                """);
+        jdbcTemplate.update("""
+                INSERT INTO project_contributions (
+                    id, project_id, user_id, base_major_version, base_minor_version,
+                    approval_status, created_at
+                ) VALUES
+                    (50, 30, 5, 1, 1, 'APPROVED', CURRENT_TIMESTAMP),
+                    (51, 30, 6, 1, 1, 'REJECTED', CURRENT_TIMESTAMP)
+                """);
     }
 
     @Test
     void 같은_숏폼에_참여한_다른_유저만_조회한다() {
-        assertThat(adapter.findCollaboratorIds(1L)).containsExactly(2L);
+        assertThat(adapter.findCollaboratorIds(1L)).containsExactly(2L, 4L, 5L);
+    }
+
+    @Test
+    void 승인된_기여자는_같은_프로젝트_참여자를_협업자로_조회한다() {
+        assertThat(adapter.findCollaboratorIds(5L)).containsExactly(1L, 4L);
     }
 }

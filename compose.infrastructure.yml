@@ -1,0 +1,75 @@
+name: adlips-infrastructure
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB must be set}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER must be set}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+      TZ: ${TZ:-Asia/Seoul}
+    command:
+      - postgres
+      - -c
+      - password_encryption=scram-sha-256
+      - -c
+      - timezone=${TZ:-Asia/Seoul}
+    ports:
+      - "${PRIVATE_BIND_ADDRESS:?PRIVATE_BIND_ADDRESS must be set}:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 60s
+    networks:
+      - infrastructure
+
+  redis:
+    image: redis:8.10.1-alpine
+    restart: unless-stopped
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?REDIS_PASSWORD must be set}
+      TZ: ${TZ:-Asia/Seoul}
+    command:
+      - sh
+      - -c
+      - >-
+        exec redis-server
+        --appendonly yes
+        --appendfsync everysec
+        --maxmemory-policy noeviction
+        --requirepass "$$REDIS_PASSWORD"
+    ports:
+      - "${PRIVATE_BIND_ADDRESS:?PRIVATE_BIND_ADDRESS must be set}:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 30s
+    networks:
+      - infrastructure
+
+networks:
+  infrastructure:
+    name: adlips-infrastructure
+    driver: bridge
+
+volumes:
+  postgres-data:
+    name: adlips-postgres-data
+  redis-data:
+    name: adlips-redis-data

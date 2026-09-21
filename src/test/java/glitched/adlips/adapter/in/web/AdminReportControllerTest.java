@@ -1,6 +1,7 @@
 package glitched.adlips.adapter.in.web;
 
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -11,14 +12,19 @@ import glitched.adlips.adapter.out.token.JwtTokenIssuerAdapter;
 import glitched.adlips.application.report.usecase.ReportResolutionApplicationException;
 import glitched.adlips.application.report.usecase.ReportResolutionErrorCode;
 import glitched.adlips.application.report.usecase.ReportResolutionResult;
+import glitched.adlips.application.report.usecase.GetReportsUseCase;
+import glitched.adlips.application.report.usecase.ReportQueryResult;
 import glitched.adlips.application.report.usecase.RejectReportUseCase;
 import glitched.adlips.application.report.usecase.ResolveReportUseCase;
+import glitched.adlips.application.report.port.out.ReportQueryItem;
+import glitched.adlips.application.report.port.out.ReportUserSummary;
 import glitched.adlips.application.user.account.port.out.AccessTokenPort;
 import glitched.adlips.domain.report.ModerationActionType;
 import glitched.adlips.domain.report.ReportStatus;
 import glitched.adlips.domain.report.ReportTargetType;
 import glitched.adlips.global.config.SecurityConfig;
 import java.time.LocalDateTime;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -37,6 +43,7 @@ class AdminReportControllerTest {
 
     @MockitoBean ResolveReportUseCase resolveReportUseCase;
     @MockitoBean RejectReportUseCase rejectReportUseCase;
+    @MockitoBean GetReportsUseCase getReportsUseCase;
     @MockitoBean AuthenticatedUserResolver authenticatedUserResolver;
     @MockitoBean AccessTokenPort accessTokenPort;
 
@@ -69,6 +76,41 @@ class AdminReportControllerTest {
                 .andExpect(jsonPath("$.data.handledAt").value("2026-06-24T14:40:00"))
                 .andExpect(jsonPath("$.data.targetType").value("SHORT"))
                 .andExpect(jsonPath("$.data.targetId").value(12));
+    }
+
+    @Test
+    void 통합_신고_목록을_cursor_기반으로_조회한다() throws Exception {
+        ReportQueryItem item = new ReportQueryItem(
+                101L,
+                ReportTargetType.POST,
+                452L,
+                "/posts/452",
+                false,
+                "영리목적/홍보성",
+                "광고성 게시글로 보입니다.",
+                LocalDateTime.of(2026, 6, 24, 14, 30),
+                new ReportUserSummary(45L, "report_user"),
+                new ReportUserSummary(99L, "bad_user"),
+                "신고 대상 게시글 본문 일부..."
+        );
+        when(getReportsUseCase.execute(2L, "PENDING", "POST", 102L, 20))
+                .thenReturn(new ReportQueryResult(List.of(item), null, false));
+
+        mockMvc.perform(get("/api/v1/admin/reports")
+                        .header("Authorization", "Bearer " + validToken)
+                        .param("status", "PENDING")
+                        .param("targetType", "POST")
+                        .param("cursor", "102")
+                        .param("size", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.message").value("통합 신고 목록 조회가 완료되었습니다."))
+                .andExpect(jsonPath("$.data.content[0].reportId").value(101))
+                .andExpect(jsonPath("$.data.content[0].targetType").value("POST"))
+                .andExpect(jsonPath("$.data.content[0].targetUrl").value("/posts/452"))
+                .andExpect(jsonPath("$.data.content[0].reporter.nickname").value("report_user"))
+                .andExpect(jsonPath("$.data.content[0].reportedUser.nickname").value("bad_user"))
+                .andExpect(jsonPath("$.data.hasNext").value(false));
     }
 
     @Test

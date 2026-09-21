@@ -82,7 +82,7 @@ public class Report extends BaseTimeEntity {
         return id;
     }
 
-    public Long getReporterId() {
+    public Long reporterId() {
         return reporter.getId();
     }
 

@@ -71,7 +71,7 @@ public class ReportQueryPersistenceAdapter implements ReportQueryPort {
                 report.getReason(),
                 report.getDescription(),
                 report.getCreatedAt(),
-                userSummary(report.getReporterId()),
+                userSummary(report.reporterId()),
                 target.userId() == null
                         ? null
                         : new ReportUserSummary(target.userId(), target.nickname()),

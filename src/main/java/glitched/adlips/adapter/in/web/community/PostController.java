@@ -66,7 +66,8 @@ public class PostController {
             @RequestBody PostCreateRequest request
     ) {
         Long userId = authenticatedUserResolver.requireUserId(authorization);
-        PostResult result = createPostUseCase.execute(galleryId, userId, request.title(), request.content());
+        PostResult result = createPostUseCase.execute(
+                galleryId, userId, request.title(), request.content(), request.imageFileId());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("게시글이 성공적으로 등록되었습니다.", PostCreateResponse.from(result)));
     }

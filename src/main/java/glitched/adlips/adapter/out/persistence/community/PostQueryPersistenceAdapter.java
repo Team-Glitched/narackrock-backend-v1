@@ -15,13 +15,15 @@ import org.springframework.stereotype.Repository;
 public class PostQueryPersistenceAdapter implements PostQueryPort {
 
     private static final String SELECT_POST = """
-            SELECT p.id, p.gallery_id, g.name, p.user_id, pr.nickname, media.file_url,
-                   p.title, p.content, p.view_count, p.like_count, p.dislike_count, p.comment_count,
+            SELECT p.id, p.gallery_id, g.name, p.user_id, pr.nickname, profile_media.file_url,
+                   p.title, p.content, post_media.file_url,
+                   p.view_count, p.like_count, p.dislike_count, p.comment_count,
                    FALSE, FALSE, p.created_at, p.updated_at
               FROM posts p
               JOIN galleries g ON g.id = p.gallery_id
          LEFT JOIN profiles pr ON pr.user_id = p.user_id
-         LEFT JOIN media_files media ON media.id = pr.profile_image_file_id
+         LEFT JOIN media_files profile_media ON profile_media.id = pr.profile_image_file_id
+         LEFT JOIN media_files post_media ON post_media.id = p.image_file_id
             """;
 
     private final GalleryJpaRepository galleryRepository;
@@ -138,14 +140,15 @@ public class PostQueryPersistenceAdapter implements PostQueryPort {
                 nullableString(row[5]),
                 stringValue(row[6]),
                 stringValue(row[7]),
-                intValue(row[8]),
+                nullableString(row[8]),
                 intValue(row[9]),
                 intValue(row[10]),
                 intValue(row[11]),
-                booleanValue(row[12]),
+                intValue(row[12]),
                 booleanValue(row[13]),
-                localDateTime(row[14]),
-                nullableLocalDateTime(row[15]));
+                booleanValue(row[14]),
+                localDateTime(row[15]),
+                nullableLocalDateTime(row[16]));
     }
 
     private static Long longValue(Object value) {

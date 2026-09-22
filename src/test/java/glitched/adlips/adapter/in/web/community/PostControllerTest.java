@@ -60,13 +60,13 @@ class PostControllerTest {
 
     @Test
     void 게시글_생성시_201과_결과를_반환한다() throws Exception {
-        when(createPostUseCase.execute(10L, 1L, "제목", "내용"))
+        when(createPostUseCase.execute(10L, 1L, "제목", "내용", 100L))
                 .thenReturn(new PostResult(501L, 10L));
 
         mockMvc.perform(post("/api/v1/galleries/10/posts")
                         .header("Authorization", "Bearer " + validToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"title\":\"제목\",\"content\":\"내용\"}"))
+                        .content("{\"title\":\"제목\",\"content\":\"내용\",\"imageFileId\":100}"))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.postId").value(501));
@@ -74,7 +74,7 @@ class PostControllerTest {
 
     @Test
     void 게시글_생성시_제목이_공백이면_400을_반환한다() throws Exception {
-        when(createPostUseCase.execute(10L, 1L, "  ", "내용")).thenThrow(
+        when(createPostUseCase.execute(10L, 1L, "  ", "내용", null)).thenThrow(
                 new PostApplicationException(PostErrorCode.VALIDATION_ERROR, "제목은 필수 입력 사항입니다."));
 
         mockMvc.perform(post("/api/v1/galleries/10/posts")
@@ -87,7 +87,7 @@ class PostControllerTest {
 
     @Test
     void 게시글_생성시_존재하지_않는_갤러리면_404를_반환한다() throws Exception {
-        when(createPostUseCase.execute(999L, 1L, "제목", "내용")).thenThrow(
+        when(createPostUseCase.execute(999L, 1L, "제목", "내용", null)).thenThrow(
                 new PostApplicationException(PostErrorCode.GALLERY_NOT_FOUND, "존재하지 않는 갤러리에는 게시글을 작성할 수 없습니다."));
 
         mockMvc.perform(post("/api/v1/galleries/999/posts")
@@ -110,6 +110,7 @@ class PostControllerTest {
     void 게시글_목록_조회시_인증없이도_200과_목록을_반환한다() throws Exception {
         PostQueryItem item = new PostQueryItem(
                 501L, 10L, 1L, "writer", "https://cdn.test/img.png", "제목", "내용",
+                "https://cdn.test/post-image.png",
                 3, 2, 0, 1, LocalDateTime.of(2026, 8, 23, 10, 0));
         when(getPostsUseCase.execute(10L, 0, 20, null, "LATEST"))
                 .thenReturn(new PostListResult(10L, 1L, List.of(item)));
@@ -121,7 +122,8 @@ class PostControllerTest {
                 .andExpect(jsonPath("$.data.totalCount").value(1))
                 .andExpect(jsonPath("$.data.posts[0].postId").value(501))
                 .andExpect(jsonPath("$.data.posts[0].writer.nickname").value("writer"))
-                .andExpect(jsonPath("$.data.posts[0].title").value("제목"));
+                .andExpect(jsonPath("$.data.posts[0].title").value("제목"))
+                .andExpect(jsonPath("$.data.posts[0].imageUrl").value("https://cdn.test/post-image.png"));
     }
 
     @Test
@@ -138,6 +140,7 @@ class PostControllerTest {
     void 게시글_상세_조회시_인증된_사용자에게_200과_상세정보를_반환한다() throws Exception {
         PostQueryItem item = new PostQueryItem(
                 501L, 10L, 1L, "writer", null, "제목", "내용",
+                "https://cdn.test/post-image.png",
                 3, 2, 0, 1, LocalDateTime.of(2026, 8, 23, 10, 0));
         when(getPostUseCase.execute(501L, 1L)).thenReturn(item);
 
@@ -146,7 +149,8 @@ class PostControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.postId").value(501))
                 .andExpect(jsonPath("$.data.content").value("내용"))
-                .andExpect(jsonPath("$.data.writer.userId").value(1));
+                .andExpect(jsonPath("$.data.writer.userId").value(1))
+                .andExpect(jsonPath("$.data.imageUrl").value("https://cdn.test/post-image.png"));
     }
 
     @Test

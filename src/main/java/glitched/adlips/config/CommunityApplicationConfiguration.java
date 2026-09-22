@@ -25,6 +25,7 @@ import glitched.adlips.application.report.port.out.ReportSubmissionPort;
 import glitched.adlips.application.report.port.out.ReportTargetQueryPort;
 import glitched.adlips.application.report.port.out.ReportUserRestrictionPort;
 import glitched.adlips.application.report.usecase.SubmitReportUseCase;
+import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -60,10 +61,12 @@ public class CommunityApplicationConfiguration {
     CreatePostUseCase createPostUseCase(
             PostPort postPort,
             UserBanQueryPort userBanQueryPort,
+            MediaFileRepositoryPort mediaFileRepository,
             TransactionRunner transactionRunner,
             Clock clock
     ) {
-        return new CreatePostUseCase(postPort, userBanQueryPort, transactionRunner, clock);
+        return new CreatePostUseCase(
+                postPort, userBanQueryPort, mediaFileRepository, transactionRunner, clock);
     }
 
     @Bean

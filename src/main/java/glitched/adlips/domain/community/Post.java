@@ -36,6 +36,9 @@ public class Post extends BaseTimeEntity {
     @Column(name = "content", nullable = false, columnDefinition = "TEXT")
     private String content;
 
+    @Column(name = "image_file_id")
+    private Long imageFileId;
+
     @Column(name = "view_count", nullable = false)
     private int viewCount;
 
@@ -55,10 +58,15 @@ public class Post extends BaseTimeEntity {
     }
 
     public Post(Gallery gallery, User user, String title, String content) {
+        this(gallery, user, title, content, null);
+    }
+
+    public Post(Gallery gallery, User user, String title, String content, Long imageFileId) {
         this.gallery = Objects.requireNonNull(gallery, "gallery must not be null");
         this.user = Objects.requireNonNull(user, "user must not be null");
         this.title = requireTitle(title);
         this.content = requireContent(content);
+        this.imageFileId = imageFileId;
     }
 
     private static String requireTitle(String title) {
@@ -95,6 +103,10 @@ public class Post extends BaseTimeEntity {
 
     public String getContent() {
         return content;
+    }
+
+    public Long getImageFileId() {
+        return imageFileId;
     }
 
     public int getViewCount() {

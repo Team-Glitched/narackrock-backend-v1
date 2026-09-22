@@ -6,7 +6,7 @@ import java.util.Optional;
 public interface PostPort {
     boolean existsGallery(Long galleryId);
 
-    Long save(Long galleryId, Long userId, String title, String content);
+    Long save(Long galleryId, Long userId, String title, String content, Long imageFileId);
 
     Optional<Post> findActivePost(Long postId);
 

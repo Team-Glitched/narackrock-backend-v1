@@ -9,6 +9,7 @@ import glitched.adlips.application.community.port.out.PostPort;
 import glitched.adlips.application.community.port.out.PostQueryPort;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
+import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import java.time.Clock;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -20,10 +21,12 @@ public class CommunityApplicationConfiguration {
     CreatePostUseCase createPostUseCase(
             PostPort postPort,
             UserBanQueryPort userBanQueryPort,
+            MediaFileRepositoryPort mediaFileRepository,
             TransactionRunner transactionRunner,
             Clock clock
     ) {
-        return new CreatePostUseCase(postPort, userBanQueryPort, transactionRunner, clock);
+        return new CreatePostUseCase(
+                postPort, userBanQueryPort, mediaFileRepository, transactionRunner, clock);
     }
 
     @Bean

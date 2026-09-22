@@ -45,10 +45,11 @@ class PostPersistenceAdapterTest {
 
     @Test
     void 게시글을_저장하면_생성된_id를_반환한다() {
-        Long postId = adapter.save(10L, 1L, "제목", "내용");
+        Long postId = adapter.save(10L, 1L, "제목", "내용", 100L);
         entityManager.flush();
 
         assertThat(postId).isNotNull();
+        assertThat(postRepository.findById(postId).orElseThrow().getImageFileId()).isEqualTo(100L);
     }
 
     @Test

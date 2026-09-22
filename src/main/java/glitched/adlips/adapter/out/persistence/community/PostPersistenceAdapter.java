@@ -31,10 +31,10 @@ public class PostPersistenceAdapter implements PostPort {
     }
 
     @Override
-    public Long save(Long galleryId, Long userId, String title, String content) {
+    public Long save(Long galleryId, Long userId, String title, String content, Long imageFileId) {
         Gallery gallery = entityManager.getReference(Gallery.class, galleryId);
         User user = entityManager.getReference(User.class, userId);
-        Post saved = postRepository.save(new Post(gallery, user, title, content));
+        Post saved = postRepository.save(new Post(gallery, user, title, content, imageFileId));
         return saved.getId();
     }
 

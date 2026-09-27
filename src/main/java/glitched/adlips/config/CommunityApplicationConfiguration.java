@@ -8,6 +8,7 @@ import glitched.adlips.application.community.port.out.PostCommentQueryPort;
 import glitched.adlips.application.community.CreatePostUseCase;
 import glitched.adlips.application.community.DeletePostUseCase;
 import glitched.adlips.application.community.GetGalleriesUseCase;
+import glitched.adlips.application.community.GetPopularPostsUseCase;
 import glitched.adlips.application.community.GetPostUseCase;
 import glitched.adlips.application.community.GetPostsUseCase;
 import glitched.adlips.application.community.GetSubscribedGalleriesUseCase;
@@ -113,6 +114,11 @@ public class CommunityApplicationConfiguration {
     @Bean
     GetPostsUseCase getPostsUseCase(PostQueryPort postQueryPort, TransactionRunner transactionRunner) {
         return new GetPostsUseCase(postQueryPort, transactionRunner);
+    }
+
+    @Bean
+    GetPopularPostsUseCase getPopularPostsUseCase(PostQueryPort postQueryPort, TransactionRunner transactionRunner) {
+        return new GetPopularPostsUseCase(postQueryPort, transactionRunner);
     }
 
     @Bean

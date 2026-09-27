@@ -90,6 +90,23 @@ public class PostQueryPersistenceAdapter implements PostQueryPort {
     }
 
     @Override
+    public List<PostQueryItem> findPopularPosts(int page, int size) {
+        String sql = SELECT_POST + " WHERE p.deleted_at IS NULL ORDER BY " + orderBy(PostSort.POPULAR);
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery(sql)
+                .setFirstResult(page * size)
+                .setMaxResults(size)
+                .getResultList();
+        return rows.stream().map(this::toQueryItem).toList();
+    }
+
+    @Override
+    public long countAllPosts() {
+        return ((Number) entityManager.createNativeQuery("SELECT COUNT(*) FROM posts WHERE deleted_at IS NULL")
+                .getSingleResult()).longValue();
+    }
+
+    @Override
     public Optional<String> findGalleryName(Long galleryId) {
         return galleryRepository.findById(galleryId).map(glitched.adlips.domain.community.Gallery::getName);
     }

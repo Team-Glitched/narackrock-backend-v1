@@ -15,10 +15,13 @@ public record PostListResponse(
         List<PostItem> posts
 ) {
 
+    private static final int CONTENT_PREVIEW_LENGTH = 100;
+
     public record PostItem(
             Long postId,
             Writer writer,
             String title,
+            String contentPreview,
             String imageUrl,
             int viewCount,
             int likeCount,
@@ -44,10 +47,21 @@ public record PostListResponse(
                 item.postId(),
                 new Writer(item.userId(), item.nickname(), item.profileImageUrl()),
                 item.title(),
+                toContentPreview(item.content()),
                 item.imageUrl(),
                 item.viewCount(),
                 item.likeCount(),
                 item.commentCount(),
                 item.createdAt());
+    }
+
+    private static String toContentPreview(String content) {
+        if (content == null) {
+            return "";
+        }
+        if (content.codePointCount(0, content.length()) <= CONTENT_PREVIEW_LENGTH) {
+            return content;
+        }
+        return content.substring(0, content.offsetByCodePoints(0, CONTENT_PREVIEW_LENGTH)) + "…";
     }
 }

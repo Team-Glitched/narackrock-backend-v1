@@ -9,6 +9,7 @@ import glitched.adlips.application.community.CreatePostUseCase;
 import glitched.adlips.application.community.DeletePostUseCase;
 import glitched.adlips.application.community.GetGalleriesUseCase;
 import glitched.adlips.application.community.GetPopularPostsUseCase;
+import glitched.adlips.application.community.GetPostShareUseCase;
 import glitched.adlips.application.community.GetPostUseCase;
 import glitched.adlips.application.community.GetPostsUseCase;
 import glitched.adlips.application.community.GetSubscribedGalleriesUseCase;
@@ -26,6 +27,8 @@ import glitched.adlips.application.community.port.out.PostCommentReactionPort;
 import glitched.adlips.application.community.port.out.PostPort;
 import glitched.adlips.application.community.port.out.PostQueryPort;
 import glitched.adlips.application.community.port.out.PostReactionPort;
+import glitched.adlips.application.community.port.out.PostShareLinkPort;
+import glitched.adlips.application.community.port.out.PostSharePort;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.report.port.out.ReportSubmissionPort;
@@ -121,6 +124,11 @@ public class CommunityApplicationConfiguration {
     @Bean
     GetPopularPostsUseCase getPopularPostsUseCase(PostQueryPort postQueryPort, TransactionRunner transactionRunner) {
         return new GetPopularPostsUseCase(postQueryPort, transactionRunner);
+    }
+
+    @Bean
+    GetPostShareUseCase getPostShareUseCase(PostSharePort postSharePort, PostShareLinkPort postShareLinkPort) {
+        return new GetPostShareUseCase(postSharePort, postShareLinkPort);
     }
 
     @Bean

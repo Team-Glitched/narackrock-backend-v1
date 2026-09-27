@@ -36,7 +36,7 @@ class PopularPostControllerTest {
     void 인기글은_인증없이_갤러리_정보와_함께_조회된다() throws Exception {
         PostQueryItem item = new PostQueryItem(
                 501L, 10L, "음악", 1L, "writer", null, "제목", "내용", null,
-                3, 9, 0, 2, false, false, LocalDateTime.of(2026, 9, 27, 10, 0), null);
+                3, 9, 0, 2, false, false, false, LocalDateTime.of(2026, 9, 27, 10, 0), null);
         when(getPopularPostsUseCase.execute(0, 20)).thenReturn(new PopularPostListResult(0, 20, 1L, List.of(item)));
 
         mockMvc.perform(get("/api/v1/posts/popular"))

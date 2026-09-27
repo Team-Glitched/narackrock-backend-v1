@@ -18,6 +18,7 @@ public record PostQueryItem(
         int commentCount,
         boolean liked,
         boolean disliked,
+        boolean bookmarked,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -37,7 +38,7 @@ public record PostQueryItem(
             LocalDateTime createdAt
     ) {
         this(postId, galleryId, null, userId, nickname, profileImageUrl, title, content, imageUrl,
-                viewCount, likeCount, dislikeCount, commentCount, false, false, createdAt, null);
+                viewCount, likeCount, dislikeCount, commentCount, false, false, false, createdAt, null);
     }
 
     public PostQueryItem(

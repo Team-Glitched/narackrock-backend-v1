@@ -200,6 +200,21 @@ class PostControllerTest {
     }
 
     @Test
+    void 게시글_상세_조회시_조회자의_반응과_북마크_상태를_반환한다() throws Exception {
+        PostQueryItem item = new PostQueryItem(
+                501L, 10L, "자유", 1L, "writer", null, "제목", "내용", null,
+                3, 2, 0, 1, true, false, true, LocalDateTime.of(2026, 8, 23, 10, 0), null);
+        when(getPostUseCase.execute(501L, 1L)).thenReturn(item);
+
+        mockMvc.perform(get("/api/v1/posts/501")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.isLiked").value(true))
+                .andExpect(jsonPath("$.data.isDisliked").value(false))
+                .andExpect(jsonPath("$.data.isBookmarked").value(true));
+    }
+
+    @Test
     void 게시글_상세_조회시_인증없는_요청은_401을_반환한다() throws Exception {
         mockMvc.perform(get("/api/v1/posts/501"))
                 .andExpect(status().isUnauthorized());

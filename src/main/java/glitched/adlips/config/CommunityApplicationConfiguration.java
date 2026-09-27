@@ -13,12 +13,14 @@ import glitched.adlips.application.community.GetPostUseCase;
 import glitched.adlips.application.community.GetPostsUseCase;
 import glitched.adlips.application.community.GetSubscribedGalleriesUseCase;
 import glitched.adlips.application.community.SubscribeGalleryUseCase;
+import glitched.adlips.application.community.TogglePostBookmarkUseCase;
 import glitched.adlips.application.community.TogglePostCommentReactionUseCase;
 import glitched.adlips.application.community.TogglePostReactionUseCase;
 import glitched.adlips.application.community.UnsubscribeGalleryUseCase;
 import glitched.adlips.application.community.UpdatePostUseCase;
 import glitched.adlips.application.community.port.out.GalleryQueryPort;
 import glitched.adlips.application.community.port.out.GallerySubscriptionPort;
+import glitched.adlips.application.community.port.out.PostBookmarkPort;
 import glitched.adlips.application.community.port.out.PostCommentPort;
 import glitched.adlips.application.community.port.out.PostCommentReactionPort;
 import glitched.adlips.application.community.port.out.PostPort;
@@ -160,6 +162,14 @@ public class CommunityApplicationConfiguration {
     ) {
         return new TogglePostCommentReactionUseCase(
                 postCommentReactionPort, userBanQueryPort, transactionRunner, clock);
+    }
+
+    @Bean
+    TogglePostBookmarkUseCase togglePostBookmarkUseCase(
+            PostBookmarkPort postBookmarkPort,
+            TransactionRunner transactionRunner
+    ) {
+        return new TogglePostBookmarkUseCase(postBookmarkPort, transactionRunner);
     }
 
     @Bean

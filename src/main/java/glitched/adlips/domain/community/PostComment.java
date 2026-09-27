@@ -40,6 +40,13 @@ public class PostComment extends BaseTimeEntity {
     @Column(name = "reply_count", nullable = false)
     private int replyCount;
 
+    // 기존 댓글 행이 있는 DB에도 컬럼을 추가할 수 있도록 기본값을 둔다.
+    @Column(name = "like_count", nullable = false, columnDefinition = "integer default 0")
+    private int likeCount;
+
+    @Column(name = "dislike_count", nullable = false, columnDefinition = "integer default 0")
+    private int dislikeCount;
+
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
 
@@ -91,6 +98,14 @@ public class PostComment extends BaseTimeEntity {
 
     public int getReplyCount() {
         return replyCount;
+    }
+
+    public int getLikeCount() {
+        return likeCount;
+    }
+
+    public int getDislikeCount() {
+        return dislikeCount;
     }
 
     public LocalDateTime getDeletedAt() {

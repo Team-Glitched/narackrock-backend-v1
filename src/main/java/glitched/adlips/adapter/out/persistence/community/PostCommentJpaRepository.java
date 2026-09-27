@@ -1,8 +1,11 @@
 package glitched.adlips.adapter.out.persistence.community;
 
+import glitched.adlips.application.community.port.out.ReactionCounts;
 import glitched.adlips.domain.community.PostComment;
+import jakarta.persistence.LockModeType;
 import java.util.Optional;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -31,4 +34,28 @@ interface PostCommentJpaRepository extends JpaRepository<PostComment, Long> {
     int softDeleteActiveReplies(
             @Param("parentId") Long parentId,
             @Param("deletedAt") java.time.LocalDateTime deletedAt);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            SELECT c FROM PostComment c
+             WHERE c.id = :id AND c.deletedAt IS NULL AND c.post.deletedAt IS NULL
+            """)
+    Optional<PostComment> findActiveByIdForUpdate(@Param("id") Long id);
+
+    @Modifying
+    @Query("""
+            UPDATE PostComment c
+               SET c.likeCount = c.likeCount + :likeDelta,
+                   c.dislikeCount = c.dislikeCount + :dislikeDelta
+             WHERE c.id = :id
+            """)
+    void adjustReactionCounts(
+            @Param("id") Long id, @Param("likeDelta") int likeDelta, @Param("dislikeDelta") int dislikeDelta);
+
+    @Query("""
+            SELECT new glitched.adlips.application.community.port.out.ReactionCounts(c.likeCount, c.dislikeCount)
+              FROM PostComment c
+             WHERE c.id = :id
+            """)
+    Optional<ReactionCounts> findReactionCounts(@Param("id") Long id);
 }

@@ -12,12 +12,14 @@ import glitched.adlips.application.community.GetPostUseCase;
 import glitched.adlips.application.community.GetPostsUseCase;
 import glitched.adlips.application.community.GetSubscribedGalleriesUseCase;
 import glitched.adlips.application.community.SubscribeGalleryUseCase;
+import glitched.adlips.application.community.TogglePostCommentReactionUseCase;
 import glitched.adlips.application.community.TogglePostReactionUseCase;
 import glitched.adlips.application.community.UnsubscribeGalleryUseCase;
 import glitched.adlips.application.community.UpdatePostUseCase;
 import glitched.adlips.application.community.port.out.GalleryQueryPort;
 import glitched.adlips.application.community.port.out.GallerySubscriptionPort;
 import glitched.adlips.application.community.port.out.PostCommentPort;
+import glitched.adlips.application.community.port.out.PostCommentReactionPort;
 import glitched.adlips.application.community.port.out.PostPort;
 import glitched.adlips.application.community.port.out.PostQueryPort;
 import glitched.adlips.application.community.port.out.PostReactionPort;
@@ -141,6 +143,17 @@ public class CommunityApplicationConfiguration {
             Clock clock
     ) {
         return new TogglePostReactionUseCase(postReactionPort, userBanQueryPort, transactionRunner, clock);
+    }
+
+    @Bean
+    TogglePostCommentReactionUseCase togglePostCommentReactionUseCase(
+            PostCommentReactionPort postCommentReactionPort,
+            UserBanQueryPort userBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new TogglePostCommentReactionUseCase(
+                postCommentReactionPort, userBanQueryPort, transactionRunner, clock);
     }
 
     @Bean

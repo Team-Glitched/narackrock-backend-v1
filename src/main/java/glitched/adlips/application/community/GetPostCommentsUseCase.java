@@ -12,7 +12,7 @@ public class GetPostCommentsUseCase {
         this.transactionRunner = transactionRunner;
     }
 
-    public PostCommentListResult execute(Long postId, Long parentCommentId, int page, int size) {
+    public PostCommentListResult execute(Long postId, Long viewerId, Long parentCommentId, int page, int size) {
         if (page < 0 || size < 1 || size > 100 || (long) page * size > Integer.MAX_VALUE) {
             throw new PostCommentApplicationException(PostCommentErrorCode.INVALID_INPUT_VALUE,
                     "페이지 번호와 크기를 확인해 주세요.");
@@ -28,7 +28,7 @@ public class GetPostCommentsUseCase {
             }
             return new PostCommentListResult(postId, parentCommentId, page, size,
                     port.countComments(postId, parentCommentId),
-                    port.findComments(postId, parentCommentId, page, size));
+                    port.findComments(postId, viewerId, parentCommentId, page, size));
         });
     }
 }

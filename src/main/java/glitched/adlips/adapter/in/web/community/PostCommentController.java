@@ -74,9 +74,9 @@ public class PostCommentController {
             @RequestParam(required = false) Long parentCommentId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        authenticatedUserResolver.requireUserId(authorization);
-        return ApiResponse.success("댓글 목록을 조회했습니다.",
-                PostCommentListResponse.from(getPostCommentsUseCase.execute(postId, parentCommentId, page, size)));
+        Long userId = authenticatedUserResolver.requireUserId(authorization);
+        return ApiResponse.success("댓글 목록을 조회했습니다.", PostCommentListResponse.from(
+                getPostCommentsUseCase.execute(postId, userId, parentCommentId, page, size)));
     }
 
     // 댓글 id가 전역 고유해서 사양상 postId를 경로에 두지 않는다.

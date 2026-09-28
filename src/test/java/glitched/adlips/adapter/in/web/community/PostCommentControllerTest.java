@@ -40,12 +40,28 @@ class PostCommentControllerTest {
 
     @Test
     void 댓글_조회_페이지를_반환한다() throws Exception {
-        when(getPostCommentsUseCase.execute(10L, null, 0, 20)).thenReturn(
+        when(getPostCommentsUseCase.execute(10L, 1L, null, 0, 20)).thenReturn(
                 new glitched.adlips.application.community.PostCommentListResult(10L, null, 0, 20, 0, java.util.List.of()));
         mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/posts/10/comments")
                         .header("Authorization", "Bearer " + validToken))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.data.totalCount").value(0))
                 .andExpect(jsonPath("$.data.comments").isArray());
+    }
+
+    @Test
+    void 댓글_조회는_반응_수와_조회자의_반응을_함께_반환한다() throws Exception {
+        var comment = new glitched.adlips.application.community.port.out.PostCommentQueryItem(
+                30L, null, 2L, "writer", null, "댓글", 0, 3, 1, true, false,
+                java.time.LocalDateTime.of(2026, 9, 27, 10, 0));
+        when(getPostCommentsUseCase.execute(10L, 1L, null, 0, 20)).thenReturn(
+                new glitched.adlips.application.community.PostCommentListResult(10L, null, 0, 20, 1, java.util.List.of(comment)));
+        mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/v1/posts/10/comments")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.comments[0].likeCount").value(3))
+                .andExpect(jsonPath("$.data.comments[0].dislikeCount").value(1))
+                .andExpect(jsonPath("$.data.comments[0].isLiked").value(true))
+                .andExpect(jsonPath("$.data.comments[0].isDisliked").value(false));
     }
 
     @Autowired MockMvc mockMvc;

@@ -123,7 +123,53 @@ class PostControllerTest {
                 .andExpect(jsonPath("$.data.posts[0].postId").value(501))
                 .andExpect(jsonPath("$.data.posts[0].writer.nickname").value("writer"))
                 .andExpect(jsonPath("$.data.posts[0].title").value("제목"))
-                .andExpect(jsonPath("$.data.posts[0].imageUrl").value("https://cdn.test/post-image.png"));
+                .andExpect(jsonPath("$.data.posts[0].imageUrl").value("https://cdn.test/post-image.png"))
+                .andExpect(jsonPath("$.data.posts[0].contentPreview").value("내용"));
+    }
+
+    @Test
+    void 게시글_목록_조회시_본문이_100자이면_요약을_그대로_반환한다() throws Exception {
+        String content = "가".repeat(100);
+        stubPostListWithContent(content);
+
+        mockMvc.perform(get("/api/v1/galleries/10/posts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.posts[0].contentPreview").value(content));
+    }
+
+    @Test
+    void 게시글_목록_조회시_본문이_100자를_넘으면_100자와_말줄임표를_반환한다() throws Exception {
+        stubPostListWithContent("가".repeat(100) + "나");
+
+        mockMvc.perform(get("/api/v1/galleries/10/posts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.posts[0].contentPreview").value("가".repeat(100) + "…"));
+    }
+
+    @Test
+    void 게시글_목록_조회시_본문_요약은_이모지를_한_글자로_센다() throws Exception {
+        stubPostListWithContent("🎵".repeat(101));
+
+        mockMvc.perform(get("/api/v1/galleries/10/posts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.posts[0].contentPreview").value("🎵".repeat(100) + "…"));
+    }
+
+    @Test
+    void 게시글_목록_조회시_본문이_없으면_빈_요약을_반환한다() throws Exception {
+        stubPostListWithContent(null);
+
+        mockMvc.perform(get("/api/v1/galleries/10/posts"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.posts[0].contentPreview").value(""));
+    }
+
+    private void stubPostListWithContent(String content) {
+        PostQueryItem item = new PostQueryItem(
+                501L, 10L, 1L, "writer", null, "제목", content,
+                3, 2, 0, 1, LocalDateTime.of(2026, 8, 23, 10, 0));
+        when(getPostsUseCase.execute(10L, 0, 20, null, "LATEST"))
+                .thenReturn(new PostListResult(10L, 1L, List.of(item)));
     }
 
     @Test
@@ -151,6 +197,21 @@ class PostControllerTest {
                 .andExpect(jsonPath("$.data.content").value("내용"))
                 .andExpect(jsonPath("$.data.writer.userId").value(1))
                 .andExpect(jsonPath("$.data.imageUrl").value("https://cdn.test/post-image.png"));
+    }
+
+    @Test
+    void 게시글_상세_조회시_조회자의_반응과_북마크_상태를_반환한다() throws Exception {
+        PostQueryItem item = new PostQueryItem(
+                501L, 10L, "자유", 1L, "writer", null, "제목", "내용", null,
+                3, 2, 0, 1, true, false, true, LocalDateTime.of(2026, 8, 23, 10, 0), null);
+        when(getPostUseCase.execute(501L, 1L)).thenReturn(item);
+
+        mockMvc.perform(get("/api/v1/posts/501")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.isLiked").value(true))
+                .andExpect(jsonPath("$.data.isDisliked").value(false))
+                .andExpect(jsonPath("$.data.isBookmarked").value(true));
     }
 
     @Test

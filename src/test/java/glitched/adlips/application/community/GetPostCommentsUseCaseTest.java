@@ -13,25 +13,25 @@ class GetPostCommentsUseCaseTest {
 
     @Test void listsRootsWithTotal() {
         when(port.existsActivePost(1L)).thenReturn(true);
-        when(port.findComments(1L, null, 0, 20)).thenReturn(List.of());
+        when(port.findComments(1L, 7L, null, 0, 20)).thenReturn(List.of());
         when(port.countComments(1L, null)).thenReturn(3L);
-        assertThat(useCase.execute(1L, null, 0, 20).totalCount()).isEqualTo(3);
-        verify(port).findComments(1L, null, 0, 20);
+        assertThat(useCase.execute(1L, 7L, null, 0, 20).totalCount()).isEqualTo(3);
+        verify(port).findComments(1L, 7L, null, 0, 20);
     }
     @Test void rejectsMissingPost() {
-        assertThatThrownBy(() -> useCase.execute(1L, null, 0, 20))
+        assertThatThrownBy(() -> useCase.execute(1L, 7L, null, 0, 20))
             .isInstanceOfSatisfying(PostCommentApplicationException.class,
                 e -> assertThat(e.getErrorCode()).isEqualTo(PostCommentErrorCode.POST_NOT_FOUND));
     }
     @Test void rejectsMissingOrOtherPostsParent() {
         when(port.existsActivePost(1L)).thenReturn(true);
-        assertThatThrownBy(() -> useCase.execute(1L, 2L, 0, 20))
+        assertThatThrownBy(() -> useCase.execute(1L, 7L, 2L, 0, 20))
             .isInstanceOfSatisfying(PostCommentApplicationException.class,
                 e -> assertThat(e.getErrorCode()).isEqualTo(PostCommentErrorCode.PARENT_COMMENT_NOT_FOUND));
     }
     @Test void validatesPaginationBeforeQuerying() {
         for (int[] values : new int[][]{{-1,20},{0,0},{0,101},{Integer.MAX_VALUE,20}}) {
-            assertThatThrownBy(() -> useCase.execute(1L, null, values[0], values[1]))
+            assertThatThrownBy(() -> useCase.execute(1L, 7L, null, values[0], values[1]))
                 .isInstanceOf(PostCommentApplicationException.class);
         }
         verifyNoInteractions(port);
@@ -39,8 +39,8 @@ class GetPostCommentsUseCaseTest {
     @Test void listsReplies() {
         when(port.existsActivePost(1L)).thenReturn(true);
         when(port.existsActiveParentComment(2L, 1L)).thenReturn(true);
-        when(port.findComments(1L, 2L, 1, 10)).thenReturn(List.of());
-        useCase.execute(1L, 2L, 1, 10);
-        verify(port).findComments(1L, 2L, 1, 10);
+        when(port.findComments(1L, 7L, 2L, 1, 10)).thenReturn(List.of());
+        useCase.execute(1L, 7L, 2L, 1, 10);
+        verify(port).findComments(1L, 7L, 2L, 1, 10);
     }
 }

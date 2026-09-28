@@ -89,6 +89,27 @@ class BookmarkControllerTest {
     }
 
     @Test
+    void 명세_경로에서는_숏폼_북마크_목록_계약을_반환한다() throws Exception {
+        BookmarkedShortItem item = new BookmarkedShortItem(12L, 202L, "숏폼", "https://cdn.test/album.png",
+                "COMPLETED", 2L, "writer", null, 7, 3L, LocalDateTime.of(2026, 9, 27, 10, 0));
+        when(getBookmarkedShortsUseCase.execute(1L, 30L, 5))
+                .thenReturn(new BookmarkedShortPage(List.of(item), 12L, true, 5));
+
+        mockMvc.perform(get("/api/v1/users/me/bookmarks")
+                        .param("cursor", "30").param("size", "5")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("북마크 목록 조회가 완료되었습니다."))
+                .andExpect(jsonPath("$.data.content[0].shortId").value(202))
+                .andExpect(jsonPath("$.data.content[0].title").value("숏폼"))
+                .andExpect(jsonPath("$.data.content[0].albumImageUrl").value("https://cdn.test/album.png"))
+                .andExpect(jsonPath("$.data.nextCursor").value(12))
+                .andExpect(jsonPath("$.data.hasNext").value(true))
+                .andExpect(jsonPath("$.data.items").doesNotExist())
+                .andExpect(jsonPath("$.data.page").doesNotExist());
+    }
+
+    @Test
     void 잘못된_페이지면_400을_반환한다() throws Exception {
         when(getBookmarkedPostsUseCase.execute(1L, -1, 20)).thenThrow(
                 new BookmarkApplicationException(BookmarkErrorCode.INVALID_INPUT_VALUE, "페이지 번호와 크기를 확인해 주세요."));
@@ -103,5 +124,6 @@ class BookmarkControllerTest {
     void 인증없는_요청은_401을_반환한다() throws Exception {
         mockMvc.perform(get("/api/v1/users/me/bookmarks/posts")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/v1/users/me/bookmarks/shorts")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/users/me/bookmarks")).andExpect(status().isUnauthorized());
     }
 }

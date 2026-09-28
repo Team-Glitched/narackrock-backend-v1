@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.adapter.in.web.dto.BookmarkedPostListResponse;
 import glitched.adlips.adapter.in.web.dto.BookmarkedShortListResponse;
+import glitched.adlips.adapter.in.web.dto.ShortBookmarkListResponse;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.application.bookmark.GetBookmarkedPostsUseCase;
 import glitched.adlips.application.bookmark.GetBookmarkedShortsUseCase;
@@ -57,5 +58,17 @@ public class BookmarkController {
         return ResponseEntity.ok(ApiResponse.success(
                 "북마크한 숏폼 목록 조회가 완료되었습니다.",
                 BookmarkedShortListResponse.from(getBookmarkedShortsUseCase.execute(userId, cursor, size))));
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<ShortBookmarkListResponse>> getShortBookmarks(
+            @RequestHeader("Authorization") String authorization,
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        Long userId = authenticatedUserResolver.requireUserId(authorization);
+        return ResponseEntity.ok(ApiResponse.success(
+                "북마크 목록 조회가 완료되었습니다.",
+                ShortBookmarkListResponse.from(getBookmarkedShortsUseCase.execute(userId, cursor, size))));
     }
 }

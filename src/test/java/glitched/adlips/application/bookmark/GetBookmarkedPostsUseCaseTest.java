@@ -33,7 +33,7 @@ class GetBookmarkedPostsUseCaseTest {
 
     @Test
     void 페이지_번호와_크기가_잘못되면_조회하지_않고_INVALID_INPUT_VALUE() {
-        for (int[] values : new int[][]{{-1, 20}, {0, 0}, {0, 101}}) {
+        for (int[] values : new int[][]{{-1, 20}, {0, 0}, {0, 101}, {Integer.MAX_VALUE, 20}}) {
             assertThatThrownBy(() -> useCase.execute(1L, values[0], values[1]))
                     .isInstanceOf(BookmarkApplicationException.class)
                     .extracting("errorCode").isEqualTo(BookmarkErrorCode.INVALID_INPUT_VALUE);

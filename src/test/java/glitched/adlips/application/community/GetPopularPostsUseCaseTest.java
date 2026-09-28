@@ -32,7 +32,7 @@ class GetPopularPostsUseCaseTest {
 
     @Test
     void 페이지_번호와_크기가_잘못되면_조회하지_않고_VALIDATION_ERROR() {
-        for (int[] values : new int[][]{{-1, 20}, {0, 0}, {0, 101}}) {
+        for (int[] values : new int[][]{{-1, 20}, {0, 0}, {0, 101}, {Integer.MAX_VALUE, 20}}) {
             assertThatThrownBy(() -> useCase.execute(values[0], values[1]))
                     .isInstanceOf(PostApplicationException.class)
                     .extracting("errorCode").isEqualTo(PostErrorCode.VALIDATION_ERROR);

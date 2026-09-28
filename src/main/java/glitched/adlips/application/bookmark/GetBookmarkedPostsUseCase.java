@@ -16,7 +16,7 @@ public class GetBookmarkedPostsUseCase {
     }
 
     public BookmarkedPostListResult execute(Long userId, int page, int size) {
-        if (page < 0 || size < 1 || size > MAX_PAGE_SIZE) {
+        if (page < 0 || size < 1 || size > MAX_PAGE_SIZE || (long) page * size > Integer.MAX_VALUE) {
             throw new BookmarkApplicationException(
                     BookmarkErrorCode.INVALID_INPUT_VALUE, "페이지 번호와 크기를 확인해 주세요.");
         }

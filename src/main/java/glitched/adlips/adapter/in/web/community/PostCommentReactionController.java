@@ -32,7 +32,7 @@ public class PostCommentReactionController {
         this.authenticatedUserResolver = authenticatedUserResolver;
     }
 
-    @PostMapping("/comments/{commentId}/like")
+    @PostMapping("/comments/{commentId}/likes")
     public ResponseEntity<ApiResponse<PostCommentReactionResponse>> toggleLike(
             @PathVariable Long commentId,
             @RequestHeader("Authorization") String authorization
@@ -40,7 +40,7 @@ public class PostCommentReactionController {
         return toggle(commentId, authorization, ReactionType.LIKE, "댓글 좋아요 상태가 변경되었습니다.");
     }
 
-    @PostMapping("/comments/{commentId}/dislike")
+    @PostMapping("/comments/{commentId}/dislikes")
     public ResponseEntity<ApiResponse<PostCommentReactionResponse>> toggleDislike(
             @PathVariable Long commentId,
             @RequestHeader("Authorization") String authorization

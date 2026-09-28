@@ -31,7 +31,7 @@ public class PostReactionController {
         this.authenticatedUserResolver = authenticatedUserResolver;
     }
 
-    @PostMapping("/{postId}/like")
+    @PostMapping("/{postId}/likes")
     public ResponseEntity<ApiResponse<PostReactionResponse>> toggleLike(
             @PathVariable Long postId,
             @RequestHeader("Authorization") String authorization
@@ -39,7 +39,7 @@ public class PostReactionController {
         return toggle(postId, authorization, ReactionType.LIKE, "게시글 좋아요 상태가 변경되었습니다.");
     }
 
-    @PostMapping("/{postId}/dislike")
+    @PostMapping("/{postId}/dislikes")
     public ResponseEntity<ApiResponse<PostReactionResponse>> toggleDislike(
             @PathVariable Long postId,
             @RequestHeader("Authorization") String authorization

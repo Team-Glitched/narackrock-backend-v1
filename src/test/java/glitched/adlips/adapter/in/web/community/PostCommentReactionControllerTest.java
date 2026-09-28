@@ -47,7 +47,7 @@ class PostCommentReactionControllerTest {
         when(togglePostCommentReactionUseCase.toggle(1L, 30L, ReactionType.LIKE))
                 .thenReturn(new PostCommentReactionResult(30L, true, false, 3, 0));
 
-        mockMvc.perform(post("/api/v1/posts/comments/30/like").header("Authorization", "Bearer " + validToken))
+        mockMvc.perform(post("/api/v1/posts/comments/30/likes").header("Authorization", "Bearer " + validToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.commentId").value(30))
                 .andExpect(jsonPath("$.data.isLiked").value(true))
@@ -61,7 +61,7 @@ class PostCommentReactionControllerTest {
         when(togglePostCommentReactionUseCase.toggle(1L, 30L, ReactionType.DISLIKE))
                 .thenReturn(new PostCommentReactionResult(30L, false, true, 2, 1));
 
-        mockMvc.perform(post("/api/v1/posts/comments/30/dislike").header("Authorization", "Bearer " + validToken))
+        mockMvc.perform(post("/api/v1/posts/comments/30/dislikes").header("Authorization", "Bearer " + validToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.isDisliked").value(true))
                 .andExpect(jsonPath("$.data.dislikeCount").value(1));
@@ -72,14 +72,14 @@ class PostCommentReactionControllerTest {
         when(togglePostCommentReactionUseCase.toggle(1L, 999L, ReactionType.LIKE)).thenThrow(
                 new PostCommentApplicationException(PostCommentErrorCode.COMMENT_NOT_FOUND, "존재하지 않거나 삭제된 댓글입니다."));
 
-        mockMvc.perform(post("/api/v1/posts/comments/999/like").header("Authorization", "Bearer " + validToken))
+        mockMvc.perform(post("/api/v1/posts/comments/999/likes").header("Authorization", "Bearer " + validToken))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.errorCode").value("COMMENT_NOT_FOUND"));
     }
 
     @Test
     void 인증없는_요청은_401을_반환한다() throws Exception {
-        mockMvc.perform(post("/api/v1/posts/comments/30/like"))
+        mockMvc.perform(post("/api/v1/posts/comments/30/likes"))
                 .andExpect(status().isUnauthorized());
     }
 }

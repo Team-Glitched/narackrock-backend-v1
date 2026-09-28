@@ -47,7 +47,7 @@ class PostReactionControllerTest {
         when(togglePostReactionUseCase.toggle(1L, 10L, ReactionType.LIKE))
                 .thenReturn(new PostReactionResult(10L, true, false, 6, 2));
 
-        mockMvc.perform(post("/api/v1/posts/10/like").header("Authorization", "Bearer " + validToken))
+        mockMvc.perform(post("/api/v1/posts/10/likes").header("Authorization", "Bearer " + validToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data.postId").value(10))
@@ -62,7 +62,7 @@ class PostReactionControllerTest {
         when(togglePostReactionUseCase.toggle(1L, 10L, ReactionType.DISLIKE))
                 .thenReturn(new PostReactionResult(10L, false, true, 5, 3));
 
-        mockMvc.perform(post("/api/v1/posts/10/dislike").header("Authorization", "Bearer " + validToken))
+        mockMvc.perform(post("/api/v1/posts/10/dislikes").header("Authorization", "Bearer " + validToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.isDisliked").value(true))
                 .andExpect(jsonPath("$.data.dislikeCount").value(3));
@@ -73,14 +73,14 @@ class PostReactionControllerTest {
         when(togglePostReactionUseCase.toggle(1L, 999L, ReactionType.LIKE)).thenThrow(
                 new PostApplicationException(PostErrorCode.POST_NOT_FOUND, "존재하지 않거나 삭제된 게시글입니다."));
 
-        mockMvc.perform(post("/api/v1/posts/999/like").header("Authorization", "Bearer " + validToken))
+        mockMvc.perform(post("/api/v1/posts/999/likes").header("Authorization", "Bearer " + validToken))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.errorCode").value("POST_NOT_FOUND"));
     }
 
     @Test
     void 인증없는_요청은_401을_반환한다() throws Exception {
-        mockMvc.perform(post("/api/v1/posts/10/like"))
+        mockMvc.perform(post("/api/v1/posts/10/likes"))
                 .andExpect(status().isUnauthorized());
     }
 }

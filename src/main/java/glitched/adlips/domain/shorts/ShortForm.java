@@ -1,6 +1,7 @@
 package glitched.adlips.domain.shorts;
 
 import glitched.adlips.domain.project.Project;
+import glitched.adlips.domain.project.ProjectStatus;
 import glitched.adlips.domain.user.User;
 import glitched.adlips.global.entity.BaseTimeEntity;
 import jakarta.persistence.Column;
@@ -71,7 +72,7 @@ public class ShortForm extends BaseTimeEntity {
     protected ShortForm() {
     }
 
-    public static ShortForm completedFromExport(
+    public static ShortForm fromExport(
             Project project,
             Long exportId,
             Long mixedAudioFileId
@@ -85,7 +86,22 @@ public class ShortForm extends BaseTimeEntity {
         shortForm.albumImageFileId = project.getAlbumImageFileId();
         shortForm.mediaFileId = Objects.requireNonNull(
                 mixedAudioFileId, "mixedAudioFileId must not be null");
-        shortForm.status = ShortStatus.COMPLETED;
+        shortForm.status = project.getStatus() == ProjectStatus.COMPLETED
+                ? ShortStatus.COMPLETED : ShortStatus.IN_PROGRESS;
         return shortForm;
+    }
+
+    public void complete() {
+        status = ShortStatus.COMPLETED;
+    }
+
+    public void refreshFromExport(Long exportId, Long mixedAudioFileId) {
+        if (status != ShortStatus.IN_PROGRESS || deletedAt != null) {
+            throw new IllegalStateException("only an active in-progress short can be refreshed");
+        }
+        this.exportId = Objects.requireNonNull(exportId, "exportId must not be null");
+        this.mediaFileId = Objects.requireNonNull(mixedAudioFileId, "mixedAudioFileId must not be null");
+        this.title = project.getTitle();
+        this.albumImageFileId = project.getAlbumImageFileId();
     }
 }

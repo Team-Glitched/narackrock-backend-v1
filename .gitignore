@@ -37,4 +37,6 @@ out/
 .vscode/
 
 .env
+.env.local
 *.env
+storage/

@@ -15,6 +15,7 @@ import glitched.adlips.application.project.dto.response.ProjectVersionResponse;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.domain.project.ApprovalStatus;
+import glitched.adlips.domain.project.ContributionApprovalStatus;
 import glitched.adlips.domain.project.ContributionChangeType;
 import glitched.adlips.domain.project.ContributionTargetType;
 import glitched.adlips.domain.project.Project;
@@ -82,6 +83,16 @@ public class ProjectContributionCreateUseCase {
         var user = users.findById(request.userId()).filter(it -> it.isActive())
                 .orElseThrow(() -> error(ProjectErrorCode.PROJECT_ACCESS_DENIED,
                         "해당 프로젝트에 기여할 권한이 없습니다."));
+
+        boolean hasPendingContribution = !contributions
+                .findByProjectIdAndUserIdAndApprovalStatusInOrderByIdDesc(
+                        request.projectId(), request.userId(),
+                        List.of(ContributionApprovalStatus.PENDING), 1)
+                .isEmpty();
+        if (hasPendingContribution) {
+            throw error(ProjectErrorCode.CONTRIBUTION_ALREADY_PENDING,
+                    "처리 중인 작곡 참여 요청이 있습니다.");
+        }
 
         validateTargets(project, user.getId(), request.items());
         int baseMajor = project.getMajorVersion();

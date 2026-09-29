@@ -45,11 +45,16 @@ public class ProjectExceptionHandler {
                     CONTRIBUTION_REVIEW_DENIED -> HttpStatus.FORBIDDEN;
 
             case MEDIA_FILE_NOT_READY,
+                    PROJECT_NOT_PUBLIC,
                     TRACK_INSTRUMENT_NOT_SET,
+                    TRACK_LIMIT_EXCEEDED,
                     TRACK_HAS_PENDING_CONTRIBUTION,
+                    CONTRIBUTION_ALREADY_PENDING,
                     EXPORT_TARGET_NOT_FOUND,
                     CONTRIBUTION_VERSION_CONFLICT,
                     CONTRIBUTION_ALREADY_REVIEWED -> HttpStatus.CONFLICT;
+
+            case HTI_TRANSFORM_FAILED -> HttpStatus.BAD_GATEWAY;
 
             default -> HttpStatus.BAD_REQUEST;
         };

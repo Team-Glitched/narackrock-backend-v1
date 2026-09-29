@@ -1,0 +1,59 @@
+package glitched.adlips.application.community;
+
+import glitched.adlips.application.community.port.out.PostCommentReactionPort;
+import glitched.adlips.application.community.port.out.ReactionCounts;
+import glitched.adlips.application.community.port.out.UserBanQueryPort;
+import glitched.adlips.application.port.TransactionRunner;
+import glitched.adlips.domain.reaction.ReactionToggle;
+import glitched.adlips.domain.reaction.ReactionType;
+import java.time.Clock;
+import java.time.LocalDateTime;
+
+public class TogglePostCommentReactionUseCase {
+
+    private final PostCommentReactionPort reactionPort;
+    private final UserBanQueryPort userBanQueryPort;
+    private final TransactionRunner transactionRunner;
+    private final Clock clock;
+
+    public TogglePostCommentReactionUseCase(
+            PostCommentReactionPort reactionPort,
+            UserBanQueryPort userBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        this.reactionPort = reactionPort;
+        this.userBanQueryPort = userBanQueryPort;
+        this.transactionRunner = transactionRunner;
+        this.clock = clock;
+    }
+
+    public PostCommentReactionResult toggle(Long userId, Long commentId, ReactionType requested) {
+        if (userBanQueryPort.isBanned(userId, LocalDateTime.now(clock))) {
+            throw new PostCommentApplicationException(
+                    PostCommentErrorCode.BANNED_USER_ACCESS,
+                    "현재 서비스 이용 정지 상태이므로 댓글에 반응할 수 없습니다.");
+        }
+        return transactionRunner.required(() -> {
+            if (!reactionPort.lockActiveComment(commentId)) {
+                throw new PostCommentApplicationException(
+                        PostCommentErrorCode.COMMENT_NOT_FOUND, "존재하지 않거나 삭제된 댓글입니다.");
+            }
+            ReactionType current = reactionPort.findReaction(userId, commentId).orElse(null);
+            ReactionToggle toggle = ReactionToggle.of(current, requested);
+            if (toggle.result() == null) {
+                reactionPort.deleteReaction(userId, commentId);
+            } else {
+                reactionPort.saveReaction(userId, commentId, toggle.result());
+            }
+            reactionPort.adjustReactionCounts(commentId, toggle.likeDelta(), toggle.dislikeDelta());
+            ReactionCounts counts = reactionPort.findReactionCounts(commentId);
+            return new PostCommentReactionResult(
+                    commentId,
+                    toggle.result() == ReactionType.LIKE,
+                    toggle.result() == ReactionType.DISLIKE,
+                    counts.likeCount(),
+                    counts.dislikeCount());
+        });
+    }
+}

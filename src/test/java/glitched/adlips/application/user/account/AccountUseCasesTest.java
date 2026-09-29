@@ -26,6 +26,7 @@ import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.media.MediaFileStatus;
 import glitched.adlips.domain.media.MediaFileType;
@@ -49,6 +50,9 @@ class AccountUseCasesTest {
     private InMemoryAuthProviderRepository authProviders;
     private InMemoryProfileRepository profiles;
     private InMemoryMediaRepository media;
+    private GoogleIdentityPort google;
+    private AccessTokenPort accessTokens;
+    private RefreshTokenManager refreshTokens;
     private UserSignupUseCase userSignupUseCase;
     private GoogleLoginUseCase googleLoginUseCase;
     private UserWithdrawUseCase userWithdrawUseCase;
@@ -59,8 +63,8 @@ class AccountUseCasesTest {
         authProviders = new InMemoryAuthProviderRepository();
         profiles = new InMemoryProfileRepository();
         media = new InMemoryMediaRepository();
-        GoogleIdentityPort google = token -> new GoogleIdentityResponse("google-sub", "user@example.com", true);
-        AccessTokenPort accessTokens = new AccessTokenPort() {
+        google = token -> new GoogleIdentityResponse("google-sub", "user@example.com", true);
+        accessTokens = new AccessTokenPort() {
             @Override
             public String issue(Long userId) {
                 return "access-" + userId;
@@ -71,7 +75,7 @@ class AccountUseCasesTest {
                 return Long.valueOf(token.substring("access-".length()));
             }
         };
-        RefreshTokenManager refreshTokens = mock(RefreshTokenManager.class);
+        refreshTokens = mock(RefreshTokenManager.class);
         when(refreshTokens.issue(anyLong())).thenReturn("refresh-1");
         Clock clock = Clock.fixed(Instant.parse("2026-06-30T00:00:00Z"), ZoneOffset.UTC);
         userSignupUseCase = new UserSignupUseCase(
@@ -113,13 +117,14 @@ class AccountUseCasesTest {
     }
 
     @Test
-    void requiresSignupWhenGoogleAccountIsUnknown() {
-        UserApplicationException exception = assertThrows(
-                UserApplicationException.class,
-                () -> googleLoginUseCase.execute(new GoogleLoginRequest("valid-token"))
-        );
+    void createsUserAndProfileOnFirstGoogleLogin() {
+        GoogleLoginResponse result = googleLoginUseCase.execute(new GoogleLoginRequest("valid-token"));
 
-        assertEquals(UserErrorCode.SIGNUP_REQUIRED, exception.getErrorCode());
+        assertTrue(result.firstLogin());
+        assertEquals("user", result.user().nickname());
+        assertNotNull(users.findById(result.user().userId()).orElseThrow());
+        assertNotNull(profiles.findByUserId(result.user().userId()).orElseThrow());
+        assertTrue(authProviders.findByProviderAndProviderUserId(AuthProvider.GOOGLE, "google-sub").isPresent());
     }
 
     @Test
@@ -130,9 +135,25 @@ class AccountUseCasesTest {
 
         GoogleLoginResponse result = googleLoginUseCase.execute(new GoogleLoginRequest("valid-token"));
 
+        assertTrue(!result.firstLogin());
         assertEquals("access-1", result.accessToken());
         assertEquals("refresh-1", result.refreshToken());
         assertEquals("guitar_moon", result.user().nickname());
+    }
+
+    @Test
+    void loginUsesWritableTransactionBecauseItIssuesRefreshToken() {
+        TransactionRunner transactionRunner = mock(TransactionRunner.class);
+        when(transactionRunner.required(org.mockito.ArgumentMatchers.any()))
+                .thenAnswer(invocation -> invocation.<java.util.function.Supplier<?>>getArgument(0).get());
+        GoogleLoginUseCase useCase = new GoogleLoginUseCase(
+                google, accessTokens, users, authProviders, profiles, media, refreshTokens, transactionRunner
+        );
+
+        useCase.execute(new GoogleLoginRequest("valid-token"));
+
+        org.mockito.Mockito.verify(transactionRunner)
+                .required(org.mockito.ArgumentMatchers.any());
     }
 
     @Test

@@ -43,13 +43,17 @@ public class TrackCreateUseCase {
         if (request == null || request.name() == null || request.name().isBlank() || request.sortOrder() < 0) {
             throw new ProjectApplicationException(ProjectErrorCode.VALIDATION_ERROR, "트랙 이름과 순서를 확인해 주세요.");
         }
-        Project project = projects.findByIdAndDeletedAtIsNull(request.projectId())
+        Project project = projects.findByIdAndDeletedAtIsNullForUpdate(request.projectId())
                 .orElseThrow(() -> new ProjectApplicationException(ProjectErrorCode.PROJECT_NOT_FOUND, "존재하지 않는 프로젝트입니다."));
         var member = members.findByProjectIdAndUserId(request.projectId(), request.userId())
                 .filter(it -> it.getRole() != ProjectMemberRole.VIEWER)
                 .orElseThrow(() -> new ProjectApplicationException(ProjectErrorCode.PROJECT_ACCESS_DENIED, "트랙을 생성할 권한이 없습니다."));
         User user = users.findById(request.userId()).filter(User::isActive)
                 .orElseThrow(() -> new ProjectApplicationException(ProjectErrorCode.PROJECT_ACCESS_DENIED, "트랙을 생성할 권한이 없습니다."));
+        if (tracks.existsByProjectIdAndOwnerIdAndIsDeletedFalse(request.projectId(), request.userId())) {
+            throw new ProjectApplicationException(ProjectErrorCode.TRACK_LIMIT_EXCEEDED,
+                    "한 곡에는 사용자당 하나의 레이어만 만들 수 있습니다.");
+        }
         ProjectTrack saved = tracks.save(new ProjectTrack(project, user, request.name().trim(),
                 normalize(request.instrument()), request.sortOrder()));
         return new TrackCreateResponse(saved.getId(), project.getId(), saved.getName(), saved.getInstrument(),

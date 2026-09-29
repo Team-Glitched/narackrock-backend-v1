@@ -1,5 +1,6 @@
 package glitched.adlips.adapter.in.web.user;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.application.user.account.dto.request.GoogleLoginRequest;
 import glitched.adlips.application.user.account.dto.request.TokenRefreshRequest;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "계정", description = "회원 계정 API")
 @RequestMapping("/api/v1")
 public class AccountController {
     private final UserSignupUseCase userSignupUseCase;

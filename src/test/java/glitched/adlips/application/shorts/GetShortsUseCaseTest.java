@@ -56,7 +56,7 @@ class GetShortsUseCaseTest {
                 "https://cdn.example.com/album.png",
                 ShortStatus.COMPLETED,
                 1200, 128, 4, 23, 5,
-                true, false, true,
+                true, false, true, true, true,
                 123L, "guitar_moon", "https://cdn.example.com/profile.png",
                 LocalDateTime.of(2026, 6, 25, 12, 3)
         );
@@ -76,6 +76,8 @@ class GetShortsUseCaseTest {
         assertThat(result.isLiked()).isTrue();
         assertThat(result.isDisliked()).isFalse();
         assertThat(result.isBookmarked()).isTrue();
+        assertThat(result.hasPendingContribution()).isTrue();
+        assertThat(result.hasApprovedContribution()).isTrue();
         assertThat(result.author().profileImageUrl()).isEqualTo("https://cdn.example.com/profile.png");
         assertThat(result.participants()).containsExactly(
                 new ParticipantSummary(456L, "beat_sky", "DRUM")
@@ -120,7 +122,7 @@ class GetShortsUseCaseTest {
                 "https://cdn.example.com/" + id + ".mp4", null,
                 ShortStatus.COMPLETED,
                 0, 0, 0, 0, 0,
-                false, false, false,
+                false, false, false, false, false,
                 100L + id, "user" + id, null,
                 LocalDateTime.of(2026, 6, 25, 12, 3)
         );

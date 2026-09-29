@@ -30,10 +30,11 @@ class ShortsCompositionPersistenceAdapterTest {
         insertMedia(801L, "exports/8/20/mix.wav", "audio/wav", "AUDIO");
         insertMedia(802L, "exports/8/20/layers.zip", "application/zip", "ARCHIVE");
         insertExport(20L, 8L, 801L, 802L);
+        insertExport(21L, 8L, 801L, 802L);
         insertShort(201L, 8L, 20L, "COMPLETED");
         insertShort(202L, null, null, "COMPLETED");
         insertShort(203L, 9L, null, "COMPLETED");
-        insertShort(204L, 8L, null, "IN_PROGRESS");
+        insertShort(204L, 8L, 21L, "IN_PROGRESS");
     }
 
     @Test
@@ -79,8 +80,10 @@ class ShortsCompositionPersistenceAdapterTest {
     }
 
     @Test
-    void 아직_완료되지_않은_숏폼은_조회하지_않는다() {
-        assertThat(adapter.findByShortId(204L)).isEmpty();
+    void 공개된_미완성_숏폼도_작곡_진입_정보를_조회한다() {
+        assertThat(adapter.findByShortId(204L)).isPresent();
+        assertThat(adapter.findByShortId(204L).orElseThrow().mixedAudioUrl())
+                .isEqualTo("/files/exports/8/20/mix.wav");
     }
 
     private void insertProject(long id, String title, String status, String deletedAtExpression) {
@@ -90,7 +93,7 @@ class ShortsCompositionPersistenceAdapterTest {
                     id, owner_id, title, album_image_file_id, bpm,
                     time_signature_numerator, time_signature_denominator, ppq, max_duration_ms,
                     major_version, minor_version, status, is_public, deleted_at, created_at
-                ) VALUES (?, 902, ?, 999, 120, 4, 4, 480, 60000, 1, 1, ?, false, %s, CURRENT_TIMESTAMP)
+                ) VALUES (?, 902, ?, 999, 120, 4, 4, 480, 60000, 1, 1, ?, true, %s, CURRENT_TIMESTAMP)
                 """.formatted(deletedAt), id, title, status);
         entityManager.clear();
     }

@@ -48,6 +48,11 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
+                                "/swagger-ui.html",
+                                "/swagger-ui/**",
+                                "/v3/api-docs/**"
+                        ).permitAll()
+                        .requestMatchers(
                                 "/api/v1/auth/**",
                                 "/api/v1/users"
                         ).permitAll()
@@ -62,7 +67,9 @@ public class SecurityConfig {
                                 "/api/v1/shorts",
                                 "/api/v1/users/*/relations",
                                 "/api/v1/shorts/*/comments",
+                                "/api/v1/galleries",
                                 "/api/v1/galleries/*/posts",
+                                "/api/v1/posts/popular",
                                 "/files/**"
                         ).permitAll()
                         .anyRequest().authenticated()

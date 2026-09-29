@@ -10,6 +10,9 @@ public interface ProjectContributionRepositoryPort {
 
     Optional<ProjectContribution> findByIdAndProjectId(Long id, Long projectId);
 
+    List<ProjectContribution> findByProjectOwnerIdAndApprovalStatusOrderByIdDesc(
+            Long ownerId, ContributionApprovalStatus status);
+
     List<ProjectContribution> findByProjectIdAndApprovalStatusInOrderByIdDesc(
             Long projectId, Collection<ContributionApprovalStatus> statuses, int pageSize);
 

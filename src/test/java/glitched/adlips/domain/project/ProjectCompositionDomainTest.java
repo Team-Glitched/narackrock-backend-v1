@@ -221,8 +221,14 @@ class ProjectCompositionDomainTest {
         assertThat(export.getShortId()).isEqualTo(9003L);
         assertThat(export.getDurationMs()).isEqualTo(45_000);
         assertThat(export.getCompletedAt()).isEqualTo(completedAt);
-        assertThat(export.getProject().getStatus()).isEqualTo(ProjectStatus.COMPLETED);
+        assertThat(export.getProject().getStatus()).isEqualTo(ProjectStatus.IN_PROGRESS);
         assertThat(export.getProject().isPublic()).isTrue();
+
+        project.complete();
+        assertThat(project.getStatus()).isEqualTo(ProjectStatus.COMPLETED);
+
+        project.startPublishing();
+        assertThat(project.getStatus()).isEqualTo(ProjectStatus.COMPLETED);
     }
 
     private Project project(String title) {

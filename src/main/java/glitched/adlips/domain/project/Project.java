@@ -29,6 +29,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
 public class Project extends BaseTimeEntity {
+    public static final String UNTITLED_DRAFT = "제목 없는 곡";
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -113,6 +114,17 @@ public class Project extends BaseTimeEntity {
         return (long) maxDurationMs * bpm * ppq / 60_000;
     }
 
+    public void updateMetadata(String title, Long albumImageFileId) {
+        if (status != ProjectStatus.DRAFT || deletedAt != null) {
+            throw new IllegalStateException("only draft metadata can be updated");
+        }
+        if (title == null || title.isBlank() || albumImageFileId == null || albumImageFileId < 0) {
+            throw new IllegalArgumentException("title and a valid album image reference are required");
+        }
+        this.title = title;
+        this.albumImageFileId = albumImageFileId;
+    }
+
     public int tickToMilliseconds(int tick) {
         if (tick < 0) {
             throw new IllegalArgumentException(
@@ -142,16 +154,24 @@ public class Project extends BaseTimeEntity {
         if (deletedAt != null) {
             throw new IllegalStateException("deleted project cannot be published");
         }
-        status = ProjectStatus.IN_PROGRESS;
+        if (status != ProjectStatus.COMPLETED) {
+            status = ProjectStatus.IN_PROGRESS;
+        }
     }
 
-    public void completePublishing(LocalDateTime publishedAt) {
-        if (status != ProjectStatus.IN_PROGRESS) {
-            throw new IllegalStateException("only publishing project can be completed");
+    public void publish(LocalDateTime publishedAt) {
+        if (status != ProjectStatus.IN_PROGRESS && status != ProjectStatus.COMPLETED) {
+            throw new IllegalStateException("only exporting project can be published");
         }
         this.publishedAt = Objects.requireNonNull(publishedAt, "publishedAt must not be null");
-        this.status = ProjectStatus.COMPLETED;
         this.isPublic = true;
+    }
+
+    public void complete() {
+        if (status != ProjectStatus.IN_PROGRESS || !isPublic) {
+            throw new IllegalStateException("only public in-progress project can be completed");
+        }
+        status = ProjectStatus.COMPLETED;
     }
 
     public void delete(LocalDateTime deletedAt) {

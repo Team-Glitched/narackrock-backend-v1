@@ -1,5 +1,7 @@
 package glitched.adlips.adapter.in.web;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import glitched.adlips.adapter.in.web.dto.ApiResponse;
 import glitched.adlips.adapter.in.web.dto.GoogleLoginRequest;
 import glitched.adlips.adapter.in.web.dto.LoginResponse;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+@Tag(name = "인증", description = "Google 로그인 API")
 @RestController
 @ConditionalOnProperty(name = "app.legacy-auth.enabled", havingValue = "true")
 @RequestMapping("/api/v1/auth")

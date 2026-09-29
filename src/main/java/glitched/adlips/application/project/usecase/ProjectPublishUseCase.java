@@ -12,6 +12,7 @@ import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.project.dto.response.ProjectVersionResponse;
 import glitched.adlips.domain.project.ApprovalStatus;
+import glitched.adlips.domain.project.Project;
 import glitched.adlips.domain.project.ProjectExport;
 import glitched.adlips.domain.project.ProjectMemberRole;
 import java.util.List;
@@ -47,6 +48,10 @@ public class ProjectPublishUseCase {
         members.findByProjectIdAndUserId(request.projectId(), request.userId())
                 .filter(member -> member.getRole() == ProjectMemberRole.OWNER)
                 .orElseThrow(() -> error(ProjectErrorCode.PROJECT_ACCESS_DENIED, "곡을 공개할 권한이 없습니다."));
+        if (project.getTitle() == null || project.getTitle().isBlank()
+                || Project.UNTITLED_DRAFT.equals(project.getTitle())) {
+            throw error(ProjectErrorCode.VALIDATION_ERROR, "발행 전에 곡 이름을 등록해 주세요.");
+        }
         List<Long> approvedTrackIds = tracks.findByProjectIdAndApprovalStatusAndIsDeletedFalse(
                 request.projectId(), ApprovalStatus.APPROVED).stream().map(it -> it.getId()).toList();
         if (approvedTrackIds.isEmpty() || clips.countByTrackIdInAndApprovalStatusAndIsDeletedFalse(

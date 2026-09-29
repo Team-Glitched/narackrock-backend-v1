@@ -106,7 +106,7 @@ public class ProjectExport extends BaseCreatedEntity {
         this.completedAt = Objects.requireNonNull(completedAt, "completedAt must not be null");
         this.status = ExportStatus.COMPLETED;
         this.errorMessage = null;
-        project.completePublishing(completedAt);
+        project.publish(completedAt);
     }
 
     public void fail(String errorMessage, LocalDateTime completedAt) {

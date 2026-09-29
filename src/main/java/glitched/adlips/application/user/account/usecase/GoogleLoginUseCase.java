@@ -112,7 +112,7 @@ public class GoogleLoginUseCase {
     }
 
     public GoogleLoginResponse execute(GoogleLoginRequest request) {
-        return transactionRunner.readOnly(() -> executeInternal(request));
+        return transactionRunner.required(() -> executeInternal(request));
     }
 
     private GoogleLoginResponse executeInternal(GoogleLoginRequest request) {
@@ -121,30 +121,74 @@ public class GoogleLoginUseCase {
         GoogleIdentityResponse identity = googleIdentityPort.verify(request.idToken());
         validateVerifiedEmail(identity);
 
-        UserAuthProvider provider = authProviderRepository
-                .findByProviderAndProviderUserId(AuthProvider.GOOGLE, identity.subject())
-                .orElseThrow(this::signupRequired);
-
-        User user = userRepository.findById(provider.getUserId())
-                .filter(User::isActive)
-                .orElseThrow(this::signupRequired);
-
-        Profile profile = profileRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new UserApplicationException(
-                        UserErrorCode.PROFILE_NOT_FOUND,
-                        "사용자 프로필을 찾을 수 없습니다."
-                ));
+        LoginUser loginUser = findOrCreateUser(identity);
+        User user = loginUser.user();
+        Profile profile = loginUser.profile();
 
         return new GoogleLoginResponse(
                 accessTokenPort.issue(user.getId()),
                 refreshTokenManager.issue(user.getId()),
                 "Bearer",
+                loginUser.firstLogin(),
                 new UserResponse(
                         user.getId(),
                         profile.getNickname(),
                         profileImageUrl(profile)
                 )
         );
+    }
+
+    private LoginUser findOrCreateUser(GoogleIdentityResponse identity) {
+        return authProviderRepository
+                .findByProviderAndProviderUserId(AuthProvider.GOOGLE, identity.subject())
+                .map(this::registeredUser)
+                .orElseGet(() -> register(identity));
+    }
+
+    private LoginUser registeredUser(UserAuthProvider provider) {
+        User user = userRepository.findById(provider.getUserId())
+                .filter(User::isActive)
+                .orElseThrow(() -> new UserApplicationException(
+                        UserErrorCode.USER_NOT_FOUND,
+                        "사용자를 찾을 수 없습니다."
+                ));
+        Profile profile = profileRepository.findByUserId(user.getId())
+                .orElseThrow(() -> new UserApplicationException(
+                        UserErrorCode.PROFILE_NOT_FOUND,
+                        "사용자 프로필을 찾을 수 없습니다."
+                ));
+        return new LoginUser(user, profile, false);
+    }
+
+    private LoginUser register(GoogleIdentityResponse identity) {
+        User user = userRepository.findByEmail(identity.email())
+                .filter(User::isActive)
+                .orElseGet(() -> userRepository.save(User.create(identity.email())));
+        authProviderRepository.save(UserAuthProvider.google(
+                user.getId(), identity.subject(), identity.emailVerified()
+        ));
+        Profile profile = profileRepository.findByUserId(user.getId())
+                .orElseGet(() -> profileRepository.save(Profile.create(
+                        user.getId(), availableInitialNickname(identity.email(), user.getId())
+                )));
+        return new LoginUser(user, profile, true);
+    }
+
+    private String availableInitialNickname(String email, Long userId) {
+        int at = email.indexOf('@');
+        String base = (at > 0 ? email.substring(0, at) : email).trim();
+        if (base.isBlank()) {
+            base = "user";
+        }
+        if (!profileRepository.existsByNickname(base)) {
+            return base;
+        }
+        String candidate = base + "-" + userId;
+        int suffix = 2;
+        while (profileRepository.existsByNickname(candidate)) {
+            candidate = base + "-" + userId + "-" + suffix++;
+        }
+        return candidate;
     }
 
     private String profileImageUrl(Profile profile) {
@@ -155,13 +199,6 @@ public class GoogleLoginUseCase {
         return mediaFileRepository.findById(profile.getProfileImageFileId())
                 .map(MediaFile::getFileUrl)
                 .orElse(null);
-    }
-
-    private UserApplicationException signupRequired() {
-        return new UserApplicationException(
-                UserErrorCode.SIGNUP_REQUIRED,
-                "가입되지 않은 계정입니다. 추가 정보 입력 페이지로 이동합니다."
-        );
     }
 
     private void validateVerifiedEmail(GoogleIdentityResponse identity) {
@@ -185,5 +222,8 @@ public class GoogleLoginUseCase {
                     "Google ID 토큰은 필수입니다."
             );
         }
+    }
+
+    private record LoginUser(User user, Profile profile, boolean firstLogin) {
     }
 }

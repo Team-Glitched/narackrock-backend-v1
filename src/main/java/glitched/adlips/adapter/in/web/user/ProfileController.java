@@ -1,5 +1,7 @@
 package glitched.adlips.adapter.in.web.user;
 
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.application.user.profile.dto.request.UserProfileGetRequest;
 import glitched.adlips.application.user.profile.dto.request.UserProfileImageUpdateRequest;
@@ -26,6 +28,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 @RestController
+@Tag(name = "프로필", description = "사용자 프로필 API")
+@SecurityRequirement(name = "bearerAuth")
 @RequestMapping("/api/v1/users")
 public class ProfileController {
     private final ProfileGetUseCase profileGetUseCase;

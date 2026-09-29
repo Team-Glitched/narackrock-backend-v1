@@ -15,13 +15,15 @@ import org.springframework.stereotype.Repository;
 public class PostQueryPersistenceAdapter implements PostQueryPort {
 
     private static final String SELECT_POST = """
-            SELECT p.id, p.gallery_id, g.name, p.user_id, pr.nickname, media.file_url,
-                   p.title, p.content, p.view_count, p.like_count, p.dislike_count, p.comment_count,
-                   FALSE, FALSE, p.created_at, p.updated_at
+            SELECT p.id, p.gallery_id, g.name, p.user_id, pr.nickname, profile_media.file_url,
+                   p.title, p.content, post_media.file_url,
+                   p.view_count, p.like_count, p.dislike_count, p.comment_count,
+                   FALSE, FALSE, FALSE, p.created_at, p.updated_at
               FROM posts p
               JOIN galleries g ON g.id = p.gallery_id
          LEFT JOIN profiles pr ON pr.user_id = p.user_id
-         LEFT JOIN media_files media ON media.id = pr.profile_image_file_id
+         LEFT JOIN media_files profile_media ON profile_media.id = pr.profile_image_file_id
+         LEFT JOIN media_files post_media ON post_media.id = p.image_file_id
             """;
 
     private final GalleryJpaRepository galleryRepository;
@@ -40,7 +42,9 @@ public class PostQueryPersistenceAdapter implements PostQueryPort {
     @Override
     public Optional<PostQueryItem> findDetail(Long postId, Long viewerId) {
         String sql = SELECT_POST.replace(
-                        "FALSE, FALSE", reactionExpression(viewerId, "LIKE") + ", " + reactionExpression(viewerId, "DISLIKE"))
+                        "FALSE, FALSE, FALSE",
+                        reactionExpression(viewerId, "LIKE") + ", " + reactionExpression(viewerId, "DISLIKE")
+                                + ", " + bookmarkExpression(viewerId))
                 + " WHERE p.id = :postId AND p.deleted_at IS NULL";
         Query query = entityManager.createNativeQuery(sql).setParameter("postId", postId);
         if (viewerId != null) {
@@ -88,6 +92,23 @@ public class PostQueryPersistenceAdapter implements PostQueryPort {
     }
 
     @Override
+    public List<PostQueryItem> findPopularPosts(int page, int size) {
+        String sql = SELECT_POST + " WHERE p.deleted_at IS NULL ORDER BY " + orderBy(PostSort.POPULAR);
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery(sql)
+                .setFirstResult(page * size)
+                .setMaxResults(size)
+                .getResultList();
+        return rows.stream().map(this::toQueryItem).toList();
+    }
+
+    @Override
+    public long countAllPosts() {
+        return ((Number) entityManager.createNativeQuery("SELECT COUNT(*) FROM posts WHERE deleted_at IS NULL")
+                .getSingleResult()).longValue();
+    }
+
+    @Override
     public Optional<String> findGalleryName(Long galleryId) {
         return galleryRepository.findById(galleryId).map(glitched.adlips.domain.community.Gallery::getName);
     }
@@ -128,6 +149,13 @@ public class PostQueryPersistenceAdapter implements PostQueryPort {
                 + " AND r.reaction_type = '" + reactionType + "')";
     }
 
+    private static String bookmarkExpression(Long viewerId) {
+        if (viewerId == null) {
+            return "FALSE";
+        }
+        return "EXISTS (SELECT 1 FROM post_bookmarks b WHERE b.user_id = :viewerId AND b.post_id = p.id)";
+    }
+
     private PostQueryItem toQueryItem(Object[] row) {
         return new PostQueryItem(
                 longValue(row[0]),
@@ -138,14 +166,16 @@ public class PostQueryPersistenceAdapter implements PostQueryPort {
                 nullableString(row[5]),
                 stringValue(row[6]),
                 stringValue(row[7]),
-                intValue(row[8]),
+                nullableString(row[8]),
                 intValue(row[9]),
                 intValue(row[10]),
                 intValue(row[11]),
-                booleanValue(row[12]),
+                intValue(row[12]),
                 booleanValue(row[13]),
-                localDateTime(row[14]),
-                nullableLocalDateTime(row[15]));
+                booleanValue(row[14]),
+                booleanValue(row[15]),
+                localDateTime(row[16]),
+                nullableLocalDateTime(row[17]));
     }
 
     private static Long longValue(Object value) {

@@ -48,7 +48,8 @@ public class ProfileUpdateUseCase {
         String nickname = normalizeNickname(request.nickname());
         requireActiveUser(userId);
         Profile profile = requireProfile(userId);
-        if (nickname != null && profileRepository.existsByNicknameAndUserIdNot(nickname, userId)) {
+        boolean nicknameChanged = nickname != null && !nickname.equals(profile.getNickname());
+        if (nicknameChanged && profileRepository.existsByNicknameAndUserIdNot(nickname, userId)) {
             throw new UserApplicationException(UserErrorCode.DUPLICATE_NICKNAME, "이미 사용중인 닉네임입니다.");
         }
         Profile saved = profileRepository.save(profile.update(

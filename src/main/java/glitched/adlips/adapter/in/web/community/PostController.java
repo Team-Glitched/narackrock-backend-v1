@@ -1,5 +1,7 @@
 package glitched.adlips.adapter.in.web.community;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
 import glitched.adlips.adapter.in.web.dto.ApiResponse;
 import glitched.adlips.adapter.in.web.dto.PostCreateRequest;
 import glitched.adlips.adapter.in.web.dto.PostCreateResponse;
@@ -29,6 +31,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.PutMapping;
 
+@Tag(name = "게시글", description = "게시글 API")
 @RestController
 @RequestMapping("/api/v1")
 public class PostController {
@@ -63,7 +66,8 @@ public class PostController {
             @RequestBody PostCreateRequest request
     ) {
         Long userId = authenticatedUserResolver.requireUserId(authorization);
-        PostResult result = createPostUseCase.execute(galleryId, userId, request.title(), request.content());
+        PostResult result = createPostUseCase.execute(
+                galleryId, userId, request.title(), request.content(), request.imageFileId());
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("게시글이 성공적으로 등록되었습니다.", PostCreateResponse.from(result)));
     }

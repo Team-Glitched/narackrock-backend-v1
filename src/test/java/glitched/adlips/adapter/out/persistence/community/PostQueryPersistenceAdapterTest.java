@@ -34,8 +34,13 @@ class PostQueryPersistenceAdapterTest {
                 INSERT INTO media_files (id, owner_id, file_url, file_type, status, created_at)
                 VALUES (100, 1, 'https://cdn.test/writer.png', 'IMAGE', 'READY', CURRENT_TIMESTAMP)
                 """);
+        jdbcTemplate.update("""
+                INSERT INTO media_files (id, owner_id, file_url, file_type, status, created_at)
+                VALUES (101, 1, 'https://cdn.test/post.png', 'IMAGE', 'READY', CURRENT_TIMESTAMP)
+                """);
         insertGallery(10L, "자유 갤러리");
         insertPost(501L, 10L, 1L, "첫 번째 글", null, "2026-08-20 10:00:00");
+        jdbcTemplate.update("UPDATE posts SET image_file_id = 101 WHERE id = 501");
         insertPost(502L, 10L, 1L, "두 번째 글", null, "2026-08-21 10:00:00");
         insertPost(503L, 10L, 1L, "삭제된 글", "CURRENT_TIMESTAMP", "2026-08-22 10:00:00");
         entityManager.clear();
@@ -62,6 +67,7 @@ class PostQueryPersistenceAdapterTest {
         assertThat(item.userId()).isEqualTo(1L);
         assertThat(item.nickname()).isEqualTo("writer_one");
         assertThat(item.profileImageUrl()).isEqualTo("https://cdn.test/writer.png");
+        assertThat(item.imageUrl()).isEqualTo("https://cdn.test/post.png");
         assertThat(item.title()).isEqualTo("첫 번째 글");
     }
 

@@ -23,6 +23,23 @@ import org.junit.jupiter.api.Test;
 
 class ProjectCreateUseCaseTest {
     @Test
+    void createsProjectWithoutAlbumImage() {
+        User owner = User.create("owner@example.com").withId(1L);
+        UserRepositoryPort users = mock(UserRepositoryPort.class);
+        ProjectRepositoryPort projects = mock(ProjectRepositoryPort.class);
+        ProjectMemberRepositoryPort members = mock(ProjectMemberRepositoryPort.class);
+        when(users.findById(1L)).thenReturn(Optional.of(owner));
+        when(projects.save(any(Project.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        ProjectCreateResponse response = new ProjectCreateUseCase(
+                users, mock(MediaFileRepositoryPort.class), projects, members)
+                .execute(new ProjectCreateRequest(1L, "새 곡", null, null));
+
+        assertThat(response.albumImageFileId()).isZero();
+        assertThat(response.albumImageUrl()).isNull();
+    }
+
+    @Test
     void createsProjectAtVersionOneOneAndOwnerMembership() {
         User owner = User.create("owner@example.com").withId(1L);
         MediaFile image = MediaFile.readyImage(1L, "https://cdn/album.png", "album/1", "album.png", "image/png", 10).withId(701L);

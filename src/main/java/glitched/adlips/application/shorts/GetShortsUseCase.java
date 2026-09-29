@@ -80,6 +80,8 @@ public class GetShortsUseCase {
                 item.liked(),
                 item.disliked(),
                 item.bookmarked(),
+                item.hasPendingContribution(),
+                item.hasApprovedContribution(),
                 new AuthorSummary(
                         item.authorId(), item.authorNickname(), item.authorProfileImageUrl()),
                 participants.stream()

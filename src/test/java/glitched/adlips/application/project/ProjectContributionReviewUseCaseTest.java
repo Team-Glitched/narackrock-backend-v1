@@ -1,11 +1,15 @@
 package glitched.adlips.application.project;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectContributionRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectExportRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.project.dto.request.ProjectContributionReviewRequest;
@@ -18,11 +22,13 @@ import glitched.adlips.domain.project.ContributionTargetType;
 import glitched.adlips.domain.project.Project;
 import glitched.adlips.domain.project.ProjectContribution;
 import glitched.adlips.domain.project.ProjectContributionItem;
+import glitched.adlips.domain.project.ProjectExport;
 import glitched.adlips.domain.project.ProjectMember;
 import glitched.adlips.domain.project.ProjectMemberRole;
 import glitched.adlips.domain.project.ProjectTrack;
 import glitched.adlips.domain.user.User;
 import java.util.Optional;
+import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
 
 class ProjectContributionReviewUseCaseTest {
@@ -37,6 +43,7 @@ class ProjectContributionReviewUseCaseTest {
         assertThat(response.previousProjectVersion().display()).isEqualTo("v1.1");
         assertThat(response.projectVersion().display()).isEqualTo("v2.1");
         assertThat(fixture.track.getApprovalStatus()).isEqualTo(ApprovalStatus.APPROVED);
+        verify(fixture.exports).save(any(ProjectExport.class));
     }
 
     @Test
@@ -48,6 +55,7 @@ class ProjectContributionReviewUseCaseTest {
 
         assertThat(response.projectVersion().display()).isEqualTo("v1.1");
         assertThat(fixture.track.getApprovalStatus()).isEqualTo(ApprovalStatus.REJECTED);
+        verifyNoInteractions(fixture.exports);
     }
 
     private static class Fixture {
@@ -56,9 +64,12 @@ class ProjectContributionReviewUseCaseTest {
         private final Project project = new Project(reviewer, "곡", null, 701L);
         private final ProjectTrack track = new ProjectTrack(project, contributor, "Guitar", "GUITAR", 0);
         private final ProjectContribution contribution = new ProjectContribution(project, contributor, "리프 추가");
+        private final ProjectExportRepositoryPort exports = mock(ProjectExportRepositoryPort.class);
         private final ProjectContributionReviewUseCase useCase;
 
         private Fixture() {
+            project.startPublishing();
+            project.publish(LocalDateTime.of(2026, 9, 29, 23, 0));
             track.submitForReview();
             new ProjectContributionItem(contribution, ContributionChangeType.ADD,
                     ContributionTargetType.TRACK, 101L);
@@ -72,7 +83,8 @@ class ProjectContributionReviewUseCaseTest {
                     .thenReturn(Optional.of(new ProjectMember(project, reviewer, ProjectMemberRole.OWNER)));
             when(users.findById(1L)).thenReturn(Optional.of(reviewer));
             when(tracks.findTrackByIdAndIsDeletedFalse(101L)).thenReturn(Optional.of(track));
-            useCase = new ProjectContributionReviewUseCase(contributions, members, tracks, clips, users);
+            useCase = new ProjectContributionReviewUseCase(
+                    contributions, members, tracks, clips, users, exports);
         }
     }
 }

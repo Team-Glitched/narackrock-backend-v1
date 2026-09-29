@@ -1,5 +1,6 @@
 package glitched.adlips.adapter.in.web.view;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.application.view.ContentViewResult;
 import glitched.adlips.application.view.ContentViewTarget;
@@ -13,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
+@Tag(name = "콘텐츠 조회수", description = "콘텐츠 조회수 API")
 @RequestMapping("/api/v1")
 public class ContentViewController {
 

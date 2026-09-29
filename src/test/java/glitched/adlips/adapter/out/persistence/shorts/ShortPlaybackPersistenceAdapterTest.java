@@ -22,16 +22,22 @@ class ShortPlaybackPersistenceAdapterTest {
     void setUp() {
         adapter = new ShortPlaybackPersistenceAdapter(shortFormRepository);
         jdbcTemplate.update("INSERT INTO users (id, email, role, created_at) VALUES (902, 'playback@test.com', 'USER', CURRENT_TIMESTAMP)");
+        jdbcTemplate.update("INSERT INTO projects (id, owner_id, title, album_image_file_id, bpm, time_signature_numerator, time_signature_denominator, ppq, max_duration_ms, major_version, minor_version, status, is_public, created_at) VALUES (8, 902, '공개곡', 1, 120, 4, 4, 480, 60000, 1, 1, 'IN_PROGRESS', true, CURRENT_TIMESTAMP)");
+        jdbcTemplate.update("INSERT INTO projects (id, owner_id, title, album_image_file_id, bpm, time_signature_numerator, time_signature_denominator, ppq, max_duration_ms, major_version, minor_version, status, is_public, created_at) VALUES (9, 902, '비공개곡', 1, 120, 4, 4, 480, 60000, 1, 1, 'IN_PROGRESS', false, CURRENT_TIMESTAMP)");
         insertShort(201L, "COMPLETED", null);
         insertShort(202L, "IN_PROGRESS", null);
         insertShort(203L, "COMPLETED", "CURRENT_TIMESTAMP");
+        insertShort(204L, "IN_PROGRESS", null);
+        jdbcTemplate.update("UPDATE shorts SET project_id = 8 WHERE id = 202");
+        jdbcTemplate.update("UPDATE shorts SET project_id = 9 WHERE id = 204");
     }
 
     @Test
-    void 완료되고_삭제되지_않은_숏폼만_활성_상태로_조회한다() {
+    void 공개된_미완성_숏폼도_재생_가능하다() {
         assertThat(adapter.existsActiveShort(201L)).isTrue();
-        assertThat(adapter.existsActiveShort(202L)).isFalse();
+        assertThat(adapter.existsActiveShort(202L)).isTrue();
         assertThat(adapter.existsActiveShort(203L)).isFalse();
+        assertThat(adapter.existsActiveShort(204L)).isFalse();
         assertThat(adapter.existsActiveShort(999L)).isFalse();
     }
 

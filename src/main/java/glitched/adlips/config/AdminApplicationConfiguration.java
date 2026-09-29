@@ -2,6 +2,8 @@ package glitched.adlips.config;
 
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.report.port.out.ReportResolutionPort;
+import glitched.adlips.application.report.port.out.ReportQueryPort;
+import glitched.adlips.application.report.usecase.GetReportsUseCase;
 import glitched.adlips.application.report.usecase.ResolveReportUseCase;
 import glitched.adlips.application.report.usecase.RejectReportUseCase;
 import glitched.adlips.application.user.admin.port.out.UserBanRepositoryPort;
@@ -14,6 +16,16 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class AdminApplicationConfiguration {
+
+    @Bean
+    GetReportsUseCase getReportsUseCase(
+            ReportQueryPort reportQueryPort,
+            UserRepositoryPort userRepositoryPort,
+            TransactionRunner transactionRunner
+    ) {
+        return new GetReportsUseCase(
+                reportQueryPort, userRepositoryPort, transactionRunner);
+    }
 
     @Bean
     UserBanCreateUseCase userBanCreateUseCase(

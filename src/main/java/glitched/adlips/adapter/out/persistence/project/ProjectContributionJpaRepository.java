@@ -12,6 +12,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface ProjectContributionJpaRepository extends JpaRepository<ProjectContribution, Long> {
     Optional<ProjectContribution> findByIdAndProjectId(Long id, Long projectId);
 
+    List<ProjectContribution> findByProjectOwnerIdAndApprovalStatusOrderByIdDesc(
+            Long ownerId, ContributionApprovalStatus status);
+
     List<ProjectContribution> findByProjectIdAndApprovalStatusInOrderByIdDesc(
             Long projectId, Collection<ContributionApprovalStatus> statuses, Pageable pageable);
 

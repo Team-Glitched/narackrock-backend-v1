@@ -23,7 +23,7 @@ class PublishedShortPersistenceAdapterTest {
     @Autowired ProjectMemberJpaRepository projectMembers;
 
     @Test
-    void publishesCompletedShortWithProjectMembers() {
+    void publishesPlayableInProgressShortWithProjectMembers() {
         User owner = User.create("owner-export@example.com");
         User editor = User.create("editor-export@example.com");
         entityManager.persist(owner);
@@ -41,9 +41,38 @@ class PublishedShortPersistenceAdapterTest {
         entityManager.clear();
 
         ShortForm saved = shortForms.findById(shortId).orElseThrow();
-        assertThat(saved.getStatus()).isEqualTo(ShortStatus.COMPLETED);
+        assertThat(saved.getStatus()).isEqualTo(ShortStatus.IN_PROGRESS);
         assertThat(saved.getExportId()).isEqualTo(20L);
         assertThat(saved.getMediaFileId()).isEqualTo(801L);
         assertThat(participants.countByShortsId(shortId)).isEqualTo(2L);
+
+        adapter.completeProject(project.getId());
+        entityManager.flush();
+        entityManager.clear();
+        assertThat(shortForms.findById(shortId).orElseThrow().getStatus())
+                .isEqualTo(ShortStatus.COMPLETED);
+    }
+
+    @Test
+    void refreshesExistingInProgressShortWhenProjectIsExportedAgain() {
+        User owner = User.create("owner-refresh@example.com");
+        entityManager.persist(owner);
+        Project project = new Project(owner, "작업 중", null, 701L);
+        entityManager.persist(project);
+        entityManager.persist(new ProjectMember(project, owner, ProjectMemberRole.OWNER));
+        entityManager.flush();
+        PublishedShortPersistenceAdapter adapter = new PublishedShortPersistenceAdapter(
+                shortForms, participants, projectMembers);
+
+        Long firstId = adapter.publish(project, 20L, 801L);
+        Long refreshedId = adapter.publish(project, 21L, 802L);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(refreshedId).isEqualTo(firstId);
+        ShortForm saved = shortForms.findById(firstId).orElseThrow();
+        assertThat(saved.getExportId()).isEqualTo(21L);
+        assertThat(saved.getMediaFileId()).isEqualTo(802L);
+        assertThat(participants.countByShortsId(firstId)).isEqualTo(1L);
     }
 }

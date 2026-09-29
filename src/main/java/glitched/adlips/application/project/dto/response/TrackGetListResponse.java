@@ -3,6 +3,7 @@ package glitched.adlips.application.project.dto.response;
 import glitched.adlips.domain.project.ApprovalStatus;
 import glitched.adlips.domain.project.ClipSourceType;
 import glitched.adlips.domain.project.ClipType;
+import glitched.adlips.domain.project.MidiNote;
 import glitched.adlips.domain.project.ProjectMemberRole;
 import glitched.adlips.domain.project.ProjectStatus;
 import java.util.List;
@@ -23,5 +24,6 @@ public record TrackGetListResponse(ViewerPermission viewerPermission, ProjectSum
     public record ClipSummary(Long clipId, Long ownerId, ClipType clipType, ClipSourceType sourceType,
                               Long mediaFileId, String mediaUrl, String waveformUrl, int startTick,
                               Integer durationTick, int startTimeMs, Integer durationMs,
-                              int clipOffsetMs, ApprovalStatus approvalStatus) {}
+                              int clipOffsetMs, ApprovalStatus approvalStatus,
+                              List<MidiNote> midiNotes) {}
 }

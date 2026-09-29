@@ -13,6 +13,10 @@ public interface PostQueryPort {
 
     long countPosts(Long galleryId, String keyword);
 
+    List<PostQueryItem> findPopularPosts(int page, int size);
+
+    long countAllPosts();
+
     Optional<String> findGalleryName(Long galleryId);
 
     default Optional<PostQueryItem> findDetail(Long postId, Long galleryId, boolean ignored) {

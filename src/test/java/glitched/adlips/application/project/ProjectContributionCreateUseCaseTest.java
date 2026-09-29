@@ -16,6 +16,7 @@ import glitched.adlips.application.project.dto.request.ProjectContributionCreate
 import glitched.adlips.application.project.usecase.ProjectContributionCreateUseCase;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.domain.project.ApprovalStatus;
+import glitched.adlips.domain.project.ContributionApprovalStatus;
 import glitched.adlips.domain.project.ContributionChangeType;
 import glitched.adlips.domain.project.ContributionTargetType;
 import glitched.adlips.domain.project.Project;
@@ -79,6 +80,23 @@ class ProjectContributionCreateUseCaseTest {
                 .isInstanceOf(ProjectApplicationException.class)
                 .extracting("errorCode")
                 .isEqualTo(ProjectErrorCode.INVALID_CONTRIBUTION_ITEM);
+    }
+
+    @Test
+    void rejectsCreationWhileTheUserHasAPendingContribution() {
+        when(contributions.findByProjectIdAndUserIdAndApprovalStatusInOrderByIdDesc(
+                1L, 2L, List.of(ContributionApprovalStatus.PENDING), 1))
+                .thenReturn(List.of(mock(ProjectContribution.class)));
+
+        var request = new ProjectContributionCreateRequest(
+                1L, 2L, "중복 요청", null,
+                List.of(new ProjectContributionCreateRequest.Item(
+                        ContributionChangeType.ADD, ContributionTargetType.TRACK, 101L)));
+
+        assertThatThrownBy(() -> useCase().execute(request))
+                .isInstanceOf(ProjectApplicationException.class)
+                .extracting("errorCode")
+                .isEqualTo(ProjectErrorCode.CONTRIBUTION_ALREADY_PENDING);
     }
 
     private ProjectContributionCreateUseCase useCase() {

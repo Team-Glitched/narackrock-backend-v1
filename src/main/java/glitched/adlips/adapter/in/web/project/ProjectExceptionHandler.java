@@ -49,6 +49,7 @@ public class ProjectExceptionHandler {
                     TRACK_INSTRUMENT_NOT_SET,
                     TRACK_LIMIT_EXCEEDED,
                     TRACK_HAS_PENDING_CONTRIBUTION,
+                    CONTRIBUTION_ALREADY_PENDING,
                     EXPORT_TARGET_NOT_FOUND,
                     CONTRIBUTION_VERSION_CONFLICT,
                     CONTRIBUTION_ALREADY_REVIEWED -> HttpStatus.CONFLICT;

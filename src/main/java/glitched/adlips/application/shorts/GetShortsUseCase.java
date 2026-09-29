@@ -81,6 +81,7 @@ public class GetShortsUseCase {
                 item.disliked(),
                 item.bookmarked(),
                 item.hasPendingContribution(),
+                item.hasApprovedContribution(),
                 new AuthorSummary(
                         item.authorId(), item.authorNickname(), item.authorProfileImageUrl()),
                 participants.stream()

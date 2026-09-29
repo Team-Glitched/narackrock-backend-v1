@@ -161,7 +161,8 @@ class ShortsControllerTest {
         mockMvc.perform(get("/api/v1/shorts").param("completionStatus", "COMPLETED"))
                 .andExpect(jsonPath("$.data.items[0].author.userId").value(123))
                 .andExpect(jsonPath("$.data.items[0].author.nickname").value("guitar_moon"))
-                .andExpect(jsonPath("$.data.items[0].hasPendingContribution").value(true));
+                .andExpect(jsonPath("$.data.items[0].hasPendingContribution").value(true))
+                .andExpect(jsonPath("$.data.items[0].hasApprovedContribution").value(true));
     }
 
     @Test
@@ -192,7 +193,7 @@ class ShortsControllerTest {
                 "https://cdn.example.com/exports/8/20/mix.wav",
                 "https://cdn.example.com/albums/12.png",
                 "IN_PROGRESS", 1200, 128, 4, 23L, 5,
-                false, false, false, true,
+                false, false, false, true, true,
                 new AuthorSummary(123L, "guitar_moon", null),
                 List.of(),
                 LocalDateTime.of(2026, 6, 25, 12, 3)

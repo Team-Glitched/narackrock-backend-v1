@@ -43,12 +43,17 @@ public class ShortsQueryPersistenceAdapter implements ShortsQueryPort {
                 : "EXISTS (SELECT 1 FROM project_contributions pc "
                 + "WHERE pc.project_id = s.project_id AND pc.user_id = :currentUserId "
                 + "AND pc.approval_status = 'PENDING')";
+        String approvedContributionExpression = currentUserId == null
+                ? "FALSE"
+                : "EXISTS (SELECT 1 FROM project_contributions pc "
+                + "WHERE pc.project_id = s.project_id AND pc.user_id = :currentUserId "
+                + "AND pc.approval_status = 'APPROVED')";
         String sql = """
                 SELECT s.id, s.project_id, s.title,
                        media.file_url, album.file_url, s.status,
                        s.view_count, s.like_count, s.dislike_count,
                        s.comment_count, s.contribution_count,
-                       %s, %s, %s, %s,
+                       %s, %s, %s, %s, %s,
                        p.user_id, p.nickname, profile_image.file_url, s.created_at
                   FROM shorts s
                   JOIN profiles p ON p.user_id = s.user_id
@@ -60,7 +65,7 @@ public class ShortsQueryPersistenceAdapter implements ShortsQueryPort {
                    AND (s.status = 'COMPLETED'
                         OR (s.status = 'IN_PROGRESS' AND source_project.is_public = true))
                 """.formatted(likedExpression, dislikedExpression, bookmarkedExpression,
-                        pendingContributionExpression)
+                        pendingContributionExpression, approvedContributionExpression)
                 + statusCondition
                 + cursorCondition
                 + " ORDER BY s.id DESC";
@@ -128,10 +133,11 @@ public class ShortsQueryPersistenceAdapter implements ShortsQueryPort {
                 booleanValue(row[12]),
                 booleanValue(row[13]),
                 booleanValue(row[14]),
-                longValue(row[15]),
-                stringValue(row[16]),
-                nullableString(row[17]),
-                localDateTime(row[18])
+                booleanValue(row[15]),
+                longValue(row[16]),
+                stringValue(row[17]),
+                nullableString(row[18]),
+                localDateTime(row[19])
         );
     }
 

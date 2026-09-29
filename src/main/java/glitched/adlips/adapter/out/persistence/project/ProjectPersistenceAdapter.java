@@ -145,6 +145,12 @@ public class ProjectPersistenceAdapter implements
     }
 
     @Override
+    public List<ProjectContribution> findByProjectOwnerIdAndApprovalStatusOrderByIdDesc(
+            Long ownerId, ContributionApprovalStatus status) {
+        return contributions.findByProjectOwnerIdAndApprovalStatusOrderByIdDesc(ownerId, status);
+    }
+
+    @Override
     public List<ProjectContribution> findByProjectIdAndApprovalStatusInOrderByIdDesc(
             Long projectId, Collection<ContributionApprovalStatus> statuses, int pageSize) {
         return contributions.findByProjectIdAndApprovalStatusInOrderByIdDesc(projectId, statuses, pageSize);

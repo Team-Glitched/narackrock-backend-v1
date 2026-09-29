@@ -52,6 +52,8 @@ public class ProjectExceptionHandler {
                     CONTRIBUTION_VERSION_CONFLICT,
                     CONTRIBUTION_ALREADY_REVIEWED -> HttpStatus.CONFLICT;
 
+            case HTI_TRANSFORM_FAILED -> HttpStatus.BAD_GATEWAY;
+
             default -> HttpStatus.BAD_REQUEST;
         };
     }

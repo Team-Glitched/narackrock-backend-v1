@@ -269,9 +269,10 @@ public class ProjectApplicationConfiguration {
             ProjectTrackRepositoryPort tracks,
             ProjectClipRepositoryPort clips,
             UserRepositoryPort users,
+            ProjectExportRepositoryPort exports,
             TransactionRunner transactionRunner
     ) {
         return new ProjectContributionReviewUseCase(
-                contributions, members, tracks, clips, users, transactionRunner);
+                contributions, members, tracks, clips, users, exports, transactionRunner);
     }
 }

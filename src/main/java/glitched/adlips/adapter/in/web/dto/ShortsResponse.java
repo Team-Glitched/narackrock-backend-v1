@@ -24,6 +24,7 @@ public record ShortsResponse(List<ShortItem> items, Page page) {
             boolean isLiked,
             boolean isDisliked,
             boolean isBookmarked,
+            boolean hasPendingContribution,
             Author author,
             List<Participant> participants,
             LocalDateTime createdAt
@@ -39,7 +40,7 @@ public record ShortsResponse(List<ShortItem> items, Page page) {
                 s.shortId(), s.projectId(), s.title(), s.mediaUrl(), s.albumImageUrl(),
                 s.completionStatus(), s.viewCount(), s.likeCount(), s.dislikeCount(),
                 s.commentCount(), s.contributionCount(),
-                s.isLiked(), s.isDisliked(), s.isBookmarked(),
+                s.isLiked(), s.isDisliked(), s.isBookmarked(), s.hasPendingContribution(),
                 toAuthor(s.author()),
                 toParticipants(s.participants()),
                 s.createdAt()

@@ -10,4 +10,5 @@ public interface ProjectTrackJpaRepository extends JpaRepository<ProjectTrack, L
     Optional<ProjectTrack> findByIdAndIsDeletedFalse(Long id);
     List<ProjectTrack> findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(Long projectId);
     List<ProjectTrack> findByProjectIdAndApprovalStatusAndIsDeletedFalse(Long projectId, ApprovalStatus status);
+    boolean existsByProjectIdAndOwnerIdAndIsDeletedFalse(Long projectId, Long ownerId);
 }

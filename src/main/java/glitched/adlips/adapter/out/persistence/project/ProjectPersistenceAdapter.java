@@ -102,6 +102,11 @@ public class ProjectPersistenceAdapter implements
     }
 
     @Override
+    public boolean existsByProjectIdAndOwnerIdAndIsDeletedFalse(Long projectId, Long ownerId) {
+        return tracks.existsByProjectIdAndOwnerIdAndIsDeletedFalse(projectId, ownerId);
+    }
+
+    @Override
     public ProjectTrack save(ProjectTrack track) {
         return tracks.save(track);
     }

@@ -14,5 +14,7 @@ public interface ProjectTrackRepositoryPort {
     List<ProjectTrack> findByProjectIdAndApprovalStatusAndIsDeletedFalse(
             Long projectId, ApprovalStatus status);
 
+    boolean existsByProjectIdAndOwnerIdAndIsDeletedFalse(Long projectId, Long ownerId);
+
     ProjectTrack save(ProjectTrack track);
 }

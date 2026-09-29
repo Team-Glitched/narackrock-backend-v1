@@ -1,6 +1,8 @@
 package glitched.adlips.adapter.out.hti;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.containsString;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.content;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
@@ -19,6 +21,11 @@ class HtiMidiRestAdapterTest {
         MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
         server.expect(requestTo("http://hti.test/api/v1/clips/10/hti-transform"))
                 .andExpect(method(HttpMethod.POST))
+                .andExpect(content().string(containsString("name=\"audio\"")))
+                .andExpect(content().string(containsString("name=\"bpm\"")))
+                .andExpect(content().string(containsString("120")))
+                .andExpect(content().string(containsString("name=\"ppq\"")))
+                .andExpect(content().string(containsString("480")))
                 .andRespond(withSuccess("""
                         {
                           "durationTick": 960,

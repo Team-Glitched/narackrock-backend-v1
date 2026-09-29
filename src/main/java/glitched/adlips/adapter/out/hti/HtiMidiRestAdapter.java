@@ -1,5 +1,6 @@
 package glitched.adlips.adapter.out.hti;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import glitched.adlips.application.project.port.out.HtiMidiTransformPort;
 import java.util.List;
 import java.util.Map;
@@ -27,8 +28,8 @@ public class HtiMidiRestAdapter implements HtiMidiTransformPort {
         };
         multipart.part("audio", audio)
                 .contentType(mediaType(command.contentType()));
-        multipart.part("bpm", command.bpm());
-        multipart.part("ppq", command.ppq());
+        multipart.part("bpm", String.valueOf(command.bpm()));
+        multipart.part("ppq", String.valueOf(command.ppq()));
 
         try {
             Response response = client.post()
@@ -62,9 +63,11 @@ public class HtiMidiRestAdapter implements HtiMidiTransformPort {
         }
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private record Response(int durationTick, List<ResponseNote> midiNotes) {
     }
 
+    @JsonIgnoreProperties(ignoreUnknown = true)
     private record ResponseNote(
             int pitch,
             int startTick,

@@ -38,12 +38,22 @@ public class ShortsQueryPersistenceAdapter implements ShortsQueryPort {
         String bookmarkedExpression = currentUserId == null
                 ? "FALSE"
                 : "EXISTS (SELECT 1 FROM shorts_bookmarks b WHERE b.user_id = :currentUserId AND b.shorts_id = s.id)";
+        String pendingContributionExpression = currentUserId == null
+                ? "FALSE"
+                : "EXISTS (SELECT 1 FROM project_contributions pc "
+                + "WHERE pc.project_id = s.project_id AND pc.user_id = :currentUserId "
+                + "AND pc.approval_status = 'PENDING')";
+        String approvedContributionExpression = currentUserId == null
+                ? "FALSE"
+                : "EXISTS (SELECT 1 FROM project_contributions pc "
+                + "WHERE pc.project_id = s.project_id AND pc.user_id = :currentUserId "
+                + "AND pc.approval_status = 'APPROVED')";
         String sql = """
                 SELECT s.id, s.project_id, s.title,
                        media.file_url, album.file_url, s.status,
                        s.view_count, s.like_count, s.dislike_count,
                        s.comment_count, s.contribution_count,
-                       %s, %s, %s,
+                       %s, %s, %s, %s, %s,
                        p.user_id, p.nickname, profile_image.file_url, s.created_at
                   FROM shorts s
                   JOIN profiles p ON p.user_id = s.user_id
@@ -54,7 +64,8 @@ public class ShortsQueryPersistenceAdapter implements ShortsQueryPort {
                  WHERE s.deleted_at IS NULL
                    AND (s.status = 'COMPLETED'
                         OR (s.status = 'IN_PROGRESS' AND source_project.is_public = true))
-                """.formatted(likedExpression, dislikedExpression, bookmarkedExpression)
+                """.formatted(likedExpression, dislikedExpression, bookmarkedExpression,
+                        pendingContributionExpression, approvedContributionExpression)
                 + statusCondition
                 + cursorCondition
                 + " ORDER BY s.id DESC";
@@ -121,10 +132,12 @@ public class ShortsQueryPersistenceAdapter implements ShortsQueryPort {
                 booleanValue(row[11]),
                 booleanValue(row[12]),
                 booleanValue(row[13]),
-                longValue(row[14]),
-                stringValue(row[15]),
-                nullableString(row[16]),
-                localDateTime(row[17])
+                booleanValue(row[14]),
+                booleanValue(row[15]),
+                longValue(row[16]),
+                stringValue(row[17]),
+                nullableString(row[18]),
+                localDateTime(row[19])
         );
     }
 

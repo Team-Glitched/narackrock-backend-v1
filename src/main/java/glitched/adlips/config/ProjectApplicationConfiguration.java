@@ -1,8 +1,10 @@
 package glitched.adlips.config;
 
+import glitched.adlips.adapter.out.hti.HtiMidiRestAdapter;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.media.port.out.MediaContentStoragePort;
 import glitched.adlips.application.project.port.out.ProjectAudioMixerPort;
+import glitched.adlips.application.project.port.out.HtiMidiTransformPort;
 import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectContributionItemRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectContributionRepositoryPort;
@@ -13,10 +15,12 @@ import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.project.port.out.PublishedShortPort;
 import glitched.adlips.application.project.usecase.AudioClipCreateUseCase;
+import glitched.adlips.application.project.usecase.HtiMidiTransformUseCase;
 import glitched.adlips.application.project.usecase.MidiClipCreateUseCase;
 import glitched.adlips.application.project.usecase.MidiClipSaveUseCase;
 import glitched.adlips.application.project.usecase.ProjectContributionCreateUseCase;
 import glitched.adlips.application.project.usecase.ProjectContributionGetListUseCase;
+import glitched.adlips.application.project.usecase.ProjectContributionNotificationUseCase;
 import glitched.adlips.application.project.usecase.ProjectContributionReviewUseCase;
 import glitched.adlips.application.project.usecase.ProjectCreateUseCase;
 import glitched.adlips.application.project.usecase.ProjectDraftCreateUseCase;
@@ -38,10 +42,27 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.web.client.RestClient;
 
 @Configuration
 @EnableScheduling
 public class ProjectApplicationConfiguration {
+
+    @Bean
+    HtiMidiTransformPort htiMidiTransformPort(
+            @Value("${app.hti.base-url:http://localhost:8000}") String baseUrl
+    ) {
+        return new HtiMidiRestAdapter(RestClient.builder().baseUrl(baseUrl).build());
+    }
+
+    @Bean
+    HtiMidiTransformUseCase htiMidiTransformUseCase(
+            ProjectRepositoryPort projects,
+            ProjectMemberRepositoryPort members,
+            HtiMidiTransformPort transformer
+    ) {
+        return new HtiMidiTransformUseCase(projects, members, transformer);
+    }
 
     @Bean
     ProjectCreateUseCase projectCreateUseCase(
@@ -233,15 +254,25 @@ public class ProjectApplicationConfiguration {
     }
 
     @Bean
+    ProjectContributionNotificationUseCase projectContributionNotificationUseCase(
+            ProjectContributionRepositoryPort contributions,
+            ProfileRepositoryPort profiles,
+            TransactionRunner transactionRunner
+    ) {
+        return new ProjectContributionNotificationUseCase(contributions, profiles, transactionRunner);
+    }
+
+    @Bean
     ProjectContributionReviewUseCase projectContributionReviewUseCase(
             ProjectContributionRepositoryPort contributions,
             ProjectMemberRepositoryPort members,
             ProjectTrackRepositoryPort tracks,
             ProjectClipRepositoryPort clips,
             UserRepositoryPort users,
+            ProjectExportRepositoryPort exports,
             TransactionRunner transactionRunner
     ) {
         return new ProjectContributionReviewUseCase(
-                contributions, members, tracks, clips, users, transactionRunner);
+                contributions, members, tracks, clips, users, exports, transactionRunner);
     }
 }

@@ -141,6 +141,17 @@ class ProfileUseCasesTest {
     }
 
     @Test
+    void keepsTheCurrentNicknameWithoutRunningADuplicateCheck() {
+        UserProfileUpdateResponse result = profileUpdateUseCase.execute(
+                new UserProfileUpdateRequest(1L, "guitar_moon", "기타", "새 설명")
+        );
+
+        assertEquals("guitar_moon", result.nickname());
+        assertEquals("새 설명", result.explanation());
+        assertEquals(0, profiles.nicknameExclusionCheckCount);
+    }
+
+    @Test
     void rejectsNicknameOwnedByAnotherUser() {
         users.save(User.create("other@example.com").withId(2L));
         profiles.save(Profile.create(2L, "taken"));
@@ -212,6 +223,7 @@ class ProfileUseCasesTest {
 
     private static final class InMemoryProfiles implements ProfileRepositoryPort {
         private final Map<Long, Profile> values = new HashMap<>();
+        private int nicknameExclusionCheckCount;
 
         @Override
         public Optional<Profile> findByUserId(Long userId) {
@@ -225,6 +237,7 @@ class ProfileUseCasesTest {
 
         @Override
         public boolean existsByNicknameAndUserIdNot(String nickname, Long userId) {
+            nicknameExclusionCheckCount++;
             return values.values().stream().anyMatch(
                     profile -> !profile.getUserId().equals(userId) && profile.getNickname().equals(nickname)
             );

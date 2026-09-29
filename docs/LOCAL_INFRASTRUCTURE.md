@@ -39,6 +39,35 @@ docker compose --env-file compose.env exec redis \
   redis-cli --no-auth-warning -a "$REDIS_PASSWORD" ping
 ```
 
+## IntelliJ에서 로컬 인프라 사용
+
+백엔드는 IntelliJ에서 실행하고 PostgreSQL과 Redis만 컨테이너로 실행할 때는
+로컬 오버라이드 파일을 함께 사용한다. 포트는 외부 네트워크가 아닌
+`127.0.0.1`에만 공개된다.
+
+```shell
+cp compose.env.example compose.env
+cp .env.local.example .env.local
+docker compose --env-file compose.env \
+  -f compose.yml -f compose.local.yml \
+  up -d postgres redis
+```
+
+`compose.env`의 `POSTGRES_PASSWORD`, `REDIS_PASSWORD`와 `.env.local`의 대응하는
+비밀번호는 반드시 같아야 한다. IntelliJ에서 실행한 애플리케이션은 `.env`를 먼저
+읽고 `.env.local`의 로컬 DB/Redis 설정으로 덮어쓴다.
+기본 로컬 포트는 PostgreSQL `15432`, Redis `16379`이며 `compose.env`의
+`POSTGRES_LOCAL_PORT`, `REDIS_LOCAL_PORT`로 변경할 수 있다.
+
+상태 확인과 종료:
+
+```shell
+docker compose --env-file compose.env \
+  -f compose.yml -f compose.local.yml ps
+docker compose --env-file compose.env \
+  -f compose.yml -f compose.local.yml down
+```
+
 ## 데이터 보존
 
 PostgreSQL과 Redis는 각각 Docker volume에 데이터를 보존한다.

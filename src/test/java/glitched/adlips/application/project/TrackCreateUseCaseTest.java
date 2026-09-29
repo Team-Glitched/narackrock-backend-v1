@@ -1,8 +1,11 @@
 package glitched.adlips.application.project;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
@@ -29,7 +32,7 @@ class TrackCreateUseCaseTest {
         ProjectMemberRepositoryPort members = mock(ProjectMemberRepositoryPort.class);
         ProjectTrackRepositoryPort tracks = mock(ProjectTrackRepositoryPort.class);
         UserRepositoryPort users = mock(UserRepositoryPort.class);
-        when(projects.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(project));
+        when(projects.findByIdAndDeletedAtIsNullForUpdate(10L)).thenReturn(Optional.of(project));
         when(members.findByProjectIdAndUserId(10L, 1L)).thenReturn(Optional.of(new ProjectMember(project, owner, ProjectMemberRole.OWNER)));
         when(users.findById(1L)).thenReturn(Optional.of(owner));
         when(tracks.save(any(ProjectTrack.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -40,5 +43,27 @@ class TrackCreateUseCaseTest {
         assertThat(response.volume()).isEqualTo(100);
         assertThat(response.mediaFileId()).isNull();
         assertThat(response.approvalStatus().name()).isEqualTo("DRAFT");
+    }
+
+    @Test
+    void rejectsASecondActiveTrackFromTheSameUserInAProject() {
+        User owner = User.create("owner@example.com").withId(1L);
+        Project project = new Project(owner, "곡", null, 701L);
+        ProjectRepositoryPort projects = mock(ProjectRepositoryPort.class);
+        ProjectMemberRepositoryPort members = mock(ProjectMemberRepositoryPort.class);
+        ProjectTrackRepositoryPort tracks = mock(ProjectTrackRepositoryPort.class);
+        UserRepositoryPort users = mock(UserRepositoryPort.class);
+        when(projects.findByIdAndDeletedAtIsNullForUpdate(10L)).thenReturn(Optional.of(project));
+        when(members.findByProjectIdAndUserId(10L, 1L))
+                .thenReturn(Optional.of(new ProjectMember(project, owner, ProjectMemberRole.OWNER)));
+        when(users.findById(1L)).thenReturn(Optional.of(owner));
+        when(tracks.existsByProjectIdAndOwnerIdAndIsDeletedFalse(10L, 1L)).thenReturn(true);
+
+        assertThatThrownBy(() -> new TrackCreateUseCase(projects, members, tracks, users)
+                .execute(new TrackCreateRequest(10L, 1L, "두 번째 레이어", "PIANO", 1)))
+                .isInstanceOf(ProjectApplicationException.class)
+                .extracting("errorCode")
+                .isEqualTo(ProjectErrorCode.TRACK_LIMIT_EXCEEDED);
+        verify(tracks, never()).save(any(ProjectTrack.class));
     }
 }

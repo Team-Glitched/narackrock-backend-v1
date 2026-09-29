@@ -18,6 +18,8 @@ public record ShortSummary(
         boolean isLiked,
         boolean isDisliked,
         boolean isBookmarked,
+        boolean hasPendingContribution,
+        boolean hasApprovedContribution,
         AuthorSummary author,
         List<ParticipantSummary> participants,
         LocalDateTime createdAt

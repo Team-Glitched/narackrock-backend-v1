@@ -3,7 +3,7 @@
 .gradle
 .idea
 .vscode
-build
+/build
 out
 *.env
 .env*

@@ -11,6 +11,8 @@ RUN ./gradlew clean bootJar --no-daemon
 
 FROM eclipse-temurin:21-jre-alpine
 
+RUN apk add --no-cache curl
+
 RUN addgroup -S -g 10001 adlips \
     && adduser -S -D -H -u 10001 -G adlips adlips
 

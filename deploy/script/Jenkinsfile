@@ -1,0 +1,80 @@
+// Pipeline script from SCM: deploy/script/Jenkinsfile
+// Run on the Docker Compose host. Store deploy/env/.env as a Jenkins Secret file
+// with credential ID adlips-be-compose-env.
+pipeline {
+    agent { label 'adlips-deploy' }
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+    }
+
+    environment {
+        COMPOSE_FILE = 'deploy/build/docker-compose.yml'
+        ENV_FILE = 'deploy/env/.env'
+        APP_IMAGE = 'adlips-backend:latest'
+        ROLLBACK_IMAGE = 'adlips-backend:rollback'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+        stage('Prepare') {
+            steps {
+                withCredentials([file(credentialsId: 'adlips-be-compose-env', variable: 'COMPOSE_ENV_SRC')]) {
+                    sh '''
+                        set -eu
+                        mkdir -p deploy/env
+                        cp "$COMPOSE_ENV_SRC" "$ENV_FILE"
+                        chmod 600 "$ENV_FILE"
+                        # The rollback tag must match the image used by compose.
+                        if grep -q '^ADLIPS_APP_IMAGE=' "$ENV_FILE" &&
+                           ! grep -qx "ADLIPS_APP_IMAGE=$APP_IMAGE" "$ENV_FILE"; then
+                            echo 'ADLIPS_APP_IMAGE must be adlips-backend:latest for this pipeline.' >&2
+                            exit 1
+                        fi
+                        docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" config --quiet
+                        rm -f ".deploy-rollback-ready-$BUILD_NUMBER" ".deploy-started-$BUILD_NUMBER"
+                        container_id="$(docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" ps -q backend)"
+                        if [ -n "$container_id" ]; then
+                            image_id="$(docker inspect --format '{{.Image}}' "$container_id")"
+                            docker tag "$image_id" "$ROLLBACK_IMAGE"
+                            touch ".deploy-rollback-ready-$BUILD_NUMBER"
+                        fi
+                    '''
+                }
+            }
+        }
+        stage('Build') {
+            steps {
+                sh 'docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" build backend'
+            }
+        }
+        stage('Run') {
+            steps {
+                sh '''
+                    set -eu
+                    touch ".deploy-started-$BUILD_NUMBER"
+                    docker compose --env-file "$ENV_FILE" -f "$COMPOSE_FILE" up -d --no-build --force-recreate backend
+                '''
+            }
+        }
+        stage('Health Check') {
+            steps {
+                sh 'bash deploy/script/health-check.sh 180'
+            }
+        }
+    }
+
+    post {
+        failure {
+            sh 'bash deploy/script/rollback.sh'
+        }
+        always {
+            sh 'rm -f deploy/env/.env ".deploy-rollback-ready-$BUILD_NUMBER" ".deploy-started-$BUILD_NUMBER"'
+        }
+    }
+}

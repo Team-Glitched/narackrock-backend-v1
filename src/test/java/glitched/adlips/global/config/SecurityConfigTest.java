@@ -77,6 +77,12 @@ class SecurityConfigTest {
     }
 
     @Test
+    void allowsHealthEndpointWithoutToken() throws Exception {
+        mockMvc.perform(get("/actuator/health"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void allowsUserRelationsGetWithoutToken() throws Exception {
         mockMvc.perform(get("/api/v1/users/1/relations?type=following"))
                 .andExpect(status().isOk())
@@ -104,6 +110,11 @@ class SecurityConfigTest {
         @GetMapping("/swagger-ui/index.html")
         public String swaggerUi() {
             return "swagger-ui";
+        }
+
+        @GetMapping("/actuator/health")
+        public String health() {
+            return "UP";
         }
     }
 

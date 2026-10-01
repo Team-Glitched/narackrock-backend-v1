@@ -14,4 +14,11 @@ public interface ShortsQueryPort {
     );
 
     List<ShortsParticipantQueryItem> findParticipants(List<Long> shortIds);
+
+    List<ShortsQueryItem> findByIds(List<Long> shortIds, Long currentUserId);
+
+    List<ShortsQueryItem> findParticipatedByCursor(
+            Long userId, Long cursor, int limit, Long currentUserId);
+
+    List<ShortPopularityScore> findPopularityScores();
 }

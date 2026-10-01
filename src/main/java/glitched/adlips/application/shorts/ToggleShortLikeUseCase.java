@@ -3,6 +3,7 @@ package glitched.adlips.application.shorts;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.shorts.port.out.ShortReactionPort;
 import glitched.adlips.application.shorts.port.out.ShortReactionCountCachePort;
+import glitched.adlips.application.shorts.port.out.ShortPopularityRankingPort;
 import glitched.adlips.domain.reaction.ReactionType;
 import java.util.Optional;
 
@@ -10,15 +11,18 @@ public class ToggleShortLikeUseCase {
 
     private final ShortReactionPort reactionPort;
     private final ShortReactionCountCachePort reactionCountCache;
+    private final ShortPopularityRankingPort popularityRanking;
     private final TransactionRunner transactionRunner;
 
     public ToggleShortLikeUseCase(
             ShortReactionPort reactionPort,
             ShortReactionCountCachePort reactionCountCache,
+            ShortPopularityRankingPort popularityRanking,
             TransactionRunner transactionRunner
     ) {
         this.reactionPort = reactionPort;
         this.reactionCountCache = reactionCountCache;
+        this.popularityRanking = popularityRanking;
         this.transactionRunner = transactionRunner;
     }
 
@@ -44,6 +48,7 @@ public class ToggleShortLikeUseCase {
             return new ShortLikeResult(shortId, isLiked, reactionPort.getLikeCount(shortId));
         });
         reactionCountCache.evict(shortId);
+        popularityRanking.updateLikeCount(shortId, result.likeCount());
         return result;
     }
 

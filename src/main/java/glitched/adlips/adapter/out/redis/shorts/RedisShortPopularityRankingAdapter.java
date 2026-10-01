@@ -9,6 +9,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
@@ -32,6 +33,7 @@ public class RedisShortPopularityRankingAdapter implements ShortPopularityRankin
     private final String combinedRankingKey;
     private final String seededKey;
 
+    @Autowired
     public RedisShortPopularityRankingAdapter(StringRedisTemplate redisTemplate) {
         this(redisTemplate, "adlips");
     }

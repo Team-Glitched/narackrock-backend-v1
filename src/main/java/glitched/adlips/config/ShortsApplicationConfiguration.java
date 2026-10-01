@@ -8,6 +8,7 @@ import glitched.adlips.application.shorts.GetShortsComposersUseCase;
 import glitched.adlips.application.shorts.GetShortsCompositionDetailUseCase;
 import glitched.adlips.application.shorts.GetShortsShareUseCase;
 import glitched.adlips.application.shorts.GetShortsUseCase;
+import glitched.adlips.application.shorts.GetHomeShortsUseCase;
 import glitched.adlips.application.shorts.DeleteShortCommentUseCase;
 import glitched.adlips.application.shorts.GetShortCommentsUseCase;
 import glitched.adlips.application.shorts.ShortsCompositionEntryUseCase;
@@ -28,6 +29,7 @@ import glitched.adlips.application.shorts.port.out.ShortCommentReportPort;
 import glitched.adlips.application.shorts.port.out.ShortPlaybackPort;
 import glitched.adlips.application.shorts.port.out.ShortReactionPort;
 import glitched.adlips.application.shorts.port.out.ShortReactionCountCachePort;
+import glitched.adlips.application.shorts.port.out.ShortPopularityRankingPort;
 import glitched.adlips.application.shorts.port.out.ShortReportPort;
 import glitched.adlips.application.shorts.port.out.UserBanQueryPort;
 import glitched.adlips.application.shorts.port.out.ShortsComposersQueryPort;
@@ -61,13 +63,25 @@ public class ShortsApplicationConfiguration {
     }
 
     @Bean
+    GetHomeShortsUseCase getHomeShortsUseCase(
+            ShortsQueryPort shortsQueryPort,
+            ShortReactionCountCachePort shortReactionCountCachePort,
+            ShortPopularityRankingPort shortPopularityRankingPort
+    ) {
+        return new GetHomeShortsUseCase(
+                shortsQueryPort, shortReactionCountCachePort, shortPopularityRankingPort);
+    }
+
+    @Bean
     ToggleShortLikeUseCase toggleShortLikeUseCase(
             ShortReactionPort shortReactionPort,
             ShortReactionCountCachePort shortReactionCountCachePort,
+            ShortPopularityRankingPort shortPopularityRankingPort,
             TransactionRunner transactionRunner
     ) {
         return new ToggleShortLikeUseCase(
-                shortReactionPort, shortReactionCountCachePort, transactionRunner);
+                shortReactionPort, shortReactionCountCachePort,
+                shortPopularityRankingPort, transactionRunner);
     }
 
     @Bean

@@ -3,6 +3,7 @@ package glitched.adlips.adapter.in.web;
 import glitched.adlips.adapter.in.web.shorts.ShortsController;
 import glitched.adlips.application.shorts.AuthorSummary;
 import glitched.adlips.application.shorts.GetShortsUseCase;
+import glitched.adlips.application.shorts.GetHomeShortsUseCase;
 import glitched.adlips.application.shorts.ShortSummary;
 import glitched.adlips.application.shorts.ShortsPage;
 import glitched.adlips.application.shorts.ShortsSource;
@@ -37,6 +38,7 @@ class ShortsControllerTest {
 
     @Autowired MockMvc mockMvc;
     @MockitoBean GetShortsUseCase getShortsUseCase;
+    @MockitoBean GetHomeShortsUseCase getHomeShortsUseCase;
     @MockitoBean AuthenticatedUserResolver authenticatedUserResolver;
     @MockitoBean AccessTokenPort accessTokenPort;
 

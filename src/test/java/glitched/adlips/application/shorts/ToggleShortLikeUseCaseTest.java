@@ -3,6 +3,7 @@ package glitched.adlips.application.shorts;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.shorts.port.out.ShortReactionPort;
 import glitched.adlips.application.shorts.port.out.ShortReactionCountCachePort;
+import glitched.adlips.application.shorts.port.out.ShortPopularityRankingPort;
 import glitched.adlips.domain.reaction.ReactionType;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -22,13 +23,15 @@ class ToggleShortLikeUseCaseTest {
 
     @Mock ShortReactionPort reactionPort;
     @Mock ShortReactionCountCachePort reactionCountCache;
+    @Mock ShortPopularityRankingPort popularityRanking;
     @Mock TransactionRunner transactionRunner;
 
     ToggleShortLikeUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new ToggleShortLikeUseCase(reactionPort, reactionCountCache, transactionRunner);
+        useCase = new ToggleShortLikeUseCase(
+                reactionPort, reactionCountCache, popularityRanking, transactionRunner);
         when(transactionRunner.required(any())).thenAnswer(inv ->
                 inv.<Supplier<?>>getArgument(0).get());
     }

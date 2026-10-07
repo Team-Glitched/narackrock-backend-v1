@@ -14,6 +14,8 @@ import glitched.adlips.application.community.GetMyGalleryRoleUseCase;
 import glitched.adlips.application.community.UpdateGalleryUseCase;
 import glitched.adlips.application.community.GetGalleryBansUseCase;
 import glitched.adlips.application.community.LiftGalleryBanUseCase;
+import glitched.adlips.application.community.ModeratePostCommentDeletionUseCase;
+import glitched.adlips.application.community.ModeratePostDeletionUseCase;
 import glitched.adlips.application.community.SanctionGalleryUserUseCase;
 import glitched.adlips.application.community.port.out.GalleryAuthorityPort;
 import glitched.adlips.application.community.port.out.GalleryBanPort;
@@ -162,6 +164,31 @@ public class CommunityApplicationConfiguration {
             Clock clock
     ) {
         return new GetGalleryBansUseCase(galleryAuthorityPort, galleryBanPort, transactionRunner, clock);
+    }
+
+    @Bean
+    ModeratePostDeletionUseCase moderatePostDeletionUseCase(
+            GalleryAuthorityPort galleryAuthorityPort,
+            PostPort postPort,
+            GalleryModerationLogPort galleryModerationLogPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new ModeratePostDeletionUseCase(
+                galleryAuthorityPort, postPort, galleryModerationLogPort, transactionRunner, clock);
+    }
+
+    @Bean
+    ModeratePostCommentDeletionUseCase moderatePostCommentDeletionUseCase(
+            GalleryAuthorityPort galleryAuthorityPort,
+            PostPort postPort,
+            PostCommentPort postCommentPort,
+            GalleryModerationLogPort galleryModerationLogPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new ModeratePostCommentDeletionUseCase(galleryAuthorityPort, postPort, postCommentPort,
+                galleryModerationLogPort, transactionRunner, clock);
     }
 
     @Bean

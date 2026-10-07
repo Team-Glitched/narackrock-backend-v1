@@ -5,6 +5,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import glitched.adlips.adapter.in.web.dto.ApiResponse;
 import glitched.adlips.adapter.in.web.dto.GalleryBanPageResponse;
+import glitched.adlips.adapter.in.web.dto.GalleryContentDeleteRequest;
 import glitched.adlips.adapter.in.web.dto.GalleryModerationLogPageResponse;
 import glitched.adlips.adapter.in.web.dto.GalleryRoleResponse;
 import glitched.adlips.adapter.in.web.dto.GallerySanctionRequest;
@@ -15,6 +16,8 @@ import glitched.adlips.application.community.GetGalleryBansUseCase;
 import glitched.adlips.application.community.GetGalleryModerationLogsUseCase;
 import glitched.adlips.application.community.GetMyGalleryRoleUseCase;
 import glitched.adlips.application.community.LiftGalleryBanUseCase;
+import glitched.adlips.application.community.ModeratePostCommentDeletionUseCase;
+import glitched.adlips.application.community.ModeratePostDeletionUseCase;
 import glitched.adlips.application.community.SanctionGalleryUserUseCase;
 import glitched.adlips.application.community.UpdateGalleryUseCase;
 import org.springframework.http.HttpStatus;
@@ -41,6 +44,8 @@ public class GalleryManageController {
     private final SanctionGalleryUserUseCase sanctionGalleryUserUseCase;
     private final LiftGalleryBanUseCase liftGalleryBanUseCase;
     private final GetGalleryBansUseCase getGalleryBansUseCase;
+    private final ModeratePostDeletionUseCase moderatePostDeletionUseCase;
+    private final ModeratePostCommentDeletionUseCase moderatePostCommentDeletionUseCase;
     private final AuthenticatedUserResolver authenticatedUserResolver;
 
     public GalleryManageController(
@@ -50,6 +55,8 @@ public class GalleryManageController {
             SanctionGalleryUserUseCase sanctionGalleryUserUseCase,
             LiftGalleryBanUseCase liftGalleryBanUseCase,
             GetGalleryBansUseCase getGalleryBansUseCase,
+            ModeratePostDeletionUseCase moderatePostDeletionUseCase,
+            ModeratePostCommentDeletionUseCase moderatePostCommentDeletionUseCase,
             AuthenticatedUserResolver authenticatedUserResolver
     ) {
         this.getMyGalleryRoleUseCase = getMyGalleryRoleUseCase;
@@ -58,6 +65,8 @@ public class GalleryManageController {
         this.sanctionGalleryUserUseCase = sanctionGalleryUserUseCase;
         this.liftGalleryBanUseCase = liftGalleryBanUseCase;
         this.getGalleryBansUseCase = getGalleryBansUseCase;
+        this.moderatePostDeletionUseCase = moderatePostDeletionUseCase;
+        this.moderatePostCommentDeletionUseCase = moderatePostCommentDeletionUseCase;
         this.authenticatedUserResolver = authenticatedUserResolver;
     }
 
@@ -134,5 +143,29 @@ public class GalleryManageController {
         Long userId = authenticatedUserResolver.requireUserId(authorization);
         liftGalleryBanUseCase.execute(userId, galleryId, banId);
         return ResponseEntity.ok(ApiResponse.success("제재가 해제되었습니다.", null));
+    }
+
+    @PatchMapping("/posts/{postId}/delete")
+    public ResponseEntity<ApiResponse<Void>> deletePost(
+            @PathVariable Long galleryId,
+            @PathVariable Long postId,
+            @RequestHeader("Authorization") String authorization,
+            @RequestBody GalleryContentDeleteRequest request
+    ) {
+        Long userId = authenticatedUserResolver.requireUserId(authorization);
+        moderatePostDeletionUseCase.execute(userId, galleryId, postId, request.reason());
+        return ResponseEntity.ok(ApiResponse.success("게시글을 삭제하였습니다.", null));
+    }
+
+    @PatchMapping("/comments/{commentId}/delete")
+    public ResponseEntity<ApiResponse<Void>> deleteComment(
+            @PathVariable Long galleryId,
+            @PathVariable Long commentId,
+            @RequestHeader("Authorization") String authorization,
+            @RequestBody GalleryContentDeleteRequest request
+    ) {
+        Long userId = authenticatedUserResolver.requireUserId(authorization);
+        moderatePostCommentDeletionUseCase.execute(userId, galleryId, commentId, request.reason());
+        return ResponseEntity.ok(ApiResponse.success("댓글을 삭제하였습니다.", null));
     }
 }

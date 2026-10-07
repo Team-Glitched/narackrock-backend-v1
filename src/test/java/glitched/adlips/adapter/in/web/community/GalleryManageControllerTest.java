@@ -20,6 +20,8 @@ import glitched.adlips.application.community.GetMyGalleryRoleUseCase;
 import glitched.adlips.application.community.GalleryBanPage;
 import glitched.adlips.application.community.GetGalleryBansUseCase;
 import glitched.adlips.application.community.LiftGalleryBanUseCase;
+import glitched.adlips.application.community.ModeratePostCommentDeletionUseCase;
+import glitched.adlips.application.community.ModeratePostDeletionUseCase;
 import glitched.adlips.application.community.SanctionGalleryUserUseCase;
 import glitched.adlips.application.community.port.out.GalleryBanItem;
 import glitched.adlips.domain.community.GalleryBanType;
@@ -53,6 +55,8 @@ class GalleryManageControllerTest {
     @MockitoBean SanctionGalleryUserUseCase sanctionGalleryUserUseCase;
     @MockitoBean LiftGalleryBanUseCase liftGalleryBanUseCase;
     @MockitoBean GetGalleryBansUseCase getGalleryBansUseCase;
+    @MockitoBean ModeratePostDeletionUseCase moderatePostDeletionUseCase;
+    @MockitoBean ModeratePostCommentDeletionUseCase moderatePostCommentDeletionUseCase;
     @MockitoBean AuthenticatedUserResolver authenticatedUserResolver;
     @MockitoBean AccessTokenPort accessTokenPort;
 
@@ -204,5 +208,40 @@ class GalleryManageControllerTest {
                 .andExpect(jsonPath("$.data.bans[0].banType").value("SUSPEND"))
                 .andExpect(jsonPath("$.data.bans[0].bannedUntil").value("2026-10-14T12:00:00"))
                 .andExpect(jsonPath("$.data.bans[0].active").value(true));
+    }
+
+    @Test
+    void 매니저가_게시글을_삭제한다() throws Exception {
+        mockMvc.perform(patch("/api/v1/galleries/10/manage/posts/50/delete")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"광고\"}"))
+                .andExpect(status().isOk());
+
+        verify(moderatePostDeletionUseCase).execute(3L, 10L, 50L, "광고");
+    }
+
+    @Test
+    void 다른_갤러리의_게시글이면_404를_반환한다() throws Exception {
+        doThrow(new GalleryModerationApplicationException(GalleryModerationErrorCode.POST_NOT_FOUND, "없음"))
+                .when(moderatePostDeletionUseCase).execute(3L, 10L, 50L, "광고");
+
+        mockMvc.perform(patch("/api/v1/galleries/10/manage/posts/50/delete")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"광고\"}"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("POST_NOT_FOUND"));
+    }
+
+    @Test
+    void 매니저가_댓글을_삭제한다() throws Exception {
+        mockMvc.perform(patch("/api/v1/galleries/10/manage/comments/70/delete")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"reason\":\"욕설\"}"))
+                .andExpect(status().isOk());
+
+        verify(moderatePostCommentDeletionUseCase).execute(3L, 10L, 70L, "욕설");
     }
 }

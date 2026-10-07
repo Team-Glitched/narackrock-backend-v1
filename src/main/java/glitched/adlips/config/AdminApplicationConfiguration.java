@@ -6,6 +6,7 @@ import glitched.adlips.application.community.RejectGalleryProposalUseCase;
 import glitched.adlips.application.community.port.out.GalleryManagementPort;
 import glitched.adlips.application.community.port.out.GalleryProposalPort;
 import glitched.adlips.application.port.TransactionRunner;
+import glitched.adlips.application.report.port.out.ReportContentModerationPort;
 import glitched.adlips.application.report.port.out.ReportResolutionPort;
 import glitched.adlips.application.report.port.out.ReportQueryPort;
 import glitched.adlips.application.report.usecase.GetReportsUseCase;
@@ -88,11 +89,14 @@ public class AdminApplicationConfiguration {
     @Bean
     ResolveReportUseCase resolveReportUseCase(
             ReportResolutionPort reportResolutionPort,
+            ReportContentModerationPort reportContentModerationPort,
+            UserBanRepositoryPort userBanRepositoryPort,
             UserRepositoryPort userRepositoryPort,
             Clock clock,
             TransactionRunner transactionRunner
     ) {
-        return new ResolveReportUseCase(reportResolutionPort, userRepositoryPort, clock, transactionRunner);
+        return new ResolveReportUseCase(reportResolutionPort, reportContentModerationPort, userBanRepositoryPort,
+                userRepositoryPort, clock, transactionRunner);
     }
 
     @Bean

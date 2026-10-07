@@ -6,6 +6,7 @@ import glitched.adlips.domain.community.GalleryManager;
 import glitched.adlips.domain.community.GalleryRole;
 import glitched.adlips.domain.user.User;
 import jakarta.persistence.EntityManager;
+import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -36,5 +37,15 @@ public class GalleryManagementPersistenceAdapter implements GalleryManagementPor
                 entityManager.getReference(Gallery.class, galleryId),
                 entityManager.getReference(User.class, userId),
                 role));
+    }
+
+    @Override
+    public Optional<Gallery> findGalleryForUpdate(Long galleryId) {
+        return galleryRepository.findByIdForUpdate(galleryId);
+    }
+
+    @Override
+    public void updateGallery(Gallery gallery) {
+        galleryRepository.save(gallery);
     }
 }

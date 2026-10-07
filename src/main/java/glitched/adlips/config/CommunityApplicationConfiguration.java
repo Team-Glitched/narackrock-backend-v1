@@ -8,7 +8,13 @@ import glitched.adlips.application.community.port.out.PostCommentQueryPort;
 import glitched.adlips.application.community.CreatePostUseCase;
 import glitched.adlips.application.community.DeletePostUseCase;
 import glitched.adlips.application.community.GetGalleriesUseCase;
+import glitched.adlips.application.community.GetGalleryModerationLogsUseCase;
 import glitched.adlips.application.community.GetMyGalleryProposalsUseCase;
+import glitched.adlips.application.community.GetMyGalleryRoleUseCase;
+import glitched.adlips.application.community.UpdateGalleryUseCase;
+import glitched.adlips.application.community.port.out.GalleryAuthorityPort;
+import glitched.adlips.application.community.port.out.GalleryManagementPort;
+import glitched.adlips.application.community.port.out.GalleryModerationLogPort;
 import glitched.adlips.application.community.SubmitGalleryProposalUseCase;
 import glitched.adlips.application.community.port.out.GalleryProposalPort;
 import glitched.adlips.application.community.GetPopularPostsUseCase;
@@ -79,6 +85,38 @@ public class CommunityApplicationConfiguration {
             TransactionRunner transactionRunner
     ) {
         return new GetMyGalleryProposalsUseCase(galleryProposalPort, transactionRunner);
+    }
+
+    @Bean
+    GetMyGalleryRoleUseCase getMyGalleryRoleUseCase(
+            GalleryAuthorityPort galleryAuthorityPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new GetMyGalleryRoleUseCase(galleryAuthorityPort, transactionRunner, clock);
+    }
+
+    @Bean
+    UpdateGalleryUseCase updateGalleryUseCase(
+            GalleryAuthorityPort galleryAuthorityPort,
+            GalleryManagementPort galleryManagementPort,
+            GalleryModerationLogPort galleryModerationLogPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new UpdateGalleryUseCase(
+                galleryAuthorityPort, galleryManagementPort, galleryModerationLogPort, transactionRunner, clock);
+    }
+
+    @Bean
+    GetGalleryModerationLogsUseCase getGalleryModerationLogsUseCase(
+            GalleryAuthorityPort galleryAuthorityPort,
+            GalleryModerationLogPort galleryModerationLogPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new GetGalleryModerationLogsUseCase(
+                galleryAuthorityPort, galleryModerationLogPort, transactionRunner, clock);
     }
 
     @Bean

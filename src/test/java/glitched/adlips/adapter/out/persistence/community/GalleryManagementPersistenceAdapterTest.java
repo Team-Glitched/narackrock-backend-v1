@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.tuple;
 
 import glitched.adlips.application.community.port.out.GalleryQueryItem;
+import glitched.adlips.domain.community.Gallery;
 import glitched.adlips.domain.community.GalleryRole;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,6 +59,23 @@ class GalleryManagementPersistenceAdapterTest {
         assertThat(new GalleryQueryPersistenceAdapter(entityManager).findGalleries())
                 .extracting(GalleryQueryItem::galleryId, GalleryQueryItem::name, GalleryQueryItem::subscriberCount)
                 .containsExactly(tuple(galleryId, "재즈", 0L));
+    }
+
+    @Test
+    void 잠금_조회한_갤러리의_소개를_바꿔_저장한다() {
+        Long galleryId = adapter.createGallery("재즈", "재즈 이야기");
+        entityManager.flush();
+        entityManager.clear();
+
+        Gallery gallery = adapter.findGalleryForUpdate(galleryId).orElseThrow();
+        gallery.changeDescription("새 소개");
+        adapter.updateGallery(gallery);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(galleryRepository.findById(galleryId)).get()
+                .extracting(Gallery::getDescription).isEqualTo("새 소개");
+        assertThat(adapter.findGalleryForUpdate(404L)).isEmpty();
     }
 
     @Test

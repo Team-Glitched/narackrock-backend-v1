@@ -57,8 +57,8 @@ public class GalleryProposal extends BaseTimeEntity {
 
     private GalleryProposal(User proposer, String name, String description) {
         this.proposer = Objects.requireNonNull(proposer, "proposer must not be null");
-        this.name = Gallery.requireName(name);
-        this.description = Gallery.requireDescription(description);
+        this.name = Gallery.normalizeName(name);
+        this.description = Gallery.normalizeDescription(description);
         this.status = GalleryProposalStatus.PENDING;
     }
 

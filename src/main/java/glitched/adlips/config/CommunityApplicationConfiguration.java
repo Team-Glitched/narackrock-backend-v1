@@ -8,6 +8,9 @@ import glitched.adlips.application.community.port.out.PostCommentQueryPort;
 import glitched.adlips.application.community.CreatePostUseCase;
 import glitched.adlips.application.community.DeletePostUseCase;
 import glitched.adlips.application.community.GetGalleriesUseCase;
+import glitched.adlips.application.community.GetMyGalleryProposalsUseCase;
+import glitched.adlips.application.community.SubmitGalleryProposalUseCase;
+import glitched.adlips.application.community.port.out.GalleryProposalPort;
 import glitched.adlips.application.community.GetPopularPostsUseCase;
 import glitched.adlips.application.community.GetPostShareUseCase;
 import glitched.adlips.application.community.GetPostUseCase;
@@ -58,6 +61,24 @@ public class CommunityApplicationConfiguration {
                 clock,
                 transactionRunner
         );
+    }
+
+    @Bean
+    SubmitGalleryProposalUseCase submitGalleryProposalUseCase(
+            GalleryProposalPort galleryProposalPort,
+            UserBanQueryPort userBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new SubmitGalleryProposalUseCase(galleryProposalPort, userBanQueryPort, transactionRunner, clock);
+    }
+
+    @Bean
+    GetMyGalleryProposalsUseCase getMyGalleryProposalsUseCase(
+            GalleryProposalPort galleryProposalPort,
+            TransactionRunner transactionRunner
+    ) {
+        return new GetMyGalleryProposalsUseCase(galleryProposalPort, transactionRunner);
     }
 
     @Bean

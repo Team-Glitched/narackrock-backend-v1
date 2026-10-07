@@ -23,8 +23,8 @@ public class Gallery extends BaseCreatedEntity {
     }
 
     private Gallery(String name, String description) {
-        this.name = requireName(name);
-        this.description = requireDescription(description);
+        this.name = normalizeName(name);
+        this.description = normalizeDescription(description);
     }
 
     public static Gallery create(String name, String description) {
@@ -32,7 +32,7 @@ public class Gallery extends BaseCreatedEntity {
     }
 
     public void changeDescription(String description) {
-        this.description = requireDescription(description);
+        this.description = normalizeDescription(description);
     }
 
     public Long getId() {
@@ -47,7 +47,7 @@ public class Gallery extends BaseCreatedEntity {
         return description;
     }
 
-    static String requireName(String name) {
+    public static String normalizeName(String name) {
         String trimmed = name == null ? "" : name.trim();
         if (trimmed.length() < NAME_MIN_LENGTH || trimmed.length() > NAME_MAX_LENGTH) {
             throw new IllegalArgumentException("갤러리 이름은 2자 이상 30자 이하여야 합니다.");
@@ -55,7 +55,7 @@ public class Gallery extends BaseCreatedEntity {
         return trimmed;
     }
 
-    static String requireDescription(String description) {
+    public static String normalizeDescription(String description) {
         String trimmed = description == null ? "" : description.trim();
         if (trimmed.isEmpty() || trimmed.length() > DESCRIPTION_MAX_LENGTH) {
             throw new IllegalArgumentException("갤러리 소개는 1자 이상 500자 이하여야 합니다.");

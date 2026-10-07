@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -16,6 +17,12 @@ import glitched.adlips.application.community.GalleryModerationLogPage;
 import glitched.adlips.application.community.GalleryRoleResult;
 import glitched.adlips.application.community.GetGalleryModerationLogsUseCase;
 import glitched.adlips.application.community.GetMyGalleryRoleUseCase;
+import glitched.adlips.application.community.GalleryBanPage;
+import glitched.adlips.application.community.GetGalleryBansUseCase;
+import glitched.adlips.application.community.LiftGalleryBanUseCase;
+import glitched.adlips.application.community.SanctionGalleryUserUseCase;
+import glitched.adlips.application.community.port.out.GalleryBanItem;
+import glitched.adlips.domain.community.GalleryBanType;
 import glitched.adlips.application.community.UpdateGalleryUseCase;
 import glitched.adlips.application.community.port.out.GalleryModerationLogItem;
 import glitched.adlips.application.user.account.port.out.AccessTokenPort;
@@ -43,6 +50,9 @@ class GalleryManageControllerTest {
     @MockitoBean GetMyGalleryRoleUseCase getMyGalleryRoleUseCase;
     @MockitoBean UpdateGalleryUseCase updateGalleryUseCase;
     @MockitoBean GetGalleryModerationLogsUseCase getGalleryModerationLogsUseCase;
+    @MockitoBean SanctionGalleryUserUseCase sanctionGalleryUserUseCase;
+    @MockitoBean LiftGalleryBanUseCase liftGalleryBanUseCase;
+    @MockitoBean GetGalleryBansUseCase getGalleryBansUseCase;
     @MockitoBean AuthenticatedUserResolver authenticatedUserResolver;
     @MockitoBean AccessTokenPort accessTokenPort;
 
@@ -132,5 +142,67 @@ class GalleryManageControllerTest {
     void 인증이_없으면_401을_반환한다() throws Exception {
         mockMvc.perform(get("/api/v1/galleries/10/manage/me"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void 이용정지를_부과하면_201과_제재_ID를_반환한다() throws Exception {
+        when(sanctionGalleryUserUseCase.execute(3L, 10L, 1L, "SUSPEND", 7, "도배")).thenReturn(70L);
+
+        mockMvc.perform(post("/api/v1/galleries/10/manage/bans")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"userId\":1,\"type\":\"SUSPEND\",\"durationDays\":7,\"reason\":\"도배\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.data.banId").value(70));
+    }
+
+    @Test
+    void 이미_제재_중이면_409를_반환한다() throws Exception {
+        when(sanctionGalleryUserUseCase.execute(3L, 10L, 1L, "EXPEL", null, "광고")).thenThrow(
+                new GalleryModerationApplicationException(GalleryModerationErrorCode.ALREADY_BANNED_IN_GALLERY, "중복"));
+
+        mockMvc.perform(post("/api/v1/galleries/10/manage/bans")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"userId\":1,\"type\":\"EXPEL\",\"reason\":\"광고\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorCode").value("ALREADY_BANNED_IN_GALLERY"));
+    }
+
+    @Test
+    void 제재할_수_없는_대상이면_403을_반환한다() throws Exception {
+        when(sanctionGalleryUserUseCase.execute(3L, 10L, 9L, "EXPEL", null, "광고")).thenThrow(
+                new GalleryModerationApplicationException(GalleryModerationErrorCode.CANNOT_SANCTION_TARGET, "불가"));
+
+        mockMvc.perform(post("/api/v1/galleries/10/manage/bans")
+                        .header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"userId\":9,\"type\":\"EXPEL\",\"reason\":\"광고\"}"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void 제재를_해제한다() throws Exception {
+        mockMvc.perform(patch("/api/v1/galleries/10/manage/bans/70/lift").header("Authorization", bearer))
+                .andExpect(status().isOk());
+
+        verify(liftGalleryBanUseCase).execute(3L, 10L, 70L);
+    }
+
+    @Test
+    void 제재_목록을_반환한다() throws Exception {
+        when(getGalleryBansUseCase.execute(3L, 10L, true, null, 20)).thenReturn(new GalleryBanPage(
+                List.of(new GalleryBanItem(70L, 1L, 3L, GalleryBanType.SUSPEND, "도배",
+                        LocalDateTime.of(2026, 10, 14, 12, 0), null, LocalDateTime.of(2026, 10, 7, 12, 0), true)),
+                null, false));
+
+        mockMvc.perform(get("/api/v1/galleries/10/manage/bans")
+                        .param("activeOnly", "true")
+                        .header("Authorization", bearer))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.bans[0].banId").value(70))
+                .andExpect(jsonPath("$.data.bans[0].banType").value("SUSPEND"))
+                .andExpect(jsonPath("$.data.bans[0].bannedUntil").value("2026-10-14T12:00:00"))
+                .andExpect(jsonPath("$.data.bans[0].active").value(true));
     }
 }

@@ -4,17 +4,25 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import glitched.adlips.adapter.in.web.dto.ApiResponse;
+import glitched.adlips.adapter.in.web.dto.GalleryBanPageResponse;
 import glitched.adlips.adapter.in.web.dto.GalleryModerationLogPageResponse;
 import glitched.adlips.adapter.in.web.dto.GalleryRoleResponse;
+import glitched.adlips.adapter.in.web.dto.GallerySanctionRequest;
+import glitched.adlips.adapter.in.web.dto.GallerySanctionResponse;
 import glitched.adlips.adapter.in.web.dto.GalleryUpdateRequest;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
+import glitched.adlips.application.community.GetGalleryBansUseCase;
 import glitched.adlips.application.community.GetGalleryModerationLogsUseCase;
 import glitched.adlips.application.community.GetMyGalleryRoleUseCase;
+import glitched.adlips.application.community.LiftGalleryBanUseCase;
+import glitched.adlips.application.community.SanctionGalleryUserUseCase;
 import glitched.adlips.application.community.UpdateGalleryUseCase;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -30,17 +38,26 @@ public class GalleryManageController {
     private final GetMyGalleryRoleUseCase getMyGalleryRoleUseCase;
     private final UpdateGalleryUseCase updateGalleryUseCase;
     private final GetGalleryModerationLogsUseCase getGalleryModerationLogsUseCase;
+    private final SanctionGalleryUserUseCase sanctionGalleryUserUseCase;
+    private final LiftGalleryBanUseCase liftGalleryBanUseCase;
+    private final GetGalleryBansUseCase getGalleryBansUseCase;
     private final AuthenticatedUserResolver authenticatedUserResolver;
 
     public GalleryManageController(
             GetMyGalleryRoleUseCase getMyGalleryRoleUseCase,
             UpdateGalleryUseCase updateGalleryUseCase,
             GetGalleryModerationLogsUseCase getGalleryModerationLogsUseCase,
+            SanctionGalleryUserUseCase sanctionGalleryUserUseCase,
+            LiftGalleryBanUseCase liftGalleryBanUseCase,
+            GetGalleryBansUseCase getGalleryBansUseCase,
             AuthenticatedUserResolver authenticatedUserResolver
     ) {
         this.getMyGalleryRoleUseCase = getMyGalleryRoleUseCase;
         this.updateGalleryUseCase = updateGalleryUseCase;
         this.getGalleryModerationLogsUseCase = getGalleryModerationLogsUseCase;
+        this.sanctionGalleryUserUseCase = sanctionGalleryUserUseCase;
+        this.liftGalleryBanUseCase = liftGalleryBanUseCase;
+        this.getGalleryBansUseCase = getGalleryBansUseCase;
         this.authenticatedUserResolver = authenticatedUserResolver;
     }
 
@@ -78,5 +95,44 @@ public class GalleryManageController {
                 "갤러리 관리 이력 조회가 완료되었습니다.",
                 GalleryModerationLogPageResponse.from(
                         getGalleryModerationLogsUseCase.execute(userId, galleryId, cursor, size))));
+    }
+
+    @GetMapping("/bans")
+    public ResponseEntity<ApiResponse<GalleryBanPageResponse>> getBans(
+            @PathVariable Long galleryId,
+            @RequestHeader("Authorization") String authorization,
+            @RequestParam(defaultValue = "false") boolean activeOnly,
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        Long userId = authenticatedUserResolver.requireUserId(authorization);
+        return ResponseEntity.ok(ApiResponse.success(
+                "갤러리 제재 목록 조회가 완료되었습니다.",
+                GalleryBanPageResponse.from(
+                        getGalleryBansUseCase.execute(userId, galleryId, activeOnly, cursor, size))));
+    }
+
+    @PostMapping("/bans")
+    public ResponseEntity<ApiResponse<GallerySanctionResponse>> sanction(
+            @PathVariable Long galleryId,
+            @RequestHeader("Authorization") String authorization,
+            @RequestBody GallerySanctionRequest request
+    ) {
+        Long userId = authenticatedUserResolver.requireUserId(authorization);
+        Long banId = sanctionGalleryUserUseCase.execute(
+                userId, galleryId, request.userId(), request.type(), request.durationDays(), request.reason());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
+                "해당 사용자를 제재하였습니다.", new GallerySanctionResponse(banId)));
+    }
+
+    @PatchMapping("/bans/{banId}/lift")
+    public ResponseEntity<ApiResponse<Void>> lift(
+            @PathVariable Long galleryId,
+            @PathVariable Long banId,
+            @RequestHeader("Authorization") String authorization
+    ) {
+        Long userId = authenticatedUserResolver.requireUserId(authorization);
+        liftGalleryBanUseCase.execute(userId, galleryId, banId);
+        return ResponseEntity.ok(ApiResponse.success("제재가 해제되었습니다.", null));
     }
 }

@@ -2,6 +2,7 @@ package glitched.adlips.application.community;
 
 import glitched.adlips.application.community.port.out.PostPort;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
+import glitched.adlips.application.community.port.out.GalleryBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.domain.media.MediaFile;
@@ -14,6 +15,7 @@ public class CreatePostUseCase {
 
     private final PostPort port;
     private final UserBanQueryPort userBanQueryPort;
+    private final GalleryBanQueryPort galleryBanQueryPort;
     private final MediaFileRepositoryPort mediaFileRepository;
     private final TransactionRunner transactionRunner;
     private final Clock clock;
@@ -25,8 +27,20 @@ public class CreatePostUseCase {
             TransactionRunner transactionRunner,
             Clock clock
     ) {
+        this(port, userBanQueryPort, GalleryBanQueryPort.none(), mediaFileRepository, transactionRunner, clock);
+    }
+
+    public CreatePostUseCase(
+            PostPort port,
+            UserBanQueryPort userBanQueryPort,
+            GalleryBanQueryPort galleryBanQueryPort,
+            MediaFileRepositoryPort mediaFileRepository,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
         this.port = port;
         this.userBanQueryPort = userBanQueryPort;
+        this.galleryBanQueryPort = galleryBanQueryPort;
         this.mediaFileRepository = mediaFileRepository;
         this.transactionRunner = transactionRunner;
         this.clock = clock;
@@ -57,6 +71,10 @@ public class CreatePostUseCase {
             if (!port.existsGallery(galleryId)) {
                 throw new PostApplicationException(
                         PostErrorCode.GALLERY_NOT_FOUND, "존재하지 않는 갤러리에는 게시글을 작성할 수 없습니다.");
+            }
+            if (galleryBanQueryPort.isRestrictedInGallery(galleryId, userId, LocalDateTime.now(clock))) {
+                throw new PostApplicationException(PostErrorCode.GALLERY_RESTRICTED_USER,
+                        "이 갤러리에서 이용이 제한된 상태이므로 게시글을 작성할 수 없습니다.");
             }
             validateImage(imageFileId, userId);
             Long postId = port.save(galleryId, userId, title.trim(), content.trim(), imageFileId);

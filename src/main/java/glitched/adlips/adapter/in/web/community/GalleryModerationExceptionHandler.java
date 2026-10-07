@@ -15,7 +15,8 @@ public class GalleryModerationExceptionHandler {
         HttpStatus status = switch (e.getErrorCode()) {
             case VALIDATION_ERROR -> HttpStatus.BAD_REQUEST;
             case FORBIDDEN, CANNOT_SANCTION_TARGET -> HttpStatus.FORBIDDEN;
-            case GALLERY_NOT_FOUND, GALLERY_BAN_NOT_FOUND, POST_NOT_FOUND, COMMENT_NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case GALLERY_NOT_FOUND, GALLERY_BAN_NOT_FOUND, POST_NOT_FOUND, COMMENT_NOT_FOUND,
+                 TARGET_USER_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case ALREADY_BANNED_IN_GALLERY -> HttpStatus.CONFLICT;
         };
         return ResponseEntity.status(status).body(ApiResponse.error(e.getErrorCode().name(), e.getMessage()));

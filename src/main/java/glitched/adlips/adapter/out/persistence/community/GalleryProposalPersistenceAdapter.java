@@ -7,6 +7,8 @@ import glitched.adlips.domain.community.GalleryProposalStatus;
 import glitched.adlips.domain.user.User;
 import jakarta.persistence.EntityManager;
 import java.util.List;
+import java.util.Optional;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Repository;
 
 @Repository
@@ -50,6 +52,23 @@ public class GalleryProposalPersistenceAdapter implements GalleryProposalPort {
     @Override
     public List<GalleryProposalItem> findByProposer(Long userId) {
         return proposalRepository.findByProposer_IdOrderByIdDesc(userId).stream()
+                .map(GalleryProposalPersistenceAdapter::toItem)
+                .toList();
+    }
+
+    @Override
+    public Optional<GalleryProposal> findByIdForUpdate(Long proposalId) {
+        return proposalRepository.findByIdForUpdate(proposalId);
+    }
+
+    @Override
+    public void update(GalleryProposal proposal) {
+        proposalRepository.save(proposal);
+    }
+
+    @Override
+    public List<GalleryProposalItem> findPage(GalleryProposalStatus status, Long cursor, int limit) {
+        return proposalRepository.findPage(status, cursor, PageRequest.of(0, limit)).stream()
                 .map(GalleryProposalPersistenceAdapter::toItem)
                 .toList();
     }

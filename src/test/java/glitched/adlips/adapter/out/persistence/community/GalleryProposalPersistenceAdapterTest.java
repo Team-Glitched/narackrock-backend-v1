@@ -3,9 +3,14 @@ package glitched.adlips.adapter.out.persistence.community;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import glitched.adlips.application.community.port.out.GalleryProposalItem;
+import glitched.adlips.domain.community.GalleryProposal;
 import glitched.adlips.domain.community.GalleryProposalStatus;
+import glitched.adlips.domain.user.User;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.LockModeType;
+import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.data.jpa.repository.Lock;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -68,6 +73,49 @@ class GalleryProposalPersistenceAdapterTest {
     void 갤러리_이름_존재_여부를_확인한다() {
         assertThat(adapter.existsGalleryByName("기타")).isTrue();
         assertThat(adapter.existsGalleryByName("재즈")).isFalse();
+    }
+
+    @Test
+    void 잠금_조회한_요청을_승인하고_저장하면_검토_정보가_반영된다() {
+        Long proposalId = adapter.save(1L, "재즈", "설명");
+        entityManager.flush();
+        entityManager.clear();
+
+        GalleryProposal proposal = adapter.findByIdForUpdate(proposalId).orElseThrow();
+        proposal.approve(entityManager.getReference(User.class, 2L), LocalDateTime.of(2026, 10, 7, 12, 0));
+        adapter.update(proposal);
+        entityManager.flush();
+        entityManager.clear();
+
+        GalleryProposalItem item = adapter.findByProposer(1L).getFirst();
+        assertThat(item.status()).isEqualTo(GalleryProposalStatus.APPROVED);
+        assertThat(item.reviewedAt()).isEqualTo(LocalDateTime.of(2026, 10, 7, 12, 0));
+        assertThat(adapter.findByIdForUpdate(999L)).isEmpty();
+    }
+
+    @Test
+    void 잠금_조회는_비관적_쓰기_잠금을_사용한다() throws NoSuchMethodException {
+        Lock lock = GalleryProposalJpaRepository.class.getMethod("findByIdForUpdate", Long.class)
+                .getAnnotation(Lock.class);
+
+        assertThat(lock.value()).isEqualTo(LockModeType.PESSIMISTIC_WRITE);
+    }
+
+    @Test
+    void 목록은_상태로_거르고_커서_이전_요청을_최신순으로_반환한다() {
+        Long first = adapter.save(1L, "재즈", "설명");
+        Long second = adapter.save(2L, "블루스", "설명");
+        Long third = adapter.save(1L, "가요", "설명");
+        jdbcTemplate.update("UPDATE gallery_proposals SET status = 'REJECTED' WHERE id = ?", second);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(adapter.findPage(null, null, 10)).extracting(GalleryProposalItem::proposalId)
+                .containsExactly(third, second, first);
+        assertThat(adapter.findPage(GalleryProposalStatus.PENDING, null, 10))
+                .extracting(GalleryProposalItem::proposalId).containsExactly(third, first);
+        assertThat(adapter.findPage(null, third, 1)).extracting(GalleryProposalItem::proposalId)
+                .containsExactly(second);
     }
 
     @Test

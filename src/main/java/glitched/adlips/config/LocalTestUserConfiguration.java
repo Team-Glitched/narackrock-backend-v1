@@ -32,6 +32,21 @@ public class LocalTestUserConfiguration {
                     SELECT 1, '기본 커뮤니티', '로컬 TEST 환경의 기본 게시글 커뮤니티입니다.', CURRENT_TIMESTAMP
                     WHERE NOT EXISTS (SELECT 1 FROM galleries WHERE id = 1)
                     """);
+            jdbcTemplate.update("""
+                    INSERT INTO media_files (id, owner_id, file_url, storage_key, original_filename,
+                                             file_type, mime_type, file_size, status, created_at)
+                    SELECT 901, 1, 'http://localhost:8081/files/test-short.wav', 'local-test-short',
+                           'test-short.wav', 'AUDIO', 'audio/wav', 1, 'READY', CURRENT_TIMESTAMP
+                    WHERE NOT EXISTS (SELECT 1 FROM media_files WHERE id = 901)
+                    """);
+            jdbcTemplate.update("""
+                    INSERT INTO shorts (id, user_id, title, media_file_id, status,
+                                        view_count, like_count, dislike_count, comment_count,
+                                        contribution_count, created_at)
+                    SELECT 901, 1, '로컬 테스트 숏폼', 901, 'COMPLETED', 0, 0, 0, 0, 0,
+                           CURRENT_TIMESTAMP
+                    WHERE NOT EXISTS (SELECT 1 FROM shorts WHERE id = 901)
+                    """);
         };
     }
 }

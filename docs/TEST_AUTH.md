@@ -11,6 +11,8 @@ ADLIPS_TEST_USER_ID=1
 
 가장 간단한 방법은 `TEST` 브랜치에서 `./gradlew bootRun --args='--spring.profiles.active=local-test'`를 실행하는 것입니다. 포트 `8081`에서 독립된 H2 DB(`/tmp/adlips-composition-local-test.mv.db`)를 사용하고 테스트 사용자 ID `1`, 프로필, 게시글 테스트용 기본 갤러리 ID `1`을 자동 생성합니다. 프론트 개발 서버는 `NEXT_PUBLIC_API_BASE_URL=http://localhost:8081`로 실행하세요.
 
+로컬 테스트용 숏폼 ID `901`과 음원 레코드도 생성합니다. 음원을 브라우저에서 재생하려면 `/tmp/adlips-composition-local-uploads/test-short.wav`에 WAV 파일을 둡니다. 공유 링크는 로컬 프론트의 `/shorts/901`, `/posts/{id}`로 연결됩니다. 게시글은 기본 갤러리 ID `1`에 작성해 테스트할 수 있습니다.
+
 수동으로 테스트 인증을 켤 때는 반드시 로컬 PostgreSQL 또는 H2 데이터베이스를 사용해야 합니다. 원격 데이터베이스 URL이면 서버가 시작되지 않습니다. `.env`가 원격 DB를 가리킬 수 있으므로 `SPRING_DATASOURCE_URL`을 로컬 DB로 명시하고 테스트 사용자도 그 DB에 생성하세요.
 
 프론트는 별도의 테스트용 토큰 로직 없이 평소처럼 API를 호출하면 됩니다. 기능 브랜치 `Feature/composition-midi-read`에는 이 우회가 포함되지 않습니다.

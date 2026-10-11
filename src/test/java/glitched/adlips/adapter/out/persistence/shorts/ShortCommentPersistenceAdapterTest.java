@@ -33,6 +33,7 @@ class ShortCommentPersistenceAdapterTest {
         insertComment(301L, 201L, 1L, null, null);
         insertComment(302L, 201L, 1L, null, "CURRENT_TIMESTAMP");
         insertComment(303L, 202L, 1L, null, null);
+        insertComment(304L, 201L, 1L, 301L, null);
         entityManager.clear();
     }
 
@@ -59,6 +60,11 @@ class ShortCommentPersistenceAdapterTest {
     @Test
     void 같은_숏폼에_속하고_삭제되지_않은_부모_댓글은_true를_반환한다() {
         assertThat(adapter.existsActiveParentComment(301L, 201L)).isTrue();
+    }
+
+    @Test
+    void 대댓글은_다른_대댓글의_부모가_될_수_없다() {
+        assertThat(adapter.existsActiveParentComment(304L, 201L)).isFalse();
     }
 
     @Test
@@ -92,6 +98,19 @@ class ShortCommentPersistenceAdapterTest {
 
         ShortComment reloaded = shortCommentRepository.findById(commentId).orElseThrow();
         assertThat(reloaded.getParentCommentId()).isEqualTo(301L);
+    }
+
+    @Test
+    void 부모_댓글을_삭제할_때_활성_대댓글만_함께_삭제한다() {
+        insertComment(305L, 201L, 1L, 301L, "CURRENT_TIMESTAMP");
+        LocalDateTime deletedAt = LocalDateTime.of(2026, 10, 11, 20, 0);
+
+        int count = adapter.softDeleteActiveReplies(301L, deletedAt);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(count).isEqualTo(1);
+        assertThat(shortCommentRepository.findById(304L).orElseThrow().getDeletedAt()).isEqualTo(deletedAt);
     }
 
     @Test

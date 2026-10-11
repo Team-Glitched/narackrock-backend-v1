@@ -2,6 +2,7 @@ package glitched.adlips.adapter.out.persistence.shorts;
 
 import glitched.adlips.application.shorts.ShortsSource;
 import glitched.adlips.application.shorts.port.out.ShortsParticipantQueryItem;
+import glitched.adlips.application.shorts.port.out.ShortPopularityScore;
 import glitched.adlips.application.shorts.port.out.ShortsQueryItem;
 import glitched.adlips.application.shorts.port.out.ShortsQueryPort;
 import glitched.adlips.domain.shorts.ShortStatus;
@@ -18,6 +19,52 @@ public class ShortsQueryPersistenceAdapter implements ShortsQueryPort {
 
     public ShortsQueryPersistenceAdapter(EntityManager entityManager) {
         this.entityManager = entityManager;
+    }
+
+    @Override
+    public List<ShortsQueryItem> findByIds(List<Long> shortIds, Long currentUserId) {
+        if (shortIds.isEmpty()) return List.of();
+        Query query = entityManager.createNativeQuery(selectSql(currentUserId) + " AND s.id IN :shortIds")
+                .setParameter("shortIds", shortIds);
+        setCurrentUser(query, currentUserId);
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = query.getResultList();
+        return rows.stream().map(this::toShortsQueryItem).toList();
+    }
+
+    @Override
+    public List<ShortsQueryItem> findParticipatedByCursor(
+            Long userId, Long cursor, int limit, Long currentUserId
+    ) {
+        String cursorCondition = cursor == null ? "" : " AND s.id < :cursor";
+        Query query = entityManager.createNativeQuery(selectSql(currentUserId) + """
+                   AND EXISTS (
+                       SELECT 1 FROM shorts_participants mine
+                        WHERE mine.shorts_id = s.id AND mine.user_id = :participantUserId
+                   )
+                """ + cursorCondition + " ORDER BY s.id DESC")
+                .setParameter("participantUserId", userId)
+                .setMaxResults(limit);
+        if (cursor != null) query.setParameter("cursor", cursor);
+        setCurrentUser(query, currentUserId);
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = query.getResultList();
+        return rows.stream().map(this::toShortsQueryItem).toList();
+    }
+
+    @Override
+    public List<ShortPopularityScore> findPopularityScores() {
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery("""
+                SELECT s.id, s.view_count, s.like_count
+                  FROM shorts s
+             LEFT JOIN projects source_project ON source_project.id = s.project_id
+                 WHERE s.deleted_at IS NULL
+                   AND (s.status = 'COMPLETED'
+                        OR (s.status = 'IN_PROGRESS' AND source_project.is_public = true))
+                """).getResultList();
+        return rows.stream().map(row -> new ShortPopularityScore(
+                longValue(row[0]), intValue(row[1]), intValue(row[2]))).toList();
     }
 
     @Override
@@ -38,12 +85,22 @@ public class ShortsQueryPersistenceAdapter implements ShortsQueryPort {
         String bookmarkedExpression = currentUserId == null
                 ? "FALSE"
                 : "EXISTS (SELECT 1 FROM shorts_bookmarks b WHERE b.user_id = :currentUserId AND b.shorts_id = s.id)";
+        String pendingContributionExpression = currentUserId == null
+                ? "FALSE"
+                : "EXISTS (SELECT 1 FROM project_contributions pc "
+                + "WHERE pc.project_id = s.project_id AND pc.user_id = :currentUserId "
+                + "AND pc.approval_status = 'PENDING')";
+        String approvedContributionExpression = currentUserId == null
+                ? "FALSE"
+                : "EXISTS (SELECT 1 FROM project_contributions pc "
+                + "WHERE pc.project_id = s.project_id AND pc.user_id = :currentUserId "
+                + "AND pc.approval_status = 'APPROVED')";
         String sql = """
                 SELECT s.id, s.project_id, s.title,
                        media.file_url, album.file_url, s.status,
                        s.view_count, s.like_count, s.dislike_count,
                        s.comment_count, s.contribution_count,
-                       %s, %s, %s,
+                       %s, %s, %s, %s, %s,
                        p.user_id, p.nickname, profile_image.file_url, s.created_at
                   FROM shorts s
                   JOIN profiles p ON p.user_id = s.user_id
@@ -54,7 +111,8 @@ public class ShortsQueryPersistenceAdapter implements ShortsQueryPort {
                  WHERE s.deleted_at IS NULL
                    AND (s.status = 'COMPLETED'
                         OR (s.status = 'IN_PROGRESS' AND source_project.is_public = true))
-                """.formatted(likedExpression, dislikedExpression, bookmarkedExpression)
+                """.formatted(likedExpression, dislikedExpression, bookmarkedExpression,
+                        pendingContributionExpression, approvedContributionExpression)
                 + statusCondition
                 + cursorCondition
                 + " ORDER BY s.id DESC";
@@ -96,6 +154,35 @@ public class ShortsQueryPersistenceAdapter implements ShortsQueryPort {
                 .toList();
     }
 
+    private String selectSql(Long currentUserId) {
+        return """
+                SELECT s.id, s.project_id, s.title,
+                       media.file_url, album.file_url, s.status,
+                       s.view_count, s.like_count, s.dislike_count,
+                       s.comment_count, s.contribution_count,
+                       %s, %s, %s, %s, %s,
+                       p.user_id, p.nickname, profile_image.file_url, s.created_at
+                  FROM shorts s
+                  JOIN profiles p ON p.user_id = s.user_id
+                  JOIN media_files media ON media.id = s.media_file_id
+             LEFT JOIN projects source_project ON source_project.id = s.project_id
+             LEFT JOIN media_files album ON album.id = s.album_image_file_id
+             LEFT JOIN media_files profile_image ON profile_image.id = p.profile_image_file_id
+                 WHERE s.deleted_at IS NULL
+                   AND (s.status = 'COMPLETED'
+                        OR (s.status = 'IN_PROGRESS' AND source_project.is_public = true))
+                """.formatted(
+                reactionExpression(currentUserId, "LIKE"),
+                reactionExpression(currentUserId, "DISLIKE"),
+                currentUserId == null ? "FALSE" : "EXISTS (SELECT 1 FROM shorts_bookmarks b WHERE b.user_id = :currentUserId AND b.shorts_id = s.id)",
+                currentUserId == null ? "FALSE" : "EXISTS (SELECT 1 FROM project_contributions pc WHERE pc.project_id = s.project_id AND pc.user_id = :currentUserId AND pc.approval_status = 'PENDING')",
+                currentUserId == null ? "FALSE" : "EXISTS (SELECT 1 FROM project_contributions pc WHERE pc.project_id = s.project_id AND pc.user_id = :currentUserId AND pc.approval_status = 'APPROVED')");
+    }
+
+    private void setCurrentUser(Query query, Long currentUserId) {
+        if (currentUserId != null) query.setParameter("currentUserId", currentUserId);
+    }
+
     private String reactionExpression(Long currentUserId, String reactionType) {
         if (currentUserId == null) {
             return "FALSE";
@@ -121,10 +208,12 @@ public class ShortsQueryPersistenceAdapter implements ShortsQueryPort {
                 booleanValue(row[11]),
                 booleanValue(row[12]),
                 booleanValue(row[13]),
-                longValue(row[14]),
-                stringValue(row[15]),
-                nullableString(row[16]),
-                localDateTime(row[17])
+                booleanValue(row[14]),
+                booleanValue(row[15]),
+                longValue(row[16]),
+                stringValue(row[17]),
+                nullableString(row[18]),
+                localDateTime(row[19])
         );
     }
 

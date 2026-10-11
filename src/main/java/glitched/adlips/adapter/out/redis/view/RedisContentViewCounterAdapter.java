@@ -28,6 +28,9 @@ public class RedisContentViewCounterAdapter implements ContentViewCounterPort, C
             if redis.call('SET', KEYS[1], '1', 'NX', 'EX', ARGV[1]) then
                 redis.call('INCR', KEYS[2])
                 redis.call('SADD', KEYS[3], ARGV[2])
+                if ARGV[3] == 'short' then
+                    redis.call('ZINCRBY', KEYS[4], 1, ARGV[4])
+                end
                 return 1
             end
             return 0
@@ -107,10 +110,13 @@ public class RedisContentViewCounterAdapter implements ContentViewCounterPort, C
                     List.of(
                             deduplicationKey(target, contentId, viewerId),
                             pendingKey(target, contentId),
-                            dirtyKey()
+                            dirtyKey(),
+                            popularityKey()
                     ),
                     Long.toString(deduplicationWindow.toSeconds()),
-                    member(target, contentId)
+                    member(target, contentId),
+                    targetName(target),
+                    contentId.toString()
             );
             return Long.valueOf(1L).equals(result);
         } catch (DataAccessException exception) {
@@ -188,6 +194,10 @@ public class RedisContentViewCounterAdapter implements ContentViewCounterPort, C
 
     String dirtyKey() {
         return keyPrefix + ":views:dirty";
+    }
+
+    String popularityKey() {
+        return keyPrefix + ":shorts:popularity:views";
     }
 
     String member(ContentViewTarget target, Long contentId) {

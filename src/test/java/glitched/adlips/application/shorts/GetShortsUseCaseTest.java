@@ -1,6 +1,7 @@
 package glitched.adlips.application.shorts;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -56,7 +57,7 @@ class GetShortsUseCaseTest {
                 "https://cdn.example.com/album.png",
                 ShortStatus.COMPLETED,
                 1200, 128, 4, 23, 5,
-                true, false, true,
+                true, false, true, true, true,
                 123L, "guitar_moon", "https://cdn.example.com/profile.png",
                 LocalDateTime.of(2026, 6, 25, 12, 3)
         );
@@ -76,6 +77,8 @@ class GetShortsUseCaseTest {
         assertThat(result.isLiked()).isTrue();
         assertThat(result.isDisliked()).isFalse();
         assertThat(result.isBookmarked()).isTrue();
+        assertThat(result.hasPendingContribution()).isTrue();
+        assertThat(result.hasApprovedContribution()).isTrue();
         assertThat(result.author().profileImageUrl()).isEqualTo("https://cdn.example.com/profile.png");
         assertThat(result.participants()).containsExactly(
                 new ParticipantSummary(456L, "beat_sky", "DRUM")
@@ -102,6 +105,29 @@ class GetShortsUseCaseTest {
     }
 
     @Test
+    void 공유된_숏폼을_ID로_조회하며_캐시된_반응과_사용자_상태를_반환한다() {
+        given(shortsQueryPort.findByIds(List.of(12L), 99L)).willReturn(List.of(item(12L)));
+        given(shortsQueryPort.findParticipants(List.of(12L))).willReturn(List.of());
+        given(reactionCountCache.findAll(List.of(12L)))
+                .willReturn(Map.of(12L, new ShortReactionCounts(7, 2)));
+
+        ShortSummary result = useCase.getOne(12L, 99L);
+
+        assertThat(result.shortId()).isEqualTo(12L);
+        assertThat(result.likeCount()).isEqualTo(7);
+        assertThat(result.dislikeCount()).isEqualTo(2);
+    }
+
+    @Test
+    void 공유된_숏폼이_없으면_찾을_수_없음을_반환한다() {
+        given(shortsQueryPort.findByIds(List.of(404L), null)).willReturn(List.of());
+
+        assertThatThrownBy(() -> useCase.getOne(404L, null))
+                .isInstanceOf(ShortsCompositionApplicationException.class)
+                .hasMessageContaining("존재하지 않는 숏폼");
+    }
+
+    @Test
     void doesNotLoadParticipantsWhenPageIsEmpty() {
         given(shortsQueryPort.findByCursor(10L, ShortsSource.SHORTS_FEED, ShortStatus.COMPLETED, 21, null))
                 .willReturn(List.of());
@@ -120,7 +146,7 @@ class GetShortsUseCaseTest {
                 "https://cdn.example.com/" + id + ".mp4", null,
                 ShortStatus.COMPLETED,
                 0, 0, 0, 0, 0,
-                false, false, false,
+                false, false, false, false, false,
                 100L + id, "user" + id, null,
                 LocalDateTime.of(2026, 6, 25, 12, 3)
         );

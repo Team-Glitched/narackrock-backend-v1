@@ -59,11 +59,13 @@ class ShortsQueryPersistenceAdapterTest {
         List<ShortsQueryItem> completed = adapter.findByCursor(
                 null, ShortsSource.SHORTS_FEED, ShortStatus.COMPLETED, 20, null);
         List<ShortsQueryItem> inProgress = adapter.findByCursor(
-                null, ShortsSource.SHORTS_FEED, ShortStatus.IN_PROGRESS, 20, null);
+                null, ShortsSource.SHORTS_FEED, ShortStatus.IN_PROGRESS, 20, 99L);
 
         assertThat(completed).extracting(ShortsQueryItem::shortId).containsExactly(12L);
         assertThat(inProgress).extracting(ShortsQueryItem::shortId).containsExactly(11L);
         assertThat(inProgress.getFirst().mediaUrl()).isEqualTo("https://cdn.example.com/mix.wav");
+        assertThat(inProgress.getFirst().hasPendingContribution()).isTrue();
+        assertThat(inProgress.getFirst().hasApprovedContribution()).isTrue();
     }
 
     @Test
@@ -90,6 +92,8 @@ class ShortsQueryPersistenceAdapterTest {
         jdbcTemplate.update("INSERT INTO shorts (id, user_id, project_id, title, media_file_id, status, view_count, like_count, dislike_count, comment_count, contribution_count, created_at) VALUES (14, 123, 9, '비공개 작업 중 곡', 101, 'IN_PROGRESS', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP)");
         jdbcTemplate.update("INSERT INTO reactions (user_id, target_type, target_id, reaction_type, created_at) VALUES (99, 'SHORT', 12, 'LIKE', CURRENT_TIMESTAMP)");
         jdbcTemplate.update("INSERT INTO shorts_bookmarks (user_id, shorts_id, created_at) VALUES (99, 12, CURRENT_TIMESTAMP)");
+        jdbcTemplate.update("INSERT INTO project_contributions (id, project_id, user_id, base_major_version, base_minor_version, approval_status, created_at) VALUES (201, 8, 99, 1, 1, 'PENDING', CURRENT_TIMESTAMP)");
+        jdbcTemplate.update("INSERT INTO project_contributions (id, project_id, user_id, base_major_version, base_minor_version, approval_status, created_at) VALUES (202, 8, 99, 1, 1, 'APPROVED', CURRENT_TIMESTAMP)");
     }
 
     private void insertMedia(Long id, Long ownerId, String url, String type) {

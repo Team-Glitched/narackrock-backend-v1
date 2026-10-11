@@ -6,18 +6,22 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.adapter.in.web.dto.ReportRejectRequest;
 import glitched.adlips.adapter.in.web.dto.ReportRejectResponse;
+import glitched.adlips.adapter.in.web.dto.ReportListResponse;
 import glitched.adlips.adapter.in.web.dto.ReportResolveRequest;
 import glitched.adlips.adapter.in.web.dto.ReportResolveResponse;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.application.report.usecase.ReportResolutionResult;
+import glitched.adlips.application.report.usecase.GetReportsUseCase;
 import glitched.adlips.application.report.usecase.RejectReportUseCase;
 import glitched.adlips.application.report.usecase.ResolveReportUseCase;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "관리자 신고", description = "신고 처리 관리자 API")
@@ -28,16 +32,35 @@ public class AdminReportController {
 
     private final ResolveReportUseCase resolveReportUseCase;
     private final RejectReportUseCase rejectReportUseCase;
+    private final GetReportsUseCase getReportsUseCase;
     private final AuthenticatedUserResolver authenticatedUserResolver;
 
     public AdminReportController(
             ResolveReportUseCase resolveReportUseCase,
             RejectReportUseCase rejectReportUseCase,
+            GetReportsUseCase getReportsUseCase,
             AuthenticatedUserResolver authenticatedUserResolver
     ) {
         this.resolveReportUseCase = resolveReportUseCase;
         this.rejectReportUseCase = rejectReportUseCase;
+        this.getReportsUseCase = getReportsUseCase;
         this.authenticatedUserResolver = authenticatedUserResolver;
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<ReportListResponse>> getReports(
+            @RequestHeader("Authorization") String authorization,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String targetType,
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        Long adminUserId = authenticatedUserResolver.requireUserId(authorization);
+        return ResponseEntity.ok(ApiResponse.success(
+                "통합 신고 목록 조회가 완료되었습니다.",
+                ReportListResponse.from(getReportsUseCase.execute(
+                        adminUserId, status, targetType, cursor, size))
+        ));
     }
 
     @PatchMapping("/{reportId}/resolve")

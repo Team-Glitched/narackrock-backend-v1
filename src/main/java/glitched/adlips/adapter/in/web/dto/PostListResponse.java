@@ -19,9 +19,11 @@ public record PostListResponse(
             Long postId,
             Writer writer,
             String title,
+            String contentPreview,
             String imageUrl,
             int viewCount,
             int likeCount,
+            int dislikeCount,
             int commentCount,
             LocalDateTime createdAt
     ) {
@@ -44,9 +46,11 @@ public record PostListResponse(
                 item.postId(),
                 new Writer(item.userId(), item.nickname(), item.profileImageUrl()),
                 item.title(),
+                ContentPreview.of(item.content()),
                 item.imageUrl(),
                 item.viewCount(),
                 item.likeCount(),
+                item.dislikeCount(),
                 item.commentCount(),
                 item.createdAt());
     }

@@ -18,6 +18,8 @@ public record ShortsQueryItem(
         boolean liked,
         boolean disliked,
         boolean bookmarked,
+        boolean hasPendingContribution,
+        boolean hasApprovedContribution,
         Long authorId,
         String authorNickname,
         String authorProfileImageUrl,

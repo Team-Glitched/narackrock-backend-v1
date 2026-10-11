@@ -4,6 +4,7 @@ public record GoogleLoginResponse(
         String accessToken,
         String refreshToken,
         String tokenType,
+        boolean firstLogin,
         UserResponse user
 ) {
     public record UserResponse(Long userId, String nickname, String profileImageUrl) {

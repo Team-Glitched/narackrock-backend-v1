@@ -102,6 +102,11 @@ public class ProjectPersistenceAdapter implements
     }
 
     @Override
+    public boolean existsByProjectIdAndOwnerIdAndIsDeletedFalse(Long projectId, Long ownerId) {
+        return tracks.existsByProjectIdAndOwnerIdAndIsDeletedFalse(projectId, ownerId);
+    }
+
+    @Override
     public ProjectTrack save(ProjectTrack track) {
         return tracks.save(track);
     }
@@ -141,7 +146,14 @@ public class ProjectPersistenceAdapter implements
 
     @Override
     public List<ProjectContribution> findPendingForOwner(Long ownerId, int limit) {
-        return contributions.findForOwner(ownerId, ContributionApprovalStatus.PENDING, PageRequest.of(0, limit));
+        return contributions.findForOwner(ownerId, ContributionApprovalStatus.PENDING,
+                org.springframework.data.domain.PageRequest.of(0, limit));
+    }
+
+    @Override
+    public List<ProjectContribution> findByProjectOwnerIdAndApprovalStatusOrderByIdDesc(
+            Long ownerId, ContributionApprovalStatus status) {
+        return contributions.findByProjectOwnerIdAndApprovalStatusOrderByIdDesc(ownerId, status);
     }
 
     @Override

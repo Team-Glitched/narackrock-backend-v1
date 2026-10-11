@@ -16,6 +16,7 @@ public record PostDetailResponse(
         int commentCount,
         boolean isLiked,
         boolean isDisliked,
+        boolean isBookmarked,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {
@@ -39,6 +40,7 @@ public record PostDetailResponse(
                 item.commentCount(),
                 item.liked(),
                 item.disliked(),
+                item.bookmarked(),
                 item.createdAt(),
                 item.updatedAt());
     }

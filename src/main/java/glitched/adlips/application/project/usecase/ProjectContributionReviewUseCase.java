@@ -20,6 +20,8 @@ import glitched.adlips.domain.project.ProjectContribution;
 import glitched.adlips.domain.project.ProjectContributionItem;
 import glitched.adlips.domain.project.ProjectExport;
 import glitched.adlips.domain.project.ProjectMemberRole;
+import glitched.adlips.domain.project.ProjectStatus;
+import glitched.adlips.domain.project.Project;
 import java.time.LocalDateTime;
 import java.util.Map;
 public class ProjectContributionReviewUseCase {
@@ -87,9 +89,7 @@ public class ProjectContributionReviewUseCase {
         if (request.approvalStatus() == ContributionApprovalStatus.APPROVED) {
             approve(contribution, reviewer, reviewComment, reviewedAt);
             contribution.getItems().forEach(this::applyApprovedItem);
-            if (project.isPublic()) {
-                exports.save(new ProjectExport(project, reviewer));
-            }
+            queuePublishedProjectRefresh(project);
         } else {
             contribution.reject(reviewer, reviewComment, reviewedAt);
             contribution.getItems().forEach(this::applyRejectedItem);
@@ -99,6 +99,12 @@ public class ProjectContributionReviewUseCase {
                 request.projectId(), request.contributionId(), contribution.getApprovalStatus(),
                 previousVersion, version(project.getMajorVersion(), project.getMinorVersion()),
                 reviewer.getId(), contribution.getReviewedAt(), contribution.getReviewComment());
+    }
+
+    private void queuePublishedProjectRefresh(Project project) {
+        if (project.isPublic() && project.getStatus() == ProjectStatus.IN_PROGRESS) {
+            exports.save(new ProjectExport(project, project.getOwner()));
+        }
     }
 
     private void approve(ProjectContribution contribution, glitched.adlips.domain.user.User reviewer,

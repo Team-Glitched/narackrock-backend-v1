@@ -44,13 +44,14 @@ class DeleteShortCommentUseCaseTest {
     }
 
     @Test
-    void 최상위_댓글_삭제시_숏폼_댓글수만_감소하고_부모_reply_count는_감소하지_않는다() {
+    void 최상위_댓글_삭제시_대댓글도_함께_삭제하고_전체_댓글수를_감소시킨다() {
         when(port.findActiveComment(7721L, 15L)).thenReturn(Optional.of(ownedComment(1L, null)));
+        when(port.softDeleteActiveReplies(org.mockito.ArgumentMatchers.eq(7721L), any())).thenReturn(2);
 
         useCase.execute(15L, 7721L, 1L);
 
         verify(port).updateContent(any(ShortComment.class));
-        verify(port).adjustShortCommentCount(15L, -1);
+        verify(port).adjustShortCommentCount(15L, -3);
         verify(port, never()).adjustParentReplyCount(any(), anyInt());
     }
 
@@ -66,6 +67,7 @@ class DeleteShortCommentUseCaseTest {
 
         verify(port).adjustShortCommentCount(15L, -1);
         verify(port).adjustParentReplyCount(7000L, -1);
+        verify(port, never()).softDeleteActiveReplies(any(), any());
     }
 
     @Test

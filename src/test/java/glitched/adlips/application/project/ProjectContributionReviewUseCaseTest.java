@@ -1,10 +1,11 @@
 package glitched.adlips.application.project;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.when;
 
 import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectContributionRepositoryPort;
@@ -21,6 +22,7 @@ import glitched.adlips.domain.project.ContributionTargetType;
 import glitched.adlips.domain.project.Project;
 import glitched.adlips.domain.project.ProjectContribution;
 import glitched.adlips.domain.project.ProjectContributionItem;
+import glitched.adlips.domain.project.ProjectExport;
 import glitched.adlips.domain.project.ProjectMember;
 import glitched.adlips.domain.project.ProjectMemberRole;
 import glitched.adlips.domain.project.ProjectTrack;
@@ -41,7 +43,7 @@ class ProjectContributionReviewUseCaseTest {
         assertThat(response.previousProjectVersion().display()).isEqualTo("v1.1");
         assertThat(response.projectVersion().display()).isEqualTo("v2.1");
         assertThat(fixture.track.getApprovalStatus()).isEqualTo(ApprovalStatus.APPROVED);
-        verify(fixture.exports, never()).save(org.mockito.ArgumentMatchers.any());
+        verify(fixture.exports).save(any(ProjectExport.class));
     }
 
     @Test
@@ -53,22 +55,7 @@ class ProjectContributionReviewUseCaseTest {
 
         assertThat(response.projectVersion().display()).isEqualTo("v1.1");
         assertThat(fixture.track.getApprovalStatus()).isEqualTo(ApprovalStatus.REJECTED);
-        verify(fixture.exports, never()).save(org.mockito.ArgumentMatchers.any());
-    }
-
-    @Test
-    void approvingContributionToPublicSongQueuesUpdatedShortExport() {
-        Fixture fixture = new Fixture();
-        fixture.project.startPublishing();
-        fixture.project.publish(LocalDateTime.of(2026, 9, 18, 12, 0));
-
-        fixture.useCase.execute(new ProjectContributionReviewRequest(
-                1L, 10L, 1L, ContributionApprovalStatus.APPROVED, null));
-
-        var captured = org.mockito.ArgumentCaptor.forClass(glitched.adlips.domain.project.ProjectExport.class);
-        verify(fixture.exports).save(captured.capture());
-        assertThat(captured.getValue().getProjectMajorVersion()).isEqualTo(2);
-        assertThat(captured.getValue().getProjectMinorVersion()).isEqualTo(1);
+        verifyNoInteractions(fixture.exports);
     }
 
     private static class Fixture {
@@ -81,6 +68,8 @@ class ProjectContributionReviewUseCaseTest {
         private final ProjectContributionReviewUseCase useCase;
 
         private Fixture() {
+            project.startPublishing();
+            project.publish(LocalDateTime.of(2026, 9, 29, 23, 0));
             track.submitForReview();
             new ProjectContributionItem(contribution, ContributionChangeType.ADD,
                     ContributionTargetType.TRACK, 101L);
@@ -94,7 +83,8 @@ class ProjectContributionReviewUseCaseTest {
                     .thenReturn(Optional.of(new ProjectMember(project, reviewer, ProjectMemberRole.OWNER)));
             when(users.findById(1L)).thenReturn(Optional.of(reviewer));
             when(tracks.findTrackByIdAndIsDeletedFalse(101L)).thenReturn(Optional.of(track));
-            useCase = new ProjectContributionReviewUseCase(contributions, members, tracks, clips, users, exports);
+            useCase = new ProjectContributionReviewUseCase(
+                    contributions, members, tracks, clips, users, exports);
         }
     }
 }

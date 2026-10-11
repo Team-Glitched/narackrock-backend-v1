@@ -37,7 +37,13 @@ public record ShortsResponse(List<ShortItem> items, Page page) {
     public record Page(Long nextCursor, boolean hasMore, int size) {}
 
     public static ShortsResponse from(ShortsPage shortsPage) {
-        List<ShortItem> items = shortsPage.items().stream().map(s -> new ShortItem(
+        List<ShortItem> items = shortsPage.items().stream().map(ShortsResponse::fromSummary).toList();
+        Page page = new Page(shortsPage.nextCursor(), shortsPage.hasMore(), shortsPage.size());
+        return new ShortsResponse(items, page);
+    }
+
+    public static ShortItem fromSummary(ShortSummary s) {
+        return new ShortItem(
                 s.shortId(), s.projectId(), s.title(), s.mediaUrl(), s.albumImageUrl(),
                 s.completionStatus(), s.viewCount(), s.likeCount(), s.dislikeCount(),
                 s.commentCount(), s.contributionCount(),
@@ -46,9 +52,7 @@ public record ShortsResponse(List<ShortItem> items, Page page) {
                 toAuthor(s.author()),
                 toParticipants(s.participants()),
                 s.createdAt()
-        )).toList();
-        Page page = new Page(shortsPage.nextCursor(), shortsPage.hasMore(), shortsPage.size());
-        return new ShortsResponse(items, page);
+        );
     }
 
     private static ShortItem.Author toAuthor(AuthorSummary a) {

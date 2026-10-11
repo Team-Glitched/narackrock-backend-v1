@@ -32,7 +32,7 @@ public class ShortCommentPersistenceAdapter implements ShortCommentPort {
 
     @Override
     public boolean existsActiveParentComment(Long parentCommentId, Long shortId) {
-        return shortCommentRepository.existsByIdAndShortsIdAndDeletedAtIsNull(parentCommentId, shortId);
+        return shortCommentRepository.existsActiveRootByIdAndShortsId(parentCommentId, shortId);
     }
 
     @Override

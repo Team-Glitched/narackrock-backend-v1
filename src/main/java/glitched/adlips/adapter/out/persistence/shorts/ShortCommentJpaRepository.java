@@ -11,7 +11,12 @@ import org.springframework.data.repository.query.Param;
 
 interface ShortCommentJpaRepository extends JpaRepository<ShortComment, Long> {
 
-    boolean existsByIdAndShortsIdAndDeletedAtIsNull(Long id, Long shortsId);
+    @Query("""
+            SELECT COUNT(c) > 0 FROM ShortComment c
+             WHERE c.id = :id AND c.shorts.id = :shortsId
+               AND c.parentComment IS NULL AND c.deletedAt IS NULL
+            """)
+    boolean existsActiveRootByIdAndShortsId(@Param("id") Long id, @Param("shortsId") Long shortsId);
 
     Optional<ShortComment> findByIdAndShortsIdAndDeletedAtIsNull(Long id, Long shortsId);
 

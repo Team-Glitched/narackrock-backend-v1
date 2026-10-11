@@ -101,6 +101,19 @@ class ShortCommentPersistenceAdapterTest {
     }
 
     @Test
+    void 부모_댓글을_삭제할_때_활성_대댓글만_함께_삭제한다() {
+        insertComment(305L, 201L, 1L, 301L, "CURRENT_TIMESTAMP");
+        LocalDateTime deletedAt = LocalDateTime.of(2026, 10, 11, 20, 0);
+
+        int count = adapter.softDeleteActiveReplies(301L, deletedAt);
+        entityManager.flush();
+        entityManager.clear();
+
+        assertThat(count).isEqualTo(1);
+        assertThat(shortCommentRepository.findById(304L).orElseThrow().getDeletedAt()).isEqualTo(deletedAt);
+    }
+
+    @Test
     void 숏폼_댓글_수를_증가시키면_반영된다() {
         adapter.adjustShortCommentCount(201L, 1);
         entityManager.flush();

@@ -1,6 +1,7 @@
 package glitched.adlips.application.shorts.port.out;
 
 import glitched.adlips.domain.shorts.ShortComment;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public interface ShortCommentPort {
@@ -17,4 +18,6 @@ public interface ShortCommentPort {
     Optional<ShortComment> findActiveComment(Long commentId, Long shortId);
 
     void updateContent(ShortComment comment);
+
+    int softDeleteActiveReplies(Long parentCommentId, LocalDateTime deletedAt);
 }

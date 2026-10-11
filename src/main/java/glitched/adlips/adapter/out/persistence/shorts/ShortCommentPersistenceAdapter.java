@@ -5,6 +5,7 @@ import glitched.adlips.domain.shorts.ShortComment;
 import glitched.adlips.domain.shorts.ShortForm;
 import glitched.adlips.domain.user.User;
 import jakarta.persistence.EntityManager;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
 
@@ -63,5 +64,10 @@ public class ShortCommentPersistenceAdapter implements ShortCommentPort {
     @Override
     public void updateContent(ShortComment comment) {
         shortCommentRepository.save(comment);
+    }
+
+    @Override
+    public int softDeleteActiveReplies(Long parentCommentId, LocalDateTime deletedAt) {
+        return shortCommentRepository.softDeleteActiveReplies(parentCommentId, deletedAt);
     }
 }

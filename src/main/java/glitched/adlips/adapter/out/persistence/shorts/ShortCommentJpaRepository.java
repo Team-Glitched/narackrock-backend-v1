@@ -30,6 +30,13 @@ interface ShortCommentJpaRepository extends JpaRepository<ShortComment, Long> {
     void adjustReplyCount(@Param("id") Long id, @Param("delta") int delta);
 
     @Modifying
+    @Query("""
+            UPDATE ShortComment c SET c.deletedAt = :deletedAt
+             WHERE c.parentComment.id = :parentId AND c.deletedAt IS NULL
+            """)
+    int softDeleteActiveReplies(@Param("parentId") Long parentId, @Param("deletedAt") java.time.LocalDateTime deletedAt);
+
+    @Modifying
     @Query("UPDATE ShortComment c SET c.likeCount = c.likeCount + :delta WHERE c.id = :id")
     void adjustLikeCount(@Param("id") Long id, @Param("delta") int delta);
 

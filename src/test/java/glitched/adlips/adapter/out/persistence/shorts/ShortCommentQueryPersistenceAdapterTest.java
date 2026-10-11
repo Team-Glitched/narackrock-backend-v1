@@ -136,6 +136,22 @@ class ShortCommentQueryPersistenceAdapterTest {
     }
 
     @Test
+    void viewer가_싫어요를_누른_댓글은_isDisliked_true다() {
+        insertComment(301L, 201L, 1L, null, 0, "CURRENT_TIMESTAMP", null);
+        jdbcTemplate.update("UPDATE shorts_comments SET dislike_count = 1 WHERE id = 301");
+        jdbcTemplate.update("""
+                INSERT INTO reactions (user_id, target_type, target_id, reaction_type, created_at)
+                VALUES (3, 'SHORT_COMMENT', 301, 'DISLIKE', CURRENT_TIMESTAMP)
+                """);
+
+        ShortCommentQueryItem item = adapter.findComments(201L, 3L).getFirst();
+
+        assertThat(item.dislikeCount()).isEqualTo(1);
+        assertThat(item.disliked()).isTrue();
+        assertThat(item.liked()).isFalse();
+    }
+
+    @Test
     void 작성자_닉네임과_프로필_이미지가_정확히_조인된다() {
         insertComment(301L, 201L, 2L, null, 0, "CURRENT_TIMESTAMP", null);
 

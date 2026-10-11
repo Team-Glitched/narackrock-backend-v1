@@ -23,6 +23,7 @@ public record PostListResponse(
             String imageUrl,
             int viewCount,
             int likeCount,
+            int dislikeCount,
             int commentCount,
             LocalDateTime createdAt
     ) {
@@ -49,6 +50,7 @@ public record PostListResponse(
                 item.imageUrl(),
                 item.viewCount(),
                 item.likeCount(),
+                item.dislikeCount(),
                 item.commentCount(),
                 item.createdAt());
     }

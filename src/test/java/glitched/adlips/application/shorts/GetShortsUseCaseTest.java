@@ -1,6 +1,7 @@
 package glitched.adlips.application.shorts;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.verify;
 
@@ -101,6 +102,29 @@ class GetShortsUseCaseTest {
 
         assertThat(result.likeCount()).isEqualTo(999);
         assertThat(result.dislikeCount()).isEqualTo(8);
+    }
+
+    @Test
+    void 공유된_숏폼을_ID로_조회하며_캐시된_반응과_사용자_상태를_반환한다() {
+        given(shortsQueryPort.findByIds(List.of(12L), 99L)).willReturn(List.of(item(12L)));
+        given(shortsQueryPort.findParticipants(List.of(12L))).willReturn(List.of());
+        given(reactionCountCache.findAll(List.of(12L)))
+                .willReturn(Map.of(12L, new ShortReactionCounts(7, 2)));
+
+        ShortSummary result = useCase.getOne(12L, 99L);
+
+        assertThat(result.shortId()).isEqualTo(12L);
+        assertThat(result.likeCount()).isEqualTo(7);
+        assertThat(result.dislikeCount()).isEqualTo(2);
+    }
+
+    @Test
+    void 공유된_숏폼이_없으면_찾을_수_없음을_반환한다() {
+        given(shortsQueryPort.findByIds(List.of(404L), null)).willReturn(List.of());
+
+        assertThatThrownBy(() -> useCase.getOne(404L, null))
+                .isInstanceOf(ShortsCompositionApplicationException.class)
+                .hasMessageContaining("존재하지 않는 숏폼");
     }
 
     @Test

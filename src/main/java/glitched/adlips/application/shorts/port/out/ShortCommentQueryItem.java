@@ -10,8 +10,10 @@ public record ShortCommentQueryItem(
         String nickname,
         String profileImageUrl,
         int likeCount,
+        int dislikeCount,
         int replyCount,
         boolean liked,
+        boolean disliked,
         LocalDateTime createdAt
 ) {
 }

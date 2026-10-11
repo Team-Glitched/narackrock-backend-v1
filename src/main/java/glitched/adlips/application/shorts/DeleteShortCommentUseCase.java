@@ -30,9 +30,12 @@ public class DeleteShortCommentUseCase {
                         "본인이 작성한 댓글만 삭제할 수 있습니다.");
             }
             Long parentCommentId = comment.getParentCommentId();
-            comment.delete(LocalDateTime.now(clock));
+            LocalDateTime deletedAt = LocalDateTime.now(clock);
+            comment.delete(deletedAt);
             port.updateContent(comment);
-            port.adjustShortCommentCount(shortId, -1);
+            int deletedReplies = parentCommentId == null
+                    ? port.softDeleteActiveReplies(commentId, deletedAt) : 0;
+            port.adjustShortCommentCount(shortId, -1 - deletedReplies);
             if (parentCommentId != null) {
                 port.adjustParentReplyCount(parentCommentId, -1);
             }

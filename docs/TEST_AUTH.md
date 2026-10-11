@@ -15,4 +15,18 @@ ADLIPS_TEST_USER_ID=1
 
 수동으로 테스트 인증을 켤 때는 반드시 로컬 PostgreSQL 또는 H2 데이터베이스를 사용해야 합니다. 원격 데이터베이스 URL이면 서버가 시작되지 않습니다. `.env`가 원격 DB를 가리킬 수 있으므로 `SPRING_DATASOURCE_URL`을 로컬 DB로 명시하고 테스트 사용자도 그 DB에 생성하세요.
 
-프론트는 별도의 테스트용 토큰 로직 없이 평소처럼 API를 호출하면 됩니다. 기능 브랜치 `Feature/composition-midi-read`에는 이 우회가 포함되지 않습니다.
+API를 직접 호출할 때는 별도의 토큰이 필요하지 않습니다. 다만 프론트의 게시글 상세와 내 프로필 화면은 브라우저 로그인 상태도 확인합니다. `http://localhost:3000`에서 화면까지 테스트하려면 아래 명령이 출력하는 JavaScript를 브라우저 개발자 도구 콘솔에서 실행하세요. 로컬 테스트 DB의 사용자 1 세션만 저장합니다.
+
+```bash
+python3 - <<'PY'
+import base64, hashlib, hmac, json, time
+
+secret = b'adlips-local-test-token-secret-32-characters-long'
+payload = base64.urlsafe_b64encode(f'1:{int(time.time()) + 3600}'.encode()).decode().rstrip('=')
+signature = base64.urlsafe_b64encode(hmac.new(secret, payload.encode(), hashlib.sha256).digest()).decode().rstrip('=')
+session = json.dumps({'accessToken': payload + '.' + signature, 'refreshToken': '', 'userId': 1})
+print('localStorage.setItem("narackrock.auth-session", ' + json.dumps(session) + '); location.reload();')
+PY
+```
+
+북마크의 계정 격리를 화면에서 확인하려면 위 코드의 `1`을 모두 `2`로 바꿔 두 번째 테스트 사용자로 접속할 수 있습니다. 기능 브랜치 `Feature/composition-midi-read`에는 이 인증 우회가 포함되지 않습니다.

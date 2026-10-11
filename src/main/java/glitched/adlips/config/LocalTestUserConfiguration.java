@@ -27,6 +27,11 @@ public class LocalTestUserConfiguration {
             if (profiles.findByUserId(1L).isEmpty()) {
                 profiles.save(glitched.adlips.domain.user.Profile.create(1L, "로컬 작곡가"));
             }
+            User otherUser = users.findByEmail("bookmark-observer@localhost")
+                    .orElseGet(() -> users.save(User.create("bookmark-observer@localhost")));
+            if (profiles.findByUserId(otherUser.getId()).isEmpty()) {
+                profiles.save(glitched.adlips.domain.user.Profile.create(otherUser.getId(), "북마크 관찰자"));
+            }
             jdbcTemplate.update("""
                     INSERT INTO galleries (id, name, description, created_at)
                     SELECT 1, '기본 커뮤니티', '로컬 TEST 환경의 기본 게시글 커뮤니티입니다.', CURRENT_TIMESTAMP

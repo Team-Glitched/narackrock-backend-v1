@@ -8,6 +8,22 @@ import glitched.adlips.application.community.port.out.PostCommentQueryPort;
 import glitched.adlips.application.community.CreatePostUseCase;
 import glitched.adlips.application.community.DeletePostUseCase;
 import glitched.adlips.application.community.GetGalleriesUseCase;
+import glitched.adlips.application.community.GetGalleryModerationLogsUseCase;
+import glitched.adlips.application.community.GetMyGalleryProposalsUseCase;
+import glitched.adlips.application.community.GetMyGalleryRoleUseCase;
+import glitched.adlips.application.community.UpdateGalleryUseCase;
+import glitched.adlips.application.community.GetGalleryBansUseCase;
+import glitched.adlips.application.community.LiftGalleryBanUseCase;
+import glitched.adlips.application.community.ModeratePostCommentDeletionUseCase;
+import glitched.adlips.application.community.ModeratePostDeletionUseCase;
+import glitched.adlips.application.community.SanctionGalleryUserUseCase;
+import glitched.adlips.application.community.port.out.GalleryAuthorityPort;
+import glitched.adlips.application.community.port.out.GalleryBanPort;
+import glitched.adlips.application.community.port.out.GalleryBanQueryPort;
+import glitched.adlips.application.community.port.out.GalleryManagementPort;
+import glitched.adlips.application.community.port.out.GalleryModerationLogPort;
+import glitched.adlips.application.community.SubmitGalleryProposalUseCase;
+import glitched.adlips.application.community.port.out.GalleryProposalPort;
 import glitched.adlips.application.community.GetPopularPostsUseCase;
 import glitched.adlips.application.community.GetPostShareUseCase;
 import glitched.adlips.application.community.GetPostUseCase;
@@ -35,6 +51,7 @@ import glitched.adlips.application.report.port.out.ReportSubmissionPort;
 import glitched.adlips.application.report.port.out.ReportTargetQueryPort;
 import glitched.adlips.application.report.port.out.ReportUserRestrictionPort;
 import glitched.adlips.application.report.usecase.SubmitReportUseCase;
+import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import java.time.Clock;
 import org.springframework.context.annotation.Bean;
@@ -61,6 +78,120 @@ public class CommunityApplicationConfiguration {
     }
 
     @Bean
+    SubmitGalleryProposalUseCase submitGalleryProposalUseCase(
+            GalleryProposalPort galleryProposalPort,
+            UserBanQueryPort userBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new SubmitGalleryProposalUseCase(galleryProposalPort, userBanQueryPort, transactionRunner, clock);
+    }
+
+    @Bean
+    GetMyGalleryProposalsUseCase getMyGalleryProposalsUseCase(
+            GalleryProposalPort galleryProposalPort,
+            TransactionRunner transactionRunner
+    ) {
+        return new GetMyGalleryProposalsUseCase(galleryProposalPort, transactionRunner);
+    }
+
+    @Bean
+    GetMyGalleryRoleUseCase getMyGalleryRoleUseCase(
+            GalleryAuthorityPort galleryAuthorityPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new GetMyGalleryRoleUseCase(galleryAuthorityPort, transactionRunner, clock);
+    }
+
+    @Bean
+    UpdateGalleryUseCase updateGalleryUseCase(
+            GalleryAuthorityPort galleryAuthorityPort,
+            GalleryManagementPort galleryManagementPort,
+            GalleryModerationLogPort galleryModerationLogPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new UpdateGalleryUseCase(
+                galleryAuthorityPort, galleryManagementPort, galleryModerationLogPort, transactionRunner, clock);
+    }
+
+    @Bean
+    GetGalleryModerationLogsUseCase getGalleryModerationLogsUseCase(
+            GalleryAuthorityPort galleryAuthorityPort,
+            GalleryModerationLogPort galleryModerationLogPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new GetGalleryModerationLogsUseCase(
+                galleryAuthorityPort, galleryModerationLogPort, transactionRunner, clock);
+    }
+
+    @Bean
+    SanctionGalleryUserUseCase sanctionGalleryUserUseCase(
+            GalleryAuthorityPort galleryAuthorityPort,
+            GalleryManagementPort galleryManagementPort,
+            GalleryBanPort galleryBanPort,
+            GallerySubscriptionPort gallerySubscriptionPort,
+            UserRepositoryPort userRepositoryPort,
+            GalleryModerationLogPort galleryModerationLogPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new SanctionGalleryUserUseCase(galleryAuthorityPort, galleryManagementPort, galleryBanPort,
+                gallerySubscriptionPort, userRepositoryPort, galleryModerationLogPort, transactionRunner, clock);
+    }
+
+    @Bean
+    LiftGalleryBanUseCase liftGalleryBanUseCase(
+            GalleryAuthorityPort galleryAuthorityPort,
+            GalleryManagementPort galleryManagementPort,
+            GalleryBanPort galleryBanPort,
+            UserRepositoryPort userRepositoryPort,
+            GalleryModerationLogPort galleryModerationLogPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new LiftGalleryBanUseCase(galleryAuthorityPort, galleryManagementPort, galleryBanPort,
+                userRepositoryPort, galleryModerationLogPort, transactionRunner, clock);
+    }
+
+    @Bean
+    GetGalleryBansUseCase getGalleryBansUseCase(
+            GalleryAuthorityPort galleryAuthorityPort,
+            GalleryBanPort galleryBanPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new GetGalleryBansUseCase(galleryAuthorityPort, galleryBanPort, transactionRunner, clock);
+    }
+
+    @Bean
+    ModeratePostDeletionUseCase moderatePostDeletionUseCase(
+            GalleryAuthorityPort galleryAuthorityPort,
+            PostPort postPort,
+            GalleryModerationLogPort galleryModerationLogPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new ModeratePostDeletionUseCase(
+                galleryAuthorityPort, postPort, galleryModerationLogPort, transactionRunner, clock);
+    }
+
+    @Bean
+    ModeratePostCommentDeletionUseCase moderatePostCommentDeletionUseCase(
+            GalleryAuthorityPort galleryAuthorityPort,
+            PostPort postPort,
+            PostCommentPort postCommentPort,
+            GalleryModerationLogPort galleryModerationLogPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new ModeratePostCommentDeletionUseCase(galleryAuthorityPort, postPort, postCommentPort,
+                galleryModerationLogPort, transactionRunner, clock);
+    }
+
+    @Bean
     GetPostCommentsUseCase getPostCommentsUseCase(
             PostCommentQueryPort port,
             TransactionRunner transactionRunner) {
@@ -71,12 +202,13 @@ public class CommunityApplicationConfiguration {
     CreatePostUseCase createPostUseCase(
             PostPort postPort,
             UserBanQueryPort userBanQueryPort,
+            GalleryBanQueryPort galleryBanQueryPort,
             MediaFileRepositoryPort mediaFileRepository,
             TransactionRunner transactionRunner,
             Clock clock
     ) {
         return new CreatePostUseCase(
-                postPort, userBanQueryPort, mediaFileRepository, transactionRunner, clock);
+                postPort, userBanQueryPort, galleryBanQueryPort, mediaFileRepository, transactionRunner, clock);
     }
 
     @Bean
@@ -98,9 +230,11 @@ public class CommunityApplicationConfiguration {
     @Bean
     SubscribeGalleryUseCase subscribeGalleryUseCase(
             GallerySubscriptionPort gallerySubscriptionPort,
-            TransactionRunner transactionRunner
+            GalleryBanQueryPort galleryBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock
     ) {
-        return new SubscribeGalleryUseCase(gallerySubscriptionPort, transactionRunner);
+        return new SubscribeGalleryUseCase(gallerySubscriptionPort, galleryBanQueryPort, transactionRunner, clock);
     }
 
     @Bean
@@ -135,10 +269,11 @@ public class CommunityApplicationConfiguration {
     UpdatePostUseCase updatePostUseCase(
             PostPort postPort,
             UserBanQueryPort userBanQueryPort,
+            GalleryBanQueryPort galleryBanQueryPort,
             TransactionRunner transactionRunner,
             Clock clock
     ) {
-        return new UpdatePostUseCase(postPort, userBanQueryPort, transactionRunner, clock);
+        return new UpdatePostUseCase(postPort, userBanQueryPort, galleryBanQueryPort, transactionRunner, clock);
     }
 
     @Bean
@@ -155,21 +290,24 @@ public class CommunityApplicationConfiguration {
     TogglePostReactionUseCase togglePostReactionUseCase(
             PostReactionPort postReactionPort,
             UserBanQueryPort userBanQueryPort,
+            GalleryBanQueryPort galleryBanQueryPort,
             TransactionRunner transactionRunner,
             Clock clock
     ) {
-        return new TogglePostReactionUseCase(postReactionPort, userBanQueryPort, transactionRunner, clock);
+        return new TogglePostReactionUseCase(
+                postReactionPort, userBanQueryPort, galleryBanQueryPort, transactionRunner, clock);
     }
 
     @Bean
     TogglePostCommentReactionUseCase togglePostCommentReactionUseCase(
             PostCommentReactionPort postCommentReactionPort,
             UserBanQueryPort userBanQueryPort,
+            GalleryBanQueryPort galleryBanQueryPort,
             TransactionRunner transactionRunner,
             Clock clock
     ) {
         return new TogglePostCommentReactionUseCase(
-                postCommentReactionPort, userBanQueryPort, transactionRunner, clock);
+                postCommentReactionPort, userBanQueryPort, galleryBanQueryPort, transactionRunner, clock);
     }
 
     @Bean
@@ -184,20 +322,24 @@ public class CommunityApplicationConfiguration {
     CreatePostCommentUseCase createPostCommentUseCase(
             PostCommentPort postCommentPort,
             UserBanQueryPort userBanQueryPort,
+            GalleryBanQueryPort galleryBanQueryPort,
             TransactionRunner transactionRunner,
             Clock clock
     ) {
-        return new CreatePostCommentUseCase(postCommentPort, userBanQueryPort, transactionRunner, clock);
+        return new CreatePostCommentUseCase(
+                postCommentPort, userBanQueryPort, galleryBanQueryPort, transactionRunner, clock);
     }
 
     @Bean
     UpdatePostCommentUseCase updatePostCommentUseCase(
             PostCommentPort postCommentPort,
             UserBanQueryPort userBanQueryPort,
+            GalleryBanQueryPort galleryBanQueryPort,
             TransactionRunner transactionRunner,
             Clock clock
     ) {
-        return new UpdatePostCommentUseCase(postCommentPort, userBanQueryPort, transactionRunner, clock);
+        return new UpdatePostCommentUseCase(
+                postCommentPort, userBanQueryPort, galleryBanQueryPort, transactionRunner, clock);
     }
 
     @Bean

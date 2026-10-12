@@ -65,7 +65,7 @@ public class ReportContentModerationPersistenceAdapter implements ReportContentM
         adjust("UPDATE Post p SET p.commentCount = p.commentCount + :delta WHERE p.id = :id", postId, -deletedCount);
     }
 
-    /** DeleteShortCommentUseCase와 같은 규칙: 답글은 함께 지우지 않는다. */
+    /** DeleteShortCommentUseCase와 같은 규칙: 최상위 댓글은 답글도 함께 지운다. */
     private void deleteShortComment(Long commentId, LocalDateTime now) {
         Optional<Object[]> comment = findActive(
                 "SELECT c.shorts.id, parent.id FROM ShortComment c"
@@ -76,10 +76,17 @@ public class ReportContentModerationPersistenceAdapter implements ReportContentM
         Long shortId = (Long) comment.get()[0];
         Long parentId = (Long) comment.get()[1];
         softDelete("ShortComment", commentId, now);
-        adjust("UPDATE ShortForm s SET s.commentCount = s.commentCount + :delta WHERE s.id = :id", shortId, -1);
-        if (parentId != null) {
+        int deletedCount = 1;
+        if (parentId == null) {
+            deletedCount += entityManager.createQuery("UPDATE ShortComment c SET c.deletedAt = :now"
+                            + " WHERE c.parentComment.id = :id AND c.deletedAt IS NULL")
+                    .setParameter("now", now)
+                    .setParameter("id", commentId)
+                    .executeUpdate();
+        } else {
             adjust("UPDATE ShortComment c SET c.replyCount = c.replyCount + :delta WHERE c.id = :id", parentId, -1);
         }
+        adjust("UPDATE ShortForm s SET s.commentCount = s.commentCount + :delta WHERE s.id = :id", shortId, -deletedCount);
     }
 
     private Optional<Object[]> findActive(String query, Long id) {

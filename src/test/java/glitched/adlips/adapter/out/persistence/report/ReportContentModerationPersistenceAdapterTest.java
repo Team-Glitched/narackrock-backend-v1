@@ -101,6 +101,16 @@ class ReportContentModerationPersistenceAdapterTest {
     }
 
     @Test
+    void 최상위_숏폼_댓글을_지우면_답글도_지우고_댓글_수를_함께_줄인다() {
+        adapter.deleteContent(ReportTargetType.SHORT_COMMENT, 80L, NOW);
+        entityManager.clear();
+
+        assertThat(deletedAt("shorts_comments", 80)).isEqualTo(NOW);
+        assertThat(deletedAt("shorts_comments", 81)).isEqualTo(NOW);
+        assertThat(intColumn("SELECT comment_count FROM shorts WHERE id = 12")).isZero();
+    }
+
+    @Test
     void 이미_삭제된_콘텐츠는_다시_건드리지_않는다() {
         jdbcTemplate.update("UPDATE post_comments SET deleted_at = ? WHERE id = 71", NOW.minusDays(1));
         entityManager.clear();

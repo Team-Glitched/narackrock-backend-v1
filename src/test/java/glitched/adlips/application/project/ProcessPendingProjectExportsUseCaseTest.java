@@ -123,7 +123,7 @@ class ProcessPendingProjectExportsUseCaseTest {
                 .thenReturn(List.of(track));
         when(clips.findByTrackIdAndApprovalStatusAndIsDeletedFalseOrderByStartTickAscIdAsc(
                 12L, ApprovalStatus.APPROVED)).thenReturn(List.of(detachedClip));
-        when(midiRenderer.render(track.getInstrument(), clip.getMidiNotes(), project.getBpm(), project.getPpq(), 3_500))
+        when(midiRenderer.render(track.getInstrument(), clip.getMidiNotes(), project.getBpm(), project.getPpq(), 1_500))
                 .thenReturn(new byte[]{1, 2, 3});
         when(mixer.mix(any())).thenReturn(new ProjectAudioMixerPort.MixedAudio(new byte[]{4, 5}, 500));
         when(archiver.archive(any())).thenReturn(new byte[]{6});
@@ -138,7 +138,7 @@ class ProcessPendingProjectExportsUseCaseTest {
         assertThat(result.completedCount()).isEqualTo(1);
         assertThat(result.failedCount()).isZero();
         assertThat(export.getStatus()).isEqualTo(ExportStatus.COMPLETED);
-        verify(midiRenderer).render(track.getInstrument(), clip.getMidiNotes(), project.getBpm(), project.getPpq(), 3_500);
+        verify(midiRenderer).render(track.getInstrument(), clip.getMidiNotes(), project.getBpm(), project.getPpq(), 1_500);
         verify(publishedShorts).publish(project, 20L, 801L);
     }
 

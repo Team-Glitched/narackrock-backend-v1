@@ -206,8 +206,14 @@ public class ProcessPendingProjectExportsUseCase {
             if (clip.getClipType() == ClipType.MIDI) {
                 int renderDurationMs = clip.getDurationMs();
                 if (isDrumTrack(track.getInstrument())) {
-                    renderDurationMs = Math.min(claimed.maxDurationMs() - clip.getStartTimeMs(),
-                            renderDurationMs + 1_500);
+                    int noteEndMs = clip.getMidiNotes().stream().mapToInt(note -> {
+                        int startMs = Math.toIntExact(Math.round(note.startTick() * 60_000d
+                                / (claimed.bpm() * (long) claimed.ppq())));
+                        int durationMs = Math.toIntExact(Math.round(note.durationTick() * 60_000d
+                                / (claimed.bpm() * (long) claimed.ppq())));
+                        return startMs + Math.max(durationMs, 1_500);
+                    }).max().orElse(renderDurationMs);
+                    renderDurationMs = Math.min(claimed.maxDurationMs() - clip.getStartTimeMs(), noteEndMs);
                 }
                 byte[] rendered = midiRenderer.render(track.getInstrument(), clip.getMidiNotes(),
                         claimed.bpm(), claimed.ppq(), renderDurationMs);

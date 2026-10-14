@@ -82,6 +82,14 @@ public class RecommendedUserGetListUseCase {
 
         Map<Long, RecommendType> candidateTypes = new LinkedHashMap<>();
 
+        for (Long collaboratorId :
+                collaborationUserQueryPort.findCollaboratorIds(requesterId)) {
+            candidateTypes.putIfAbsent(
+                    collaboratorId,
+                    RecommendType.COLLABORATOR
+            );
+        }
+
         for (Long followingId : followingIds) {
             for (Long candidateId :
                     followRepository.findFollowingIds(followingId)) {
@@ -92,14 +100,6 @@ public class RecommendedUserGetListUseCase {
             }
         }
 
-        for (Long collaboratorId :
-                collaborationUserQueryPort.findCollaboratorIds(requesterId)) {
-            candidateTypes.putIfAbsent(
-                    collaboratorId,
-                    RecommendType.COLLABORATOR
-            );
-        }
-
         candidateTypes.remove(requesterId);
         followingIds.forEach(candidateTypes::remove);
 
@@ -107,8 +107,8 @@ public class RecommendedUserGetListUseCase {
                 .findAllByUserIds(candidateTypes.keySet())
                 .stream()
                 .sorted(
-                        Comparator.comparingInt(Profile::getFollowerCount)
-                                .reversed()
+                        Comparator.comparingInt((Profile profile) -> candidateTypes.get(profile.getUserId()) == RecommendType.COLLABORATOR ? 0 : 1)
+                                .thenComparing(Comparator.comparingInt(Profile::getFollowerCount).reversed())
                 )
                 .toList();
 

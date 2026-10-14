@@ -35,19 +35,19 @@ class PopularPostQueryPersistenceAdapterTest {
     }
 
     @Test
-    void 모든_갤러리의_삭제되지_않은_글을_인기순으로_조회한다() {
-        assertThat(adapter.findPopularPosts(0, 10))
-                .extracting(p -> p.postId(), p -> p.galleryId(), p -> p.galleryName())
-                .containsExactly(
-                        tuple(502L, 20L, "기타"),
-                        tuple(504L, 20L, "기타"),
-                        tuple(503L, 10L, "음악"),
-                        tuple(501L, 10L, "음악"));
+    void 모든_갤러리의_삭제되지_않은_글의_점수를_조회한다() {
+        assertThat(adapter.findPopularityScores())
+                .extracting(p -> p.postId(), p -> p.viewCount(), p -> p.likeCount())
+                .containsExactlyInAnyOrder(
+                        tuple(501L, 0, 5), tuple(502L, 0, 9),
+                        tuple(503L, 0, 5), tuple(504L, 0, 5));
     }
 
     @Test
-    void 인기글을_페이지로_나눠_조회한다() {
-        assertThat(adapter.findPopularPosts(1, 2)).extracting(p -> p.postId()).containsExactly(503L, 501L);
+    void 순위_ID로_여러_갤러리의_활성_글을_조회한다() {
+        assertThat(adapter.findByIds(java.util.List.of(504L, 502L, 505L)))
+                .extracting(p -> p.postId(), p -> p.galleryName())
+                .containsExactlyInAnyOrder(tuple(502L, "기타"), tuple(504L, "기타"));
     }
 
     @Test

@@ -1,6 +1,7 @@
 package glitched.adlips.application.community;
 
 import glitched.adlips.application.community.port.out.PostPort;
+import glitched.adlips.application.community.port.out.PostPopularityRankingPort;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.community.Post;
@@ -10,24 +11,27 @@ import java.time.LocalDateTime;
 public class DeletePostUseCase {
 
     private final PostPort port;
+    private final PostPopularityRankingPort popularityRanking;
     private final UserBanQueryPort userBanQueryPort;
     private final TransactionRunner transactionRunner;
     private final Clock clock;
 
     public DeletePostUseCase(
             PostPort port,
+            PostPopularityRankingPort popularityRanking,
             UserBanQueryPort userBanQueryPort,
             TransactionRunner transactionRunner,
             Clock clock
     ) {
         this.port = port;
+        this.popularityRanking = popularityRanking;
         this.userBanQueryPort = userBanQueryPort;
         this.transactionRunner = transactionRunner;
         this.clock = clock;
     }
 
-    public DeletePostUseCase(PostPort port, TransactionRunner transactionRunner, Clock clock) {
-        this(port, (userId, now) -> false, transactionRunner, clock);
+    public DeletePostUseCase(PostPort port, PostPopularityRankingPort popularityRanking, TransactionRunner transactionRunner, Clock clock) {
+        this(port, popularityRanking, (userId, now) -> false, transactionRunner, clock);
     }
 
     public void execute(Long postId, Long userId) {
@@ -48,5 +52,6 @@ public class DeletePostUseCase {
             port.update(post);
             return null;
         });
+        popularityRanking.remove(postId);
     }
 }

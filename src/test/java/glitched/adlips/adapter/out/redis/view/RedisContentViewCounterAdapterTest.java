@@ -3,6 +3,8 @@ package glitched.adlips.adapter.out.redis.view;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import glitched.adlips.application.view.ContentViewTarget;
+import glitched.adlips.application.community.port.out.PostPopularityScore;
+import glitched.adlips.adapter.out.redis.community.RedisPostPopularityRankingAdapter;
 import glitched.adlips.application.view.ClaimedContentViews;
 import glitched.adlips.application.view.ContentViewKey;
 import java.time.Duration;
@@ -78,6 +80,22 @@ class RedisContentViewCounterAdapterTest {
     }
 
     @Test
+    void 게시글_인기순은_좋아요_다섯배와_조회수를_합산한다() {
+        RedisContentViewCounterAdapter views = new RedisContentViewCounterAdapter(redisTemplate, "adlips");
+        RedisPostPopularityRankingAdapter ranking = new RedisPostPopularityRankingAdapter(redisTemplate);
+        ranking.seedBaseline(List.of(new PostPopularityScore(1L, 2, 1), new PostPopularityScore(2L, 3, 0)));
+        views.recordIfFirst(ContentViewTarget.POST, 2L, "user:1", Duration.ofMinutes(30));
+
+        assertThat(ranking.findTop(2)).containsExactly(1L, 2L);
+
+        ranking.updateLikeCount(2L, 2);
+        assertThat(ranking.findTop(2)).containsExactly(2L, 1L);
+
+        ranking.remove(2L);
+        assertThat(ranking.findTop(2)).containsExactly(1L);
+    }
+
+    @Test
     void 동시_요청도_Redis에서_원자적으로_한_번만_집계한다() throws Exception {
         try (var executor = Executors.newFixedThreadPool(8)) {
             Callable<Boolean> request = () -> adapter.recordIfFirst(
@@ -97,6 +115,8 @@ class RedisContentViewCounterAdapterTest {
             assertThat(counted).isEqualTo(1);
             assertThat(redisTemplate.opsForValue().get(adapter.pendingKey(ContentViewTarget.POST, 501L)))
                     .isEqualTo("1");
+            assertThat(redisTemplate.opsForZSet().score(adapter.popularityKey(ContentViewTarget.POST), "501"))
+                    .isEqualTo(1.0);
         }
     }
 

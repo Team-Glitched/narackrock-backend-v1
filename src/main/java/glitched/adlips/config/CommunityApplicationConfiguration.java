@@ -25,6 +25,7 @@ import glitched.adlips.application.community.port.out.PostBookmarkPort;
 import glitched.adlips.application.community.port.out.PostCommentPort;
 import glitched.adlips.application.community.port.out.PostCommentReactionPort;
 import glitched.adlips.application.community.port.out.PostPort;
+import glitched.adlips.application.community.port.out.PostPopularityRankingPort;
 import glitched.adlips.application.community.port.out.PostQueryPort;
 import glitched.adlips.application.community.port.out.PostReactionPort;
 import glitched.adlips.application.community.port.out.PostShareLinkPort;
@@ -122,8 +123,8 @@ public class CommunityApplicationConfiguration {
     }
 
     @Bean
-    GetPopularPostsUseCase getPopularPostsUseCase(PostQueryPort postQueryPort, TransactionRunner transactionRunner) {
-        return new GetPopularPostsUseCase(postQueryPort, transactionRunner);
+    GetPopularPostsUseCase getPopularPostsUseCase(PostQueryPort postQueryPort, PostPopularityRankingPort ranking, TransactionRunner transactionRunner) {
+        return new GetPopularPostsUseCase(postQueryPort, ranking, transactionRunner);
     }
 
     @Bean
@@ -144,21 +145,23 @@ public class CommunityApplicationConfiguration {
     @Bean
     DeletePostUseCase deletePostUseCase(
             PostPort postPort,
+            PostPopularityRankingPort ranking,
             UserBanQueryPort userBanQueryPort,
             TransactionRunner transactionRunner,
             Clock clock
     ) {
-        return new DeletePostUseCase(postPort, userBanQueryPort, transactionRunner, clock);
+        return new DeletePostUseCase(postPort, ranking, userBanQueryPort, transactionRunner, clock);
     }
 
     @Bean
     TogglePostReactionUseCase togglePostReactionUseCase(
             PostReactionPort postReactionPort,
+            PostPopularityRankingPort ranking,
             UserBanQueryPort userBanQueryPort,
             TransactionRunner transactionRunner,
             Clock clock
     ) {
-        return new TogglePostReactionUseCase(postReactionPort, userBanQueryPort, transactionRunner, clock);
+        return new TogglePostReactionUseCase(postReactionPort, ranking, userBanQueryPort, transactionRunner, clock);
     }
 
     @Bean

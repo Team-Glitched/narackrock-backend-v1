@@ -15,6 +15,7 @@ import glitched.adlips.application.user.profile.usecase.ProfileGetUseCase;
 import glitched.adlips.application.user.profile.usecase.ProfileImageUpdateUseCase;
 import glitched.adlips.application.user.profile.usecase.ProfileShareUseCase;
 import glitched.adlips.application.user.profile.usecase.ProfileUpdateUseCase;
+import glitched.adlips.application.user.profile.usecase.ProfilePrivacyUpdateUseCase;
 import java.io.IOException;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -34,6 +35,7 @@ import org.springframework.web.multipart.MultipartFile;
 public class ProfileController {
     private final ProfileGetUseCase profileGetUseCase;
     private final ProfileUpdateUseCase profileUpdateUseCase;
+    private final ProfilePrivacyUpdateUseCase profilePrivacyUpdateUseCase;
     private final ProfileImageUpdateUseCase profileImageUpdateUseCase;
     private final ProfileShareUseCase profileShareUseCase;
     private final AuthenticatedUserResolver authenticatedUserResolver;
@@ -41,15 +43,26 @@ public class ProfileController {
     public ProfileController(
             ProfileGetUseCase profileGetUseCase,
             ProfileUpdateUseCase profileUpdateUseCase,
+            ProfilePrivacyUpdateUseCase profilePrivacyUpdateUseCase,
             ProfileImageUpdateUseCase profileImageUpdateUseCase,
             ProfileShareUseCase profileShareUseCase,
             AuthenticatedUserResolver authenticatedUserResolver
     ) {
         this.profileGetUseCase = profileGetUseCase;
         this.profileUpdateUseCase = profileUpdateUseCase;
+        this.profilePrivacyUpdateUseCase = profilePrivacyUpdateUseCase;
         this.profileImageUpdateUseCase = profileImageUpdateUseCase;
         this.profileShareUseCase = profileShareUseCase;
         this.authenticatedUserResolver = authenticatedUserResolver;
+    }
+
+    public record ProfilePrivacyRequest(boolean isPrivate) {}
+
+    @PatchMapping("/me/profile/privacy")
+    public ApiResponse<ProfilePrivacyRequest> updatePrivacy(@RequestHeader("Authorization") String authorization,
+            @RequestBody ProfilePrivacyRequest request) {
+        Long userId = authenticatedUserResolver.requireUserId(authorization);
+        return ApiResponse.success("프로필 공개 설정이 변경되었습니다.", new ProfilePrivacyRequest(profilePrivacyUpdateUseCase.execute(userId, request.isPrivate())));
     }
 
     @GetMapping("/profiles/{userId}")

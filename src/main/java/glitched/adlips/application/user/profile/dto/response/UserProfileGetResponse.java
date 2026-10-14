@@ -9,7 +9,8 @@ public record UserProfileGetResponse(
         String explanation,
         String primaryInstrument,
         Relations relations,
-        Activities activities
+        Activities activities,
+        boolean isPrivate
 ) {
     public record Relations(int followerCount, int followingCount, boolean isFollowing) {
     }

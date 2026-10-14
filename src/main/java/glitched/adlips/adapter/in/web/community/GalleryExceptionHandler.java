@@ -15,6 +15,7 @@ public class GalleryExceptionHandler {
         HttpStatus status = switch (e.getErrorCode()) {
             case GALLERY_NOT_FOUND, NOT_SUBSCRIBED -> HttpStatus.NOT_FOUND;
             case ALREADY_SUBSCRIBED -> HttpStatus.CONFLICT;
+            case EXPELLED_FROM_GALLERY -> HttpStatus.FORBIDDEN;
         };
         return ResponseEntity.status(status).body(ApiResponse.error(e.getErrorCode().name(), e.getMessage()));
     }

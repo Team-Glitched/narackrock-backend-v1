@@ -33,14 +33,14 @@ public class ShortCommentQueryPersistenceAdapter implements ShortCommentQueryPor
         String sql = """
                 SELECT c.id, c.parent_comment_id, c.content,
                        p.user_id, p.nickname, profile_image.file_url,
-                       c.like_count, c.reply_count, %s, c.created_at
+                       c.like_count, c.dislike_count, c.reply_count, %s, %s, c.created_at
                   FROM shorts_comments c
                   JOIN profiles p ON p.user_id = c.user_id
              LEFT JOIN media_files profile_image ON profile_image.id = p.profile_image_file_id
                  WHERE c.shorts_id = :shortId
                    AND c.deleted_at IS NULL
                  ORDER BY c.like_count DESC, c.created_at ASC
-                """.formatted(likedExpression(viewerId));
+                """.formatted(reactionExpression(viewerId, "LIKE"), reactionExpression(viewerId, "DISLIKE"));
 
         Query query = entityManager.createNativeQuery(sql).setParameter("shortId", shortId);
         if (viewerId != null) {
@@ -51,13 +51,13 @@ public class ShortCommentQueryPersistenceAdapter implements ShortCommentQueryPor
         return rows.stream().map(this::toQueryItem).toList();
     }
 
-    private String likedExpression(Long viewerId) {
+    private String reactionExpression(Long viewerId, String type) {
         if (viewerId == null) {
             return "FALSE";
         }
         return "EXISTS (SELECT 1 FROM reactions r "
                 + "WHERE r.user_id = :viewerId AND r.target_type = 'SHORT_COMMENT' "
-                + "AND r.target_id = c.id AND r.reaction_type = 'LIKE')";
+                + "AND r.target_id = c.id AND r.reaction_type = '" + type + "')";
     }
 
     private ShortCommentQueryItem toQueryItem(Object[] row) {
@@ -70,8 +70,10 @@ public class ShortCommentQueryPersistenceAdapter implements ShortCommentQueryPor
                 nullableString(row[5]),
                 intValue(row[6]),
                 intValue(row[7]),
-                booleanValue(row[8]),
-                localDateTime(row[9]));
+                intValue(row[8]),
+                booleanValue(row[9]),
+                booleanValue(row[10]),
+                localDateTime(row[11]));
     }
 
     private static Long longValue(Object value) {

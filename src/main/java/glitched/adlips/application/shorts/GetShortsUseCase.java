@@ -60,6 +60,20 @@ public class GetShortsUseCase {
         return new ShortsPage(items, items.getLast().shortId(), hasMore, size);
     }
 
+    public ShortSummary getOne(Long shortId, Long currentUserId) {
+        ShortsQueryItem item = shortsQueryPort.findByIds(List.of(shortId), currentUserId).stream()
+                .findFirst()
+                .orElseThrow(() -> new ShortsCompositionApplicationException(
+                        ShortsCompositionErrorCode.SHORT_NOT_FOUND, "존재하지 않는 숏폼입니다."));
+        List<ShortsParticipantQueryItem> participants = shortsQueryPort.findParticipants(List.of(shortId));
+        ShortReactionCounts counts = reactionCountCache.findAll(List.of(shortId)).get(shortId);
+        if (counts == null) {
+            counts = new ShortReactionCounts(item.likeCount(), item.dislikeCount());
+            reactionCountCache.put(shortId, counts);
+        }
+        return toSummary(item, participants, counts);
+    }
+
     private ShortSummary toSummary(
             ShortsQueryItem item,
             List<ShortsParticipantQueryItem> participants,

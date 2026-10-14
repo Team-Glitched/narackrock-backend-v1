@@ -19,7 +19,7 @@ class GetShortCommentsUseCaseTest {
         when(port.existsActiveShort(15L)).thenReturn(true);
         ShortCommentQueryItem item = new ShortCommentQueryItem(
                 7721L, null, "멜로디가 좋아요.", 12L, "adlip_user", "https://cdn.test/img.png",
-                4, 2, false, LocalDateTime.of(2026, 6, 22, 14, 0));
+                4, 0, 2, false, false, LocalDateTime.of(2026, 6, 22, 14, 0));
         when(port.findComments(15L, 3L)).thenReturn(List.of(item));
         GetShortCommentsUseCase useCase = new GetShortCommentsUseCase(port);
 

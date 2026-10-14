@@ -13,8 +13,10 @@ public record ShortCommentListResponse(Long shortId, List<CommentItem> comments)
             String content,
             Writer writer,
             int likeCount,
+            int dislikeCount,
             int replyCount,
             boolean isLiked,
+            boolean isDisliked,
             LocalDateTime createdAt
     ) {
     }
@@ -36,8 +38,10 @@ public record ShortCommentListResponse(Long shortId, List<CommentItem> comments)
                 item.content(),
                 new Writer(item.writerId(), item.nickname(), item.profileImageUrl()),
                 item.likeCount(),
+                item.dislikeCount(),
                 item.replyCount(),
                 item.liked(),
+                item.disliked(),
                 item.createdAt());
     }
 }

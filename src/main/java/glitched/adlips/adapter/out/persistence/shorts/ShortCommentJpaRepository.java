@@ -11,7 +11,12 @@ import org.springframework.data.repository.query.Param;
 
 interface ShortCommentJpaRepository extends JpaRepository<ShortComment, Long> {
 
-    boolean existsByIdAndShortsIdAndDeletedAtIsNull(Long id, Long shortsId);
+    @Query("""
+            SELECT COUNT(c) > 0 FROM ShortComment c
+             WHERE c.id = :id AND c.shorts.id = :shortsId
+               AND c.parentComment IS NULL AND c.deletedAt IS NULL
+            """)
+    boolean existsActiveRootByIdAndShortsId(@Param("id") Long id, @Param("shortsId") Long shortsId);
 
     Optional<ShortComment> findByIdAndShortsIdAndDeletedAtIsNull(Long id, Long shortsId);
 
@@ -23,6 +28,13 @@ interface ShortCommentJpaRepository extends JpaRepository<ShortComment, Long> {
     @Modifying
     @Query("UPDATE ShortComment c SET c.replyCount = c.replyCount + :delta WHERE c.id = :id")
     void adjustReplyCount(@Param("id") Long id, @Param("delta") int delta);
+
+    @Modifying
+    @Query("""
+            UPDATE ShortComment c SET c.deletedAt = :deletedAt
+             WHERE c.parentComment.id = :parentId AND c.deletedAt IS NULL
+            """)
+    int softDeleteActiveReplies(@Param("parentId") Long parentId, @Param("deletedAt") java.time.LocalDateTime deletedAt);
 
     @Modifying
     @Query("UPDATE ShortComment c SET c.likeCount = c.likeCount + :delta WHERE c.id = :id")

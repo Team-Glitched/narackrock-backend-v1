@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.adapter.in.web.dto.ShortCommentLikeResponse;
+import glitched.adlips.adapter.in.web.dto.ShortCommentDislikeResponse;
 import glitched.adlips.adapter.in.web.dto.ShortCommentListResponse;
 import glitched.adlips.adapter.in.web.dto.ShortCommentReportRequest;
 import glitched.adlips.adapter.in.web.dto.ShortCommentReportResponse;
@@ -15,12 +16,14 @@ import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.application.shorts.DeleteShortCommentUseCase;
 import glitched.adlips.application.shorts.GetShortCommentsUseCase;
 import glitched.adlips.application.shorts.ShortCommentLikeResult;
+import glitched.adlips.application.shorts.ShortCommentDislikeResult;
 import glitched.adlips.application.shorts.ShortCommentListResult;
 import glitched.adlips.application.shorts.ShortCommentReportResult;
 import glitched.adlips.application.shorts.ShortCommentResult;
 import glitched.adlips.application.shorts.SubmitShortCommentReportUseCase;
 import glitched.adlips.application.shorts.SubmitShortCommentUseCase;
 import glitched.adlips.application.shorts.ToggleShortCommentLikeUseCase;
+import glitched.adlips.application.shorts.ToggleShortCommentDislikeUseCase;
 import glitched.adlips.application.shorts.UpdateShortCommentUseCase;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -45,6 +48,7 @@ public class ShortCommentController {
     private final UpdateShortCommentUseCase updateShortCommentUseCase;
     private final DeleteShortCommentUseCase deleteShortCommentUseCase;
     private final ToggleShortCommentLikeUseCase toggleShortCommentLikeUseCase;
+    private final ToggleShortCommentDislikeUseCase toggleShortCommentDislikeUseCase;
     private final SubmitShortCommentReportUseCase submitShortCommentReportUseCase;
     private final AuthenticatedUserResolver authenticatedUserResolver;
 
@@ -54,6 +58,7 @@ public class ShortCommentController {
             UpdateShortCommentUseCase updateShortCommentUseCase,
             DeleteShortCommentUseCase deleteShortCommentUseCase,
             ToggleShortCommentLikeUseCase toggleShortCommentLikeUseCase,
+            ToggleShortCommentDislikeUseCase toggleShortCommentDislikeUseCase,
             SubmitShortCommentReportUseCase submitShortCommentReportUseCase,
             AuthenticatedUserResolver authenticatedUserResolver
     ) {
@@ -62,6 +67,7 @@ public class ShortCommentController {
         this.updateShortCommentUseCase = updateShortCommentUseCase;
         this.deleteShortCommentUseCase = deleteShortCommentUseCase;
         this.toggleShortCommentLikeUseCase = toggleShortCommentLikeUseCase;
+        this.toggleShortCommentDislikeUseCase = toggleShortCommentDislikeUseCase;
         this.submitShortCommentReportUseCase = submitShortCommentReportUseCase;
         this.authenticatedUserResolver = authenticatedUserResolver;
     }
@@ -126,6 +132,18 @@ public class ShortCommentController {
         ShortCommentLikeResult result = toggleShortCommentLikeUseCase.toggle(userId, shortId, commentId);
         return ResponseEntity.ok(ApiResponse.success(
                 "댓글 좋아요 상태가 성공적으로 반영되었습니다.", ShortCommentLikeResponse.from(result)));
+    }
+
+    @PostMapping("/{shortId}/comments/{commentId}/dislikes")
+    public ResponseEntity<ApiResponse<ShortCommentDislikeResponse>> toggleDislike(
+            @PathVariable Long shortId,
+            @PathVariable Long commentId,
+            @RequestHeader("Authorization") String authorization
+    ) {
+        Long userId = authenticatedUserResolver.requireUserId(authorization);
+        ShortCommentDislikeResult result = toggleShortCommentDislikeUseCase.toggle(userId, shortId, commentId);
+        return ResponseEntity.ok(ApiResponse.success(
+                "댓글 싫어요 상태가 변경되었습니다.", ShortCommentDislikeResponse.from(result)));
     }
 
     @PostMapping("/{shortId}/comments/{commentId}/reports")

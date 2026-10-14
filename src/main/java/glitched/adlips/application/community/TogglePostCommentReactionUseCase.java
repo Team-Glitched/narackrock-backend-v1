@@ -3,6 +3,7 @@ package glitched.adlips.application.community;
 import glitched.adlips.application.community.port.out.PostCommentReactionPort;
 import glitched.adlips.application.community.port.out.ReactionCounts;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
+import glitched.adlips.application.community.port.out.GalleryBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.reaction.ReactionToggle;
 import glitched.adlips.domain.reaction.ReactionType;
@@ -13,6 +14,7 @@ public class TogglePostCommentReactionUseCase {
 
     private final PostCommentReactionPort reactionPort;
     private final UserBanQueryPort userBanQueryPort;
+    private final GalleryBanQueryPort galleryBanQueryPort;
     private final TransactionRunner transactionRunner;
     private final Clock clock;
 
@@ -22,8 +24,19 @@ public class TogglePostCommentReactionUseCase {
             TransactionRunner transactionRunner,
             Clock clock
     ) {
+        this(reactionPort, userBanQueryPort, GalleryBanQueryPort.none(), transactionRunner, clock);
+    }
+
+    public TogglePostCommentReactionUseCase(
+            PostCommentReactionPort reactionPort,
+            UserBanQueryPort userBanQueryPort,
+            GalleryBanQueryPort galleryBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
         this.reactionPort = reactionPort;
         this.userBanQueryPort = userBanQueryPort;
+        this.galleryBanQueryPort = galleryBanQueryPort;
         this.transactionRunner = transactionRunner;
         this.clock = clock;
     }
@@ -38,6 +51,10 @@ public class TogglePostCommentReactionUseCase {
             if (!reactionPort.lockActiveComment(commentId)) {
                 throw new PostCommentApplicationException(
                         PostCommentErrorCode.COMMENT_NOT_FOUND, "존재하지 않거나 삭제된 댓글입니다.");
+            }
+            if (galleryBanQueryPort.isRestrictedForComment(commentId, userId, LocalDateTime.now(clock))) {
+                throw new PostCommentApplicationException(PostCommentErrorCode.GALLERY_RESTRICTED_USER,
+                        "이 갤러리에서 이용이 제한된 상태이므로 댓글에 반응할 수 없습니다.");
             }
             ReactionType current = reactionPort.findReaction(userId, commentId).orElse(null);
             ReactionToggle toggle = ReactionToggle.of(current, requested);

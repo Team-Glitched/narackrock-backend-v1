@@ -2,6 +2,7 @@ package glitched.adlips.application.community;
 
 import glitched.adlips.application.community.port.out.PostCommentPort;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
+import glitched.adlips.application.community.port.out.GalleryBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -10,6 +11,7 @@ public class CreatePostCommentUseCase {
 
     private final PostCommentPort port;
     private final UserBanQueryPort userBanQueryPort;
+    private final GalleryBanQueryPort galleryBanQueryPort;
     private final TransactionRunner transactionRunner;
     private final Clock clock;
 
@@ -19,8 +21,19 @@ public class CreatePostCommentUseCase {
             TransactionRunner transactionRunner,
             Clock clock
     ) {
+        this(port, userBanQueryPort, GalleryBanQueryPort.none(), transactionRunner, clock);
+    }
+
+    public CreatePostCommentUseCase(
+            PostCommentPort port,
+            UserBanQueryPort userBanQueryPort,
+            GalleryBanQueryPort galleryBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
         this.port = port;
         this.userBanQueryPort = userBanQueryPort;
+        this.galleryBanQueryPort = galleryBanQueryPort;
         this.transactionRunner = transactionRunner;
         this.clock = clock;
     }
@@ -43,6 +56,10 @@ public class CreatePostCommentUseCase {
                 throw new PostCommentApplicationException(
                         PostCommentErrorCode.POST_NOT_FOUND,
                         "존재하지 않거나 삭제된 게시글에는 댓글을 작성할 수 없습니다.");
+            }
+            if (galleryBanQueryPort.isRestrictedForPost(postId, userId, LocalDateTime.now(clock))) {
+                throw new PostCommentApplicationException(PostCommentErrorCode.GALLERY_RESTRICTED_USER,
+                        "이 갤러리에서 이용이 제한된 상태이므로 댓글을 작성할 수 없습니다.");
             }
             if (isReply && !port.existsActiveParentComment(parentCommentId, postId)) {
                 throw new PostCommentApplicationException(

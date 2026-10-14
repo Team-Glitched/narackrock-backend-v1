@@ -105,11 +105,11 @@ class ProcessPendingProjectExportsUseCaseTest {
     }
 
     @Test
-    void rendersMidiAndPublishesPlayableInProgressShort() {
-        ProjectTrack track = approvedTrack(12L, "피아노");
+    void rendersDrumTailAndPublishesPlayableInProgressShort() {
+        ProjectTrack track = approvedTrack(12L, "drum-kit");
         ProjectClip clip = ProjectClip.createMidi(
                 project, track, owner, 0, 1_920,
-                List.of(new MidiNote(60, 0, 480, 100, null, Map.of())), 0);
+                List.of(new MidiNote(36, 0, 480, 100, null, Map.of())), 0);
         clip.approve();
         ReflectionTestUtils.setField(clip, "id", 22L);
         ProjectClip detachedClip = mock(ProjectClip.class);
@@ -123,7 +123,7 @@ class ProcessPendingProjectExportsUseCaseTest {
                 .thenReturn(List.of(track));
         when(clips.findByTrackIdAndApprovalStatusAndIsDeletedFalseOrderByStartTickAscIdAsc(
                 12L, ApprovalStatus.APPROVED)).thenReturn(List.of(detachedClip));
-        when(midiRenderer.render(clip.getMidiNotes(), project.getBpm(), project.getPpq(), clip.getDurationMs()))
+        when(midiRenderer.render(track.getInstrument(), clip.getMidiNotes(), project.getBpm(), project.getPpq(), 1_500))
                 .thenReturn(new byte[]{1, 2, 3});
         when(mixer.mix(any())).thenReturn(new ProjectAudioMixerPort.MixedAudio(new byte[]{4, 5}, 500));
         when(archiver.archive(any())).thenReturn(new byte[]{6});
@@ -138,7 +138,7 @@ class ProcessPendingProjectExportsUseCaseTest {
         assertThat(result.completedCount()).isEqualTo(1);
         assertThat(result.failedCount()).isZero();
         assertThat(export.getStatus()).isEqualTo(ExportStatus.COMPLETED);
-        verify(midiRenderer).render(clip.getMidiNotes(), project.getBpm(), project.getPpq(), clip.getDurationMs());
+        verify(midiRenderer).render(track.getInstrument(), clip.getMidiNotes(), project.getBpm(), project.getPpq(), 1_500);
         verify(publishedShorts).publish(project, 20L, 801L);
     }
 

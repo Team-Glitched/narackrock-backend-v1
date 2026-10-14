@@ -19,12 +19,14 @@ import glitched.adlips.application.shorts.GetShortCommentsUseCase;
 import glitched.adlips.application.shorts.ShortCommentApplicationException;
 import glitched.adlips.application.shorts.ShortCommentErrorCode;
 import glitched.adlips.application.shorts.ShortCommentLikeResult;
+import glitched.adlips.application.shorts.ShortCommentDislikeResult;
 import glitched.adlips.application.shorts.ShortCommentListResult;
 import glitched.adlips.application.shorts.ShortCommentReportResult;
 import glitched.adlips.application.shorts.ShortCommentResult;
 import glitched.adlips.application.shorts.SubmitShortCommentReportUseCase;
 import glitched.adlips.application.shorts.SubmitShortCommentUseCase;
 import glitched.adlips.application.shorts.ToggleShortCommentLikeUseCase;
+import glitched.adlips.application.shorts.ToggleShortCommentDislikeUseCase;
 import glitched.adlips.application.shorts.UpdateShortCommentUseCase;
 import glitched.adlips.application.shorts.port.out.ShortCommentQueryItem;
 import glitched.adlips.application.user.account.port.out.AccessTokenPort;
@@ -52,6 +54,7 @@ class ShortCommentControllerTest {
     @MockitoBean UpdateShortCommentUseCase updateShortCommentUseCase;
     @MockitoBean DeleteShortCommentUseCase deleteShortCommentUseCase;
     @MockitoBean ToggleShortCommentLikeUseCase toggleShortCommentLikeUseCase;
+    @MockitoBean ToggleShortCommentDislikeUseCase toggleShortCommentDislikeUseCase;
     @MockitoBean SubmitShortCommentReportUseCase submitShortCommentReportUseCase;
     @MockitoBean AuthenticatedUserResolver authenticatedUserResolver;
     @MockitoBean AccessTokenPort accessTokenPort;
@@ -71,7 +74,7 @@ class ShortCommentControllerTest {
     void 로그인_상태로_댓글_목록_조회시_200과_목록을_반환한다() throws Exception {
         ShortCommentQueryItem item = new ShortCommentQueryItem(
                 7721L, null, "멜로디가 좋아요.", 12L, "adlip_user", "https://cdn.test/img.png",
-                4, 2, false, LocalDateTime.of(2026, 6, 22, 14, 0));
+                4, 0, 2, false, false, LocalDateTime.of(2026, 6, 22, 14, 0));
         when(getShortCommentsUseCase.execute(15L, 1L))
                 .thenReturn(new ShortCommentListResult(15L, List.of(item)));
 
@@ -333,6 +336,19 @@ class ShortCommentControllerTest {
                 .andExpect(jsonPath("$.data.commentId").value(7721))
                 .andExpect(jsonPath("$.data.isLiked").value(true))
                 .andExpect(jsonPath("$.data.likeCount").value(5));
+    }
+
+    @Test
+    void 댓글_싫어요_토글시_200과_결과를_반환한다() throws Exception {
+        when(toggleShortCommentDislikeUseCase.toggle(1L, 15L, 7721L))
+                .thenReturn(new ShortCommentDislikeResult(7721L, true, 3));
+
+        mockMvc.perform(post("/api/v1/shorts/15/comments/7721/dislikes")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.commentId").value(7721))
+                .andExpect(jsonPath("$.data.isDisliked").value(true))
+                .andExpect(jsonPath("$.data.dislikeCount").value(3));
     }
 
     @Test

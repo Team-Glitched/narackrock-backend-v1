@@ -4,5 +4,5 @@ import glitched.adlips.domain.project.MidiNote;
 import java.util.List;
 
 public interface MidiAudioRendererPort {
-    byte[] render(List<MidiNote> notes, int bpm, int ppq, int durationMs);
+    byte[] render(String instrument, List<MidiNote> notes, int bpm, int ppq, int durationMs);
 }

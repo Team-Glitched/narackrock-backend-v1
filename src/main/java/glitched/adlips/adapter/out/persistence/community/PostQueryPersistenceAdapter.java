@@ -3,6 +3,7 @@ package glitched.adlips.adapter.out.persistence.community;
 import glitched.adlips.application.community.PostSort;
 import glitched.adlips.application.community.port.out.PostQueryItem;
 import glitched.adlips.application.community.port.out.PostQueryPort;
+import glitched.adlips.application.community.port.out.PostPopularityScore;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import java.sql.Timestamp;
@@ -92,12 +93,21 @@ public class PostQueryPersistenceAdapter implements PostQueryPort {
     }
 
     @Override
-    public List<PostQueryItem> findPopularPosts(int page, int size) {
-        String sql = SELECT_POST + " WHERE p.deleted_at IS NULL ORDER BY " + orderBy(PostSort.POPULAR);
+    public List<PostPopularityScore> findPopularityScores() {
         @SuppressWarnings("unchecked")
-        List<Object[]> rows = entityManager.createNativeQuery(sql)
-                .setFirstResult(page * size)
-                .setMaxResults(size)
+        List<Object[]> rows = entityManager.createNativeQuery(
+                "SELECT id, view_count, like_count FROM posts WHERE deleted_at IS NULL").getResultList();
+        return rows.stream().map(row -> new PostPopularityScore(
+                longValue(row[0]), intValue(row[1]), intValue(row[2]))).toList();
+    }
+
+    @Override
+    public List<PostQueryItem> findByIds(List<Long> postIds) {
+        if (postIds.isEmpty()) return List.of();
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = entityManager.createNativeQuery(
+                        SELECT_POST + " WHERE p.id IN (:postIds) AND p.deleted_at IS NULL")
+                .setParameter("postIds", postIds)
                 .getResultList();
         return rows.stream().map(this::toQueryItem).toList();
     }

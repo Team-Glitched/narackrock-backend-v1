@@ -13,7 +13,9 @@ public interface PostQueryPort {
 
     long countPosts(Long galleryId, String keyword);
 
-    List<PostQueryItem> findPopularPosts(int page, int size);
+    List<PostPopularityScore> findPopularityScores();
+
+    List<PostQueryItem> findByIds(List<Long> postIds);
 
     long countAllPosts();
 

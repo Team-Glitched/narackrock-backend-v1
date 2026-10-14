@@ -16,6 +16,8 @@ import glitched.adlips.application.user.relation.usecase.FollowCancelUseCase;
 import glitched.adlips.application.user.relation.usecase.FollowRequestUseCase;
 import glitched.adlips.application.user.relation.port.out.FollowRequestPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
+import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
+import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.relation.usecase.FollowerGetListUseCase;
@@ -40,6 +42,7 @@ import java.util.stream.Collectors;
 public class UserRelationController {
     private final FollowRequestUseCase followRequests;
     private final ProfileRepositoryPort profiles;
+    private final MediaFileRepositoryPort mediaFiles;
     private final FollowCancelUseCase followCancelUseCase;
     private final FollowingGetListUseCase followingGetListUseCase;
     private final FollowerGetListUseCase followerGetListUseCase;
@@ -50,6 +53,7 @@ public class UserRelationController {
     public UserRelationController(
             FollowRequestUseCase followRequests,
             ProfileRepositoryPort profiles,
+            MediaFileRepositoryPort mediaFiles,
             FollowCancelUseCase followCancelUseCase,
             FollowingGetListUseCase followingGetListUseCase,
             FollowerGetListUseCase followerGetListUseCase,
@@ -59,6 +63,7 @@ public class UserRelationController {
     ) {
         this.followRequests = followRequests;
         this.profiles = profiles;
+        this.mediaFiles = mediaFiles;
         this.followCancelUseCase = followCancelUseCase;
         this.followingGetListUseCase = followingGetListUseCase;
         this.followerGetListUseCase = followerGetListUseCase;
@@ -94,14 +99,16 @@ public class UserRelationController {
         );
     }
 
-    public record FollowRequestCard(Long requestId, Long requesterId, String nickname, String primaryInstrument) {}
+    public record FollowRequestCard(Long requestId, Long requesterId, String nickname, String primaryInstrument, String profileImageUrl) {}
 
     @GetMapping("/me/follow-requests")
     public ApiResponse<List<FollowRequestCard>> incoming(@RequestHeader("Authorization") String authorization) {
         Long userId = authenticatedUserResolver.requireUserId(authorization);
         return ApiResponse.success("팔로우 요청 목록", followRequests.inbox(userId).stream().map(request -> {
             var profile = profiles.findByUserId(request.requesterId()).orElse(null);
-            return new FollowRequestCard(request.id(), request.requesterId(), profile == null ? "알 수 없는 사용자" : profile.getNickname(), profile == null ? null : profile.getPrimaryInstrument());
+            String imageUrl = profile == null || profile.getProfileImageFileId() == null ? null
+                    : mediaFiles.findById(profile.getProfileImageFileId()).map(MediaFile::getFileUrl).orElse(null);
+            return new FollowRequestCard(request.id(), request.requesterId(), profile == null ? "알 수 없는 사용자" : profile.getNickname(), profile == null ? null : profile.getPrimaryInstrument(), imageUrl);
         }).toList());
     }
 

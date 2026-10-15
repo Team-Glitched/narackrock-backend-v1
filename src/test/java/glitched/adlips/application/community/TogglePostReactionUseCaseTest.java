@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import glitched.adlips.application.community.port.out.PostReactionPort;
+import glitched.adlips.application.community.port.out.PostPopularityRankingPort;
 import glitched.adlips.application.community.port.out.ReactionCounts;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
@@ -31,13 +32,14 @@ class TogglePostReactionUseCaseTest {
     private static final LocalDateTime NOW = LocalDateTime.now(CLOCK);
 
     @Mock PostReactionPort reactionPort;
+    @Mock PostPopularityRankingPort ranking;
     @Mock UserBanQueryPort userBanQueryPort;
 
     TogglePostReactionUseCase useCase;
 
     @BeforeEach
     void setUp() {
-        useCase = new TogglePostReactionUseCase(reactionPort, userBanQueryPort, TransactionRunner.direct(), CLOCK);
+        useCase = new TogglePostReactionUseCase(reactionPort, ranking, userBanQueryPort, TransactionRunner.direct(), CLOCK);
     }
 
     @Test
@@ -50,6 +52,7 @@ class TogglePostReactionUseCaseTest {
 
         verify(reactionPort).saveReaction(1L, 10L, ReactionType.LIKE);
         verify(reactionPort).adjustReactionCounts(10L, 1, 0);
+        verify(ranking).updateLikeCount(10L, 5);
         assertThat(result).isEqualTo(new PostReactionResult(10L, true, false, 5, 2));
     }
 
@@ -64,6 +67,7 @@ class TogglePostReactionUseCaseTest {
         verify(reactionPort).deleteReaction(1L, 10L);
         verify(reactionPort, never()).saveReaction(any(), any(), any());
         verify(reactionPort).adjustReactionCounts(10L, 0, -1);
+        verify(ranking).updateLikeCount(10L, 5);
         assertThat(result).isEqualTo(new PostReactionResult(10L, false, false, 5, 1));
     }
 
@@ -77,6 +81,7 @@ class TogglePostReactionUseCaseTest {
 
         verify(reactionPort).saveReaction(1L, 10L, ReactionType.DISLIKE);
         verify(reactionPort).adjustReactionCounts(10L, -1, 1);
+        verify(ranking).updateLikeCount(10L, 4);
         assertThat(result).isEqualTo(new PostReactionResult(10L, false, true, 4, 3));
     }
 

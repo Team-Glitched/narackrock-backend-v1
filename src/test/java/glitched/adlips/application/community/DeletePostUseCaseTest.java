@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import glitched.adlips.application.community.port.out.PostPort;
+import glitched.adlips.application.community.port.out.PostPopularityRankingPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.community.Gallery;
 import glitched.adlips.domain.community.Post;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.Test;
 class DeletePostUseCaseTest {
 
     PostPort port;
+    PostPopularityRankingPort ranking;
     TransactionRunner transactionRunner;
     Clock clock;
     DeletePostUseCase useCase;
@@ -31,11 +33,12 @@ class DeletePostUseCaseTest {
     @BeforeEach
     void setUp() {
         port = mock(PostPort.class);
+        ranking = mock(PostPopularityRankingPort.class);
         transactionRunner = mock(TransactionRunner.class);
         when(transactionRunner.required(any())).thenAnswer(invocation ->
                 invocation.<Supplier<?>>getArgument(0).get());
         clock = Clock.fixed(Instant.parse("2026-08-23T10:00:00Z"), ZoneOffset.UTC);
-        useCase = new DeletePostUseCase(port, transactionRunner, clock);
+        useCase = new DeletePostUseCase(port, ranking, transactionRunner, clock);
     }
 
     private Post post(Long writerId) {
@@ -51,6 +54,7 @@ class DeletePostUseCaseTest {
 
         assertThat(post.getDeletedAt()).isNotNull();
         verify(port).update(post);
+        verify(ranking).remove(501L);
     }
 
     @Test

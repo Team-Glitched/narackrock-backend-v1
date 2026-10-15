@@ -13,4 +13,6 @@ interface GalleryJpaRepository extends JpaRepository<Gallery, Long> {
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT g FROM Gallery g WHERE g.id = :galleryId")
     Optional<Gallery> findByIdForUpdate(@Param("galleryId") Long galleryId);
+
+    boolean existsByName(String name);
 }

@@ -204,16 +204,32 @@ public class ProcessPendingProjectExportsUseCase {
         }
         for (ProjectClip clip : approvedClips) {
             if (clip.getClipType() == ClipType.MIDI) {
-                byte[] rendered = midiRenderer.render(clip.getMidiNotes(),
-                        claimed.bpm(), claimed.ppq(), clip.getDurationMs());
+                int renderDurationMs = clip.getDurationMs();
+                if (isDrumTrack(track.getInstrument())) {
+                    int noteEndMs = clip.getMidiNotes().stream().mapToInt(note -> {
+                        int startMs = Math.toIntExact(Math.round(note.startTick() * 60_000d
+                                / (claimed.bpm() * (long) claimed.ppq())));
+                        int durationMs = Math.toIntExact(Math.round(note.durationTick() * 60_000d
+                                / (claimed.bpm() * (long) claimed.ppq())));
+                        return startMs + Math.max(durationMs, 1_500);
+                    }).max().orElse(renderDurationMs);
+                    renderDurationMs = Math.min(claimed.maxDurationMs() - clip.getStartTimeMs(), noteEndMs);
+                }
+                byte[] rendered = midiRenderer.render(track.getInstrument(), clip.getMidiNotes(),
+                        claimed.bpm(), claimed.ppq(), renderDurationMs);
                 audioLayers.add(new AudioLayer(rendered, clip.getStartTimeMs(), 0,
-                        clip.getDurationMs(), track.getVolume(), track.getPan()));
+                        renderDurationMs, track.getVolume(), track.getPan()));
             } else {
                 StoredAudio source = sourceCache.computeIfAbsent(clip.getMediaFileId(), this::loadAudio);
                 audioLayers.add(new AudioLayer(source.content(), clip.getStartTimeMs(), clip.getClipOffsetMs(),
                         clip.getDurationMs(), track.getVolume(), track.getPan()));
             }
         }
+    }
+
+    private boolean isDrumTrack(String instrument) {
+        return "drum-kit".equals(instrument) || "DRUM".equals(instrument)
+                || "DRUMS".equals(instrument) || "드럼".equals(instrument);
     }
 
     private StoredAudio loadAudio(Long mediaFileId) {

@@ -16,7 +16,7 @@ public class PostExceptionHandler {
             case VALIDATION_ERROR, INVALID_INPUT_VALUE, INVALID_SEARCH_KEYWORD, INVALID_SORT_CONDITION ->
                     HttpStatus.BAD_REQUEST;
             case NOT_POST_OWNER -> HttpStatus.FORBIDDEN;
-            case BANNED_USER_ACCESS -> HttpStatus.FORBIDDEN;
+            case BANNED_USER_ACCESS, GALLERY_RESTRICTED_USER -> HttpStatus.FORBIDDEN;
             case GALLERY_NOT_FOUND, POST_NOT_FOUND -> HttpStatus.NOT_FOUND;
         };
         return ResponseEntity.status(status).body(ApiResponse.error(e.getErrorCode().name(), e.getMessage()));

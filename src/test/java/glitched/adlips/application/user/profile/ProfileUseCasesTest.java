@@ -3,6 +3,7 @@ package glitched.adlips.application.user.profile;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
@@ -15,6 +16,8 @@ import glitched.adlips.application.user.profile.dto.response.UserProfileGetRespo
 import glitched.adlips.application.user.profile.dto.response.UserProfileImageUpdateResponse;
 import glitched.adlips.application.user.profile.dto.response.UserProfileShareResponse;
 import glitched.adlips.application.user.profile.dto.response.UserProfileUpdateResponse;
+import glitched.adlips.application.user.profile.usecase.ProfilePrivacyUpdateUseCase;
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.profile.port.out.FileStoragePort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileActivityQueryPort;
@@ -116,15 +119,22 @@ class ProfileUseCasesTest {
     }
 
     @Test
-    void rejectsPrivateProfileForAnotherUser() {
+    void showsOnlySummaryOfPrivateProfileForAnotherUser() {
         profiles.save(Profile.restore(1L, "guitar_moon", null, null, null, true, 0, 0, null));
+        UserProfileGetResponse result = profileGetUseCase.execute(new UserProfileGetRequest(1L, 2L));
+        assertTrue(result.isPrivate());
+        assertEquals("guitar_moon", result.nickname());
+        assertEquals(1, result.activities().postCount());
+        assertTrue(result.activities().posts().isEmpty());
+    }
 
-        UserApplicationException exception = assertThrows(
-                UserApplicationException.class,
-                () -> profileGetUseCase.execute(new UserProfileGetRequest(1L, 2L))
-        );
-
-        assertEquals(UserErrorCode.PRIVATE_PROFILE, exception.getErrorCode());
+    @Test
+    void changesPrivacyWithoutClearingProfileContent() {
+        profiles.save(Profile.restore(1L, "guitar_moon", null, "소개", "기타", false, 0, 0, null));
+        ProfilePrivacyUpdateUseCase privacy = new ProfilePrivacyUpdateUseCase(profiles, TransactionRunner.direct());
+        assertTrue(privacy.execute(1L, true));
+        assertTrue(profiles.findByUserId(1L).orElseThrow().isPrivate());
+        assertEquals("소개", profiles.findByUserId(1L).orElseThrow().getExplanation());
     }
 
     @Test

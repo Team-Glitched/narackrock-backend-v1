@@ -24,6 +24,8 @@ import glitched.adlips.application.community.SubscribeGalleryUseCase;
 import glitched.adlips.application.community.TogglePostBookmarkUseCase;
 import glitched.adlips.application.community.TogglePostCommentReactionUseCase;
 import glitched.adlips.application.community.TogglePostReactionUseCase;
+import glitched.adlips.application.community.GetLikedPostsUseCase;
+import glitched.adlips.application.community.port.out.LikedPostQueryPort;
 import glitched.adlips.application.community.UnsubscribeGalleryUseCase;
 import glitched.adlips.application.community.UpdateGalleryUseCase;
 import glitched.adlips.application.community.UpdatePostCommentUseCase;
@@ -60,6 +62,10 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class CommunityApplicationConfiguration {
+    @Bean
+    GetLikedPostsUseCase getLikedPostsUseCase(LikedPostQueryPort likedPosts, TransactionRunner transactionRunner) {
+        return new GetLikedPostsUseCase(likedPosts, transactionRunner);
+    }
 
     @Bean
     SubmitReportUseCase submitReportUseCase(

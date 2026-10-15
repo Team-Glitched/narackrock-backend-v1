@@ -27,11 +27,22 @@ public class TogglePostReactionUseCase {
             TransactionRunner transactionRunner,
             Clock clock
     ) {
-        this(reactionPort, userBanQueryPort, GalleryBanQueryPort.none(), transactionRunner, clock);
+        this(reactionPort, popularityRanking, userBanQueryPort, GalleryBanQueryPort.none(), transactionRunner, clock);
     }
 
     public TogglePostReactionUseCase(
             PostReactionPort reactionPort,
+            UserBanQueryPort userBanQueryPort,
+            GalleryBanQueryPort galleryBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        this(reactionPort, null, userBanQueryPort, galleryBanQueryPort, transactionRunner, clock);
+    }
+
+    public TogglePostReactionUseCase(
+            PostReactionPort reactionPort,
+            PostPopularityRankingPort popularityRanking,
             UserBanQueryPort userBanQueryPort,
             GalleryBanQueryPort galleryBanQueryPort,
             TransactionRunner transactionRunner,
@@ -75,7 +86,7 @@ public class TogglePostReactionUseCase {
                     counts.likeCount(),
                     counts.dislikeCount());
         });
-        popularityRanking.updateLikeCount(postId, result.likeCount());
+        if (popularityRanking != null) popularityRanking.updateLikeCount(postId, result.likeCount());
         return result;
     }
 }

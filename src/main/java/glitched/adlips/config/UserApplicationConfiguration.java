@@ -14,6 +14,7 @@ import glitched.adlips.application.user.account.usecase.UserWithdrawUseCase;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.FileStoragePort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
+import glitched.adlips.application.user.profile.port.out.ProfileActivityQueryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileLinkPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
 import glitched.adlips.application.user.profile.usecase.ProfileGetUseCase;
@@ -144,6 +145,7 @@ public class UserApplicationConfiguration {
             ProfileRepositoryPort profileRepository,
             MediaFileRepositoryPort mediaFileRepository,
             FollowRepositoryPort followRepository,
+            ProfileActivityQueryPort profileActivityQueryPort,
             TransactionRunner transactionRunner
     ) {
         return new ProfileGetUseCase(
@@ -151,6 +153,7 @@ public class UserApplicationConfiguration {
                 profileRepository,
                 mediaFileRepository,
                 followRepository,
+                profileActivityQueryPort,
                 transactionRunner
         );
     }

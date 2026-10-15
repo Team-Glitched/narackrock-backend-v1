@@ -100,13 +100,6 @@ public class ProfileGetUseCase {
         Profile profile = requireProfile(targetUserId);
         boolean owner = targetUserId.equals(requesterId);
 
-        if (profile.isPrivate() && !owner) {
-            throw new UserApplicationException(
-                    UserErrorCode.PRIVATE_PROFILE,
-                    "비공개 프로필입니다."
-            );
-        }
-
         String profileImageUrl = profile.getProfileImageFileId() == null
                 ? null
                 : mediaFileRepository.findById(profile.getProfileImageFileId())
@@ -117,18 +110,23 @@ public class ProfileGetUseCase {
                 && requesterId != null
                 && followRepository.exists(requesterId, targetUserId);
 
+        var activities = profileActivityQueryPort.findByUserId(targetUserId);
+        if (profile.isPrivate() && !owner) {
+            activities = new UserProfileGetResponse.Activities(activities.postCount(), java.util.List.of(), java.util.List.of(), java.util.List.of());
+        }
         return new UserProfileGetResponse(
                 profile.getUserId(),
                 profile.getNickname(),
                 profileImageUrl,
-                profile.getExplanation(),
+                profile.isPrivate() && !owner ? null : profile.getExplanation(),
                 profile.getPrimaryInstrument(),
                 new UserProfileGetResponse.Relations(
                         profile.getFollowerCount(),
                         profile.getFollowingCount(),
                         following
                 ),
-                profileActivityQueryPort.findByUserId(targetUserId)
+                activities,
+                profile.isPrivate()
         );
     }
 

@@ -112,6 +112,11 @@ public class Profile extends BaseUpdatedEntity {
         return privateProfile;
     }
 
+    public Profile changePrivacy(boolean privateProfile) {
+        this.privateProfile = privateProfile;
+        return this;
+    }
+
     public int getFollowerCount() {
         return followerCount;
     }

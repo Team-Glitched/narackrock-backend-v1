@@ -1,0 +1,12 @@
+package glitched.adlips.application.community;
+
+public enum GalleryProposalErrorCode {
+    VALIDATION_ERROR,
+    GALLERY_NAME_DUPLICATED,
+    PROPOSAL_NAME_DUPLICATED,
+    TOO_MANY_PENDING_PROPOSALS,
+    PROPOSAL_NOT_FOUND,
+    PROPOSAL_ALREADY_REVIEWED,
+    FORBIDDEN,
+    BANNED_USER_ACCESS
+}

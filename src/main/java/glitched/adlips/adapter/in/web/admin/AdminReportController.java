@@ -71,7 +71,7 @@ public class AdminReportController {
     ) {
         Long adminUserId = authenticatedUserResolver.requireUserId(authorization);
         ReportResolutionResult result = resolveReportUseCase.execute(
-                reportId, adminUserId, request.actionType(), request.reason());
+                reportId, adminUserId, request.actionType(), request.reason(), request.banDurationDays());
         return ResponseEntity.ok(ApiResponse.success(
                 "해당 신고 내역이 성공적으로 처리되었습니다.", ReportResolveResponse.from(result)));
     }

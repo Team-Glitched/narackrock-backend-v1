@@ -58,21 +58,21 @@ class AdminReportControllerTest {
 
     @Test
     void 유효한_요청시_200과_처리_결과를_반환한다() throws Exception {
-        when(resolveReportUseCase.execute(101L, 2L, "HIDE_CONTENT", "운영 정책 위반으로 숨김 처리합니다."))
+        when(resolveReportUseCase.execute(101L, 2L, "DELETE_CONTENT", "운영 정책 위반으로 삭제 처리합니다.", null))
                 .thenReturn(new ReportResolutionResult(
-                        101L, ReportStatus.RESOLVED, ModerationActionType.HIDE_CONTENT,
+                        101L, ReportStatus.RESOLVED, ModerationActionType.DELETE_CONTENT,
                         LocalDateTime.of(2026, 6, 24, 14, 40), ReportTargetType.SHORT, 12L));
 
         mockMvc.perform(patch("/api/v1/admin/reports/101/resolve")
                         .header("Authorization", "Bearer " + validToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"actionType\":\"HIDE_CONTENT\",\"reason\":\"운영 정책 위반으로 숨김 처리합니다.\"}"))
+                        .content("{\"actionType\":\"DELETE_CONTENT\",\"reason\":\"운영 정책 위반으로 삭제 처리합니다.\"}"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.message").value("해당 신고 내역이 성공적으로 처리되었습니다."))
                 .andExpect(jsonPath("$.data.reportId").value(101))
                 .andExpect(jsonPath("$.data.status").value("RESOLVED"))
-                .andExpect(jsonPath("$.data.actionType").value("HIDE_CONTENT"))
+                .andExpect(jsonPath("$.data.actionType").value("DELETE_CONTENT"))
                 .andExpect(jsonPath("$.data.handledAt").value("2026-06-24T14:40:00"))
                 .andExpect(jsonPath("$.data.targetType").value("SHORT"))
                 .andExpect(jsonPath("$.data.targetId").value(12));
@@ -135,56 +135,56 @@ class AdminReportControllerTest {
 
     @Test
     void reason이_공백이면_400을_반환한다() throws Exception {
-        when(resolveReportUseCase.execute(101L, 2L, "HIDE_CONTENT", "  ")).thenThrow(
+        when(resolveReportUseCase.execute(101L, 2L, "DELETE_CONTENT", "  ", null)).thenThrow(
                 new ReportResolutionApplicationException(
                         ReportResolutionErrorCode.VALIDATION_ERROR, "차단 원인을 입력해 주세요."));
 
         mockMvc.perform(patch("/api/v1/admin/reports/101/resolve")
                         .header("Authorization", "Bearer " + validToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"actionType\":\"HIDE_CONTENT\",\"reason\":\"  \"}"))
+                        .content("{\"actionType\":\"DELETE_CONTENT\",\"reason\":\"  \"}"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.errorCode").value("VALIDATION_ERROR"));
     }
 
     @Test
     void 관리자가_아니면_403을_반환한다() throws Exception {
-        when(resolveReportUseCase.execute(101L, 2L, "HIDE_CONTENT", "사유")).thenThrow(
+        when(resolveReportUseCase.execute(101L, 2L, "DELETE_CONTENT", "사유", null)).thenThrow(
                 new ReportResolutionApplicationException(
                         ReportResolutionErrorCode.FORBIDDEN, "관리자만 처리할 수 있습니다."));
 
         mockMvc.perform(patch("/api/v1/admin/reports/101/resolve")
                         .header("Authorization", "Bearer " + validToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"actionType\":\"HIDE_CONTENT\",\"reason\":\"사유\"}"))
+                        .content("{\"actionType\":\"DELETE_CONTENT\",\"reason\":\"사유\"}"))
                 .andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.errorCode").value("FORBIDDEN"));
     }
 
     @Test
     void 존재하지_않는_신고면_404를_반환한다() throws Exception {
-        when(resolveReportUseCase.execute(999L, 2L, "HIDE_CONTENT", "사유")).thenThrow(
+        when(resolveReportUseCase.execute(999L, 2L, "DELETE_CONTENT", "사유", null)).thenThrow(
                 new ReportResolutionApplicationException(
                         ReportResolutionErrorCode.REPORT_NOT_FOUND, "존재하지 않는 신고입니다."));
 
         mockMvc.perform(patch("/api/v1/admin/reports/999/resolve")
                         .header("Authorization", "Bearer " + validToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"actionType\":\"HIDE_CONTENT\",\"reason\":\"사유\"}"))
+                        .content("{\"actionType\":\"DELETE_CONTENT\",\"reason\":\"사유\"}"))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.errorCode").value("REPORT_NOT_FOUND"));
     }
 
     @Test
     void 이미_처리된_신고면_409를_반환한다() throws Exception {
-        when(resolveReportUseCase.execute(101L, 2L, "HIDE_CONTENT", "사유")).thenThrow(
+        when(resolveReportUseCase.execute(101L, 2L, "DELETE_CONTENT", "사유", null)).thenThrow(
                 new ReportResolutionApplicationException(
                         ReportResolutionErrorCode.ALREADY_HANDLED, "이미 처리된 신고입니다."));
 
         mockMvc.perform(patch("/api/v1/admin/reports/101/resolve")
                         .header("Authorization", "Bearer " + validToken)
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"actionType\":\"HIDE_CONTENT\",\"reason\":\"사유\"}"))
+                        .content("{\"actionType\":\"DELETE_CONTENT\",\"reason\":\"사유\"}"))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.errorCode").value("ALREADY_HANDLED"));
     }
@@ -193,7 +193,35 @@ class AdminReportControllerTest {
     void 인증없는_요청시_401을_반환한다() throws Exception {
         mockMvc.perform(patch("/api/v1/admin/reports/101/resolve")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content("{\"actionType\":\"HIDE_CONTENT\",\"reason\":\"사유\"}"))
+                        .content("{\"actionType\":\"DELETE_CONTENT\",\"reason\":\"사유\"}"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void BAN_USER는_정지_기간을_함께_전달한다() throws Exception {
+        when(resolveReportUseCase.execute(101L, 2L, "BAN_USER", "반복 도배", 7))
+                .thenReturn(new ReportResolutionResult(
+                        101L, ReportStatus.RESOLVED, ModerationActionType.BAN_USER,
+                        LocalDateTime.of(2026, 10, 7, 12, 0), ReportTargetType.POST, 50L));
+
+        mockMvc.perform(patch("/api/v1/admin/reports/101/resolve")
+                        .header("Authorization", "Bearer " + validToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actionType\":\"BAN_USER\",\"reason\":\"반복 도배\",\"banDurationDays\":7}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.actionType").value("BAN_USER"));
+    }
+
+    @Test
+    void 이미_정지된_사용자면_409를_반환한다() throws Exception {
+        when(resolveReportUseCase.execute(101L, 2L, "BAN_USER", "사유", null)).thenThrow(
+                new ReportResolutionApplicationException(ReportResolutionErrorCode.ALREADY_BANNED_USER, "이미 정지"));
+
+        mockMvc.perform(patch("/api/v1/admin/reports/101/resolve")
+                        .header("Authorization", "Bearer " + validToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"actionType\":\"BAN_USER\",\"reason\":\"사유\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorCode").value("ALREADY_BANNED_USER"));
     }
 }

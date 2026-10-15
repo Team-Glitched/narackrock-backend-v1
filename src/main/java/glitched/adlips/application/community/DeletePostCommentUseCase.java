@@ -44,18 +44,7 @@ public class DeletePostCommentUseCase {
                         PostCommentErrorCode.NOT_COMMENT_OWNER,
                         "본인이 작성한 댓글만 삭제할 수 있습니다.");
             }
-            Long postId = comment.getPostId();
-            Long parentCommentId = comment.getParentCommentId();
-            comment.delete(now);
-            port.update(comment);
-            int deletedCount = 1;
-            if (parentCommentId == null) {
-                deletedCount += port.softDeleteActiveReplies(commentId, now);
-            }
-            port.adjustPostCommentCount(postId, -deletedCount);
-            if (parentCommentId != null) {
-                port.adjustParentReplyCount(parentCommentId, -1);
-            }
+            PostCommentDeletion.delete(port, commentId, comment, now);
             return null;
         });
     }

@@ -16,6 +16,7 @@ public record PopularPostListResponse(int page, int size, long totalCount, List<
             String imageUrl,
             int viewCount,
             int likeCount,
+            int dislikeCount,
             int commentCount,
             LocalDateTime createdAt
     ) {
@@ -44,6 +45,7 @@ public record PopularPostListResponse(int page, int size, long totalCount, List<
                 item.imageUrl(),
                 item.viewCount(),
                 item.likeCount(),
+                item.dislikeCount(),
                 item.commentCount(),
                 item.createdAt());
     }

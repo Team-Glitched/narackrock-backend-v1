@@ -27,7 +27,8 @@ public class AdminReportExceptionHandler {
             case VALIDATION_ERROR -> HttpStatus.BAD_REQUEST;
             case FORBIDDEN -> HttpStatus.FORBIDDEN;
             case REPORT_NOT_FOUND -> HttpStatus.NOT_FOUND;
-            case ALREADY_HANDLED -> HttpStatus.CONFLICT;
+            case ALREADY_HANDLED, ALREADY_BANNED_USER -> HttpStatus.CONFLICT;
+            case TARGET_NOT_FOUND -> HttpStatus.NOT_FOUND;
         };
         return ResponseEntity.status(status).body(ApiErrorResponse.of(e.getErrorCode().name(), e.getMessage()));
     }

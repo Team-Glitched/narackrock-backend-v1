@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
@@ -116,6 +118,21 @@ class ProfileUseCasesTest {
         assertEquals(List.of(30L), result.activities().pinnedShorts().stream()
                 .map(UserProfileGetResponse.PinnedShortActivity::shortId)
                 .toList());
+    }
+
+    @Test
+    void returnsBothFollowDirectionsForProfileActions() {
+        users.save(User.create("other@example.com").withId(2L));
+        profiles.save(Profile.create(2L, "other_player"));
+        FollowRepositoryPort follows = mock(FollowRepositoryPort.class);
+        when(follows.exists(1L, 2L)).thenReturn(true);
+        when(follows.exists(2L, 1L)).thenReturn(true);
+
+        var result = new ProfileGetUseCase(users, profiles, media, follows)
+                .execute(new UserProfileGetRequest(2L, 1L));
+
+        assertTrue(result.relations().isFollowing());
+        assertTrue(result.relations().isFollowedBy());
     }
 
     @Test

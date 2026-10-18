@@ -109,6 +109,9 @@ public class ProfileGetUseCase {
         boolean following = !owner
                 && requesterId != null
                 && followRepository.exists(requesterId, targetUserId);
+        boolean followedBy = !owner
+                && requesterId != null
+                && followRepository.exists(targetUserId, requesterId);
 
         var activities = profileActivityQueryPort.findByUserId(targetUserId);
         if (profile.isPrivate() && !owner) {
@@ -123,7 +126,8 @@ public class ProfileGetUseCase {
                 new UserProfileGetResponse.Relations(
                         profile.getFollowerCount(),
                         profile.getFollowingCount(),
-                        following
+                        following,
+                        followedBy
                 ),
                 activities,
                 profile.isPrivate()

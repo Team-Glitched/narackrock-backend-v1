@@ -58,6 +58,7 @@ public class SecurityConfig {
                                 "/api/v1/users"
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/ws/chat").permitAll()
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/v1/shorts/*/views",

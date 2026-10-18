@@ -12,7 +12,8 @@ public class DirectChatController {
     public record SendMessageRequest(String content) {}
     private final DirectChatUseCase chat;
     private final AuthenticatedUserResolver users;
-    public DirectChatController(DirectChatUseCase chat, AuthenticatedUserResolver users) { this.chat = chat; this.users = users; }
+    private final ChatRealtimePublisher realtime;
+    public DirectChatController(DirectChatUseCase chat, AuthenticatedUserResolver users, ChatRealtimePublisher realtime) { this.chat = chat; this.users = users; this.realtime = realtime; }
     @GetMapping("/{friendId}/messages")
     public ApiResponse<List<ChatMessagePort.Message>> messages(@RequestHeader("Authorization") String authorization,
             @PathVariable Long friendId, @RequestParam(required = false) Long beforeId,
@@ -22,6 +23,8 @@ public class DirectChatController {
     @PostMapping("/{friendId}/messages")
     public ApiResponse<ChatMessagePort.Message> send(@RequestHeader("Authorization") String authorization,
             @PathVariable Long friendId, @RequestBody SendMessageRequest request) {
-        return ApiResponse.success("메시지 전송", chat.send(users.requireUserId(authorization), friendId, request.content()));
+        ChatMessagePort.Message message = chat.send(users.requireUserId(authorization), friendId, request.content());
+        realtime.publish(message);
+        return ApiResponse.success("메시지 전송", message);
     }
 }

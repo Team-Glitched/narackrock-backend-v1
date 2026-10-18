@@ -258,8 +258,8 @@ public class UserApplicationConfiguration {
     }
 
     @Bean
-    DirectChatUseCase directChatUseCase(FollowRepositoryPort follows, ChatMessagePort messages, TransactionRunner transactionRunner) {
-        return new DirectChatUseCase(follows, messages, transactionRunner);
+    DirectChatUseCase directChatUseCase(FollowRepositoryPort follows, ProfileRepositoryPort profiles, ChatMessagePort messages, TransactionRunner transactionRunner) {
+        return new DirectChatUseCase(follows, profiles, messages, transactionRunner);
     }
 
     @Bean

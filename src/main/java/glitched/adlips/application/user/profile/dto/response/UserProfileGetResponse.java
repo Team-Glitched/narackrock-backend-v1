@@ -12,7 +12,7 @@ public record UserProfileGetResponse(
         Activities activities,
         boolean isPrivate
 ) {
-    public record Relations(int followerCount, int followingCount, boolean isFollowing) {
+    public record Relations(int followerCount, int followingCount, boolean isFollowing, boolean isFollowedBy) {
     }
 
     public record Activities(

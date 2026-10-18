@@ -107,6 +107,18 @@ class ShortsControllerTest {
     }
 
     @Test
+    void 공유_링크의_숏폼_ID로_단건_조회한다() throws Exception {
+        when(getShortsUseCase.getOne(12L, null)).thenReturn(singleItemPage().items().getFirst());
+
+        mockMvc.perform(get("/api/v1/shorts/12"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.shortId").value(12))
+                .andExpect(jsonPath("$.data.title").value("밤하늘 위 멜로디"));
+
+        verify(getShortsUseCase).getOne(12L, null);
+    }
+
+    @Test
     void cursor_파라미터를_전달하면_유스케이스에_전달된다() throws Exception {
         when(getShortsUseCase.get(eq(50L), any(), any(), anyInt(), isNull()))
                 .thenReturn(emptyShortsPage(20));

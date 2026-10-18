@@ -2,6 +2,7 @@ package glitched.adlips.application.community;
 
 import glitched.adlips.application.community.port.out.PostPort;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
+import glitched.adlips.application.community.port.out.GalleryBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.community.Post;
 import java.time.Clock;
@@ -11,6 +12,7 @@ public class UpdatePostUseCase {
 
     private final PostPort port;
     private final UserBanQueryPort userBanQueryPort;
+    private final GalleryBanQueryPort galleryBanQueryPort;
     private final TransactionRunner transactionRunner;
 
     private final Clock clock;
@@ -21,8 +23,19 @@ public class UpdatePostUseCase {
             TransactionRunner transactionRunner,
             Clock clock
     ) {
+        this(port, userBanQueryPort, GalleryBanQueryPort.none(), transactionRunner, clock);
+    }
+
+    public UpdatePostUseCase(
+            PostPort port,
+            UserBanQueryPort userBanQueryPort,
+            GalleryBanQueryPort galleryBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
         this.port = port;
         this.userBanQueryPort = userBanQueryPort;
+        this.galleryBanQueryPort = galleryBanQueryPort;
         this.transactionRunner = transactionRunner;
         this.clock = clock;
     }
@@ -51,6 +64,10 @@ public class UpdatePostUseCase {
             if (!post.getUserId().equals(userId)) {
                 throw new PostApplicationException(
                         PostErrorCode.NOT_POST_OWNER, "본인이 작성한 게시글만 수정할 수 있습니다.");
+            }
+            if (galleryBanQueryPort.isRestrictedInGallery(post.getGalleryId(), userId, LocalDateTime.now(clock))) {
+                throw new PostApplicationException(PostErrorCode.GALLERY_RESTRICTED_USER,
+                        "이 갤러리에서 이용이 제한된 상태이므로 게시글을 수정할 수 없습니다.");
             }
             post.updateTitleAndContent(title.trim(), content.trim());
             port.update(post);

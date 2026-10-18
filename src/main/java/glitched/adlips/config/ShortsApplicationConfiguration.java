@@ -18,6 +18,7 @@ import glitched.adlips.application.shorts.SubmitShortReportUseCase;
 import glitched.adlips.application.shorts.UpdateShortCommentUseCase;
 import glitched.adlips.application.shorts.ToggleShortBookmarkUseCase;
 import glitched.adlips.application.shorts.ToggleShortCommentLikeUseCase;
+import glitched.adlips.application.shorts.ToggleShortCommentDislikeUseCase;
 import glitched.adlips.application.shorts.ToggleShortDislikeUseCase;
 import glitched.adlips.application.shorts.ToggleShortLikeUseCase;
 import glitched.adlips.application.shorts.ToggleShortPlaybackUseCase;
@@ -196,6 +197,14 @@ public class ShortsApplicationConfiguration {
             TransactionRunner transactionRunner
     ) {
         return new ToggleShortCommentLikeUseCase(shortCommentReactionPort, transactionRunner);
+    }
+
+    @Bean
+    ToggleShortCommentDislikeUseCase toggleShortCommentDislikeUseCase(
+            ShortCommentReactionPort shortCommentReactionPort,
+            TransactionRunner transactionRunner
+    ) {
+        return new ToggleShortCommentDislikeUseCase(shortCommentReactionPort, transactionRunner);
     }
 
     @Bean

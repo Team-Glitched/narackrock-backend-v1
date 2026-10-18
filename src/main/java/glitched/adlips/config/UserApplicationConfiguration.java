@@ -14,6 +14,7 @@ import glitched.adlips.application.user.account.usecase.UserWithdrawUseCase;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.FileStoragePort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
+import glitched.adlips.application.user.profile.port.out.ProfileActivityQueryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileLinkPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
 import glitched.adlips.application.user.profile.usecase.ProfileGetUseCase;
@@ -23,6 +24,11 @@ import glitched.adlips.application.user.profile.usecase.ProfileShareUseCase;
 import glitched.adlips.application.user.profile.usecase.ProfileUpdateUseCase;
 import glitched.adlips.application.user.relation.port.out.CollaborationUserQueryPort;
 import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
+import glitched.adlips.application.user.relation.port.out.FollowRequestPort;
+import glitched.adlips.application.user.relation.usecase.FollowRequestUseCase;
+import glitched.adlips.application.user.relation.port.out.ChatMessagePort;
+import glitched.adlips.application.user.relation.usecase.DirectChatUseCase;
+import glitched.adlips.application.user.profile.usecase.ProfilePrivacyUpdateUseCase;
 import glitched.adlips.application.user.relation.port.out.ProfileQueryPort;
 import glitched.adlips.application.user.relation.usecase.FollowCancelUseCase;
 import glitched.adlips.application.user.relation.usecase.FollowCreateUseCase;
@@ -139,6 +145,7 @@ public class UserApplicationConfiguration {
             ProfileRepositoryPort profileRepository,
             MediaFileRepositoryPort mediaFileRepository,
             FollowRepositoryPort followRepository,
+            ProfileActivityQueryPort profileActivityQueryPort,
             TransactionRunner transactionRunner
     ) {
         return new ProfileGetUseCase(
@@ -146,6 +153,7 @@ public class UserApplicationConfiguration {
                 profileRepository,
                 mediaFileRepository,
                 followRepository,
+                profileActivityQueryPort,
                 transactionRunner
         );
     }
@@ -236,6 +244,22 @@ public class UserApplicationConfiguration {
                 followRepository,
                 transactionRunner
         );
+    }
+
+    @Bean
+    FollowRequestUseCase followRequestUseCase(FollowRequestPort requests, FollowRepositoryPort follows,
+            ProfileRepositoryPort profiles, FollowCreateUseCase createFollow, TransactionRunner transactionRunner) {
+        return new FollowRequestUseCase(requests, follows, profiles, createFollow, transactionRunner);
+    }
+
+    @Bean
+    ProfilePrivacyUpdateUseCase profilePrivacyUpdateUseCase(ProfileRepositoryPort profiles, TransactionRunner transactionRunner) {
+        return new ProfilePrivacyUpdateUseCase(profiles, transactionRunner);
+    }
+
+    @Bean
+    DirectChatUseCase directChatUseCase(FollowRepositoryPort follows, ChatMessagePort messages, TransactionRunner transactionRunner) {
+        return new DirectChatUseCase(follows, messages, transactionRunner);
     }
 
     @Bean

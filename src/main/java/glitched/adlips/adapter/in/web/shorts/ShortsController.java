@@ -8,6 +8,7 @@ import glitched.adlips.application.shorts.GetShortsUseCase;
 import glitched.adlips.application.shorts.GetHomeShortsUseCase;
 import glitched.adlips.application.shorts.ShortsPage;
 import glitched.adlips.application.shorts.ShortsSource;
+import org.springframework.web.bind.annotation.PathVariable;
 import glitched.adlips.domain.shorts.ShortStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -76,6 +77,17 @@ public class ShortsController {
         ShortsPage page = getShortsUseCase.get(cursor, source, status, clampedSize, currentUserId);
         return ResponseEntity.ok(ApiResponse.success(
                 "숏폼 목록 조회가 완료되었습니다.", ShortsResponse.from(page)));
+    }
+
+    @GetMapping("/{shortId}")
+    public ResponseEntity<ApiResponse<ShortsResponse.ShortItem>> getShort(
+            @PathVariable Long shortId,
+            @RequestHeader(value = "Authorization", required = false) String authorization
+    ) {
+        Long currentUserId = authenticatedUserResolver.resolveOptionalUserId(authorization);
+        return ResponseEntity.ok(ApiResponse.success(
+                "숏폼 조회가 완료되었습니다.",
+                ShortsResponse.fromSummary(getShortsUseCase.getOne(shortId, currentUserId))));
     }
 
     private ShortStatus resolveStatus(ShortStatus completionStatus, ShortStatus legacyStatus) {

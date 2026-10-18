@@ -111,7 +111,7 @@ class PostControllerTest {
         PostQueryItem item = new PostQueryItem(
                 501L, 10L, 1L, "writer", "https://cdn.test/img.png", "제목", "내용",
                 "https://cdn.test/post-image.png",
-                3, 2, 0, 1, LocalDateTime.of(2026, 8, 23, 10, 0));
+                3, 2, 3, 1, LocalDateTime.of(2026, 8, 23, 10, 0));
         when(getPostsUseCase.execute(10L, 0, 20, null, "LATEST"))
                 .thenReturn(new PostListResult(10L, 1L, List.of(item)));
 
@@ -123,6 +123,7 @@ class PostControllerTest {
                 .andExpect(jsonPath("$.data.posts[0].postId").value(501))
                 .andExpect(jsonPath("$.data.posts[0].writer.nickname").value("writer"))
                 .andExpect(jsonPath("$.data.posts[0].title").value("제목"))
+                .andExpect(jsonPath("$.data.posts[0].dislikeCount").value(3))
                 .andExpect(jsonPath("$.data.posts[0].imageUrl").value("https://cdn.test/post-image.png"))
                 .andExpect(jsonPath("$.data.posts[0].contentPreview").value("내용"));
     }

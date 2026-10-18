@@ -33,7 +33,18 @@ public class DirectChatUseCase {
     }
     public List<ChatMessagePort.Message> latestConversations(Long viewerId) {
         if (viewerId == null) throw new UserApplicationException(UserErrorCode.VALIDATION_ERROR, "사용자를 확인해 주세요.");
-        return transactions.readOnly(() -> messages.latestConversations(viewerId, 100));
+        return transactions.readOnly(() -> {
+            var latest = messages.latestConversations(viewerId, 100);
+            if (latest.isEmpty()) return latest;
+            Profile viewer = profiles.findByUserId(viewerId).orElseThrow(() ->
+                    new UserApplicationException(UserErrorCode.PROFILE_NOT_FOUND, "사용자 프로필을 찾을 수 없습니다."));
+            return latest.stream().filter(message -> {
+                Long partnerId = viewerId.equals(message.senderId()) ? message.recipientId() : message.senderId();
+                return profiles.findByUserId(partnerId)
+                        .map(partner -> canReadConversation(viewer, partner, viewerId, partnerId))
+                        .orElse(false);
+            }).toList();
+        });
     }
     private void requireChatAccess(Long a, Long b) {
         if (a == null || b == null || a.equals(b)) {
@@ -51,8 +62,13 @@ public class DirectChatUseCase {
         }
         Profile viewer = profiles.findByUserId(viewerId).orElseThrow(() -> new UserApplicationException(UserErrorCode.PROFILE_NOT_FOUND, "사용자 프로필을 찾을 수 없습니다."));
         Profile friend = profiles.findByUserId(friendId).orElseThrow(() -> new UserApplicationException(UserErrorCode.PROFILE_NOT_FOUND, "사용자 프로필을 찾을 수 없습니다."));
-        if (viewer.isPrivate() && friend.isPrivate() && (!follows.exists(viewerId, friendId) || !follows.exists(friendId, viewerId))) {
+        if (!canReadConversation(viewer, friend, viewerId, friendId)) {
             throw new UserApplicationException(UserErrorCode.CHAT_FORBIDDEN, "비공개 계정과는 맞팔로우한 경우에만 대화할 수 있습니다.");
         }
+    }
+
+    private boolean canReadConversation(Profile viewer, Profile friend, Long viewerId, Long friendId) {
+        return !viewer.isPrivate() || !friend.isPrivate()
+                || (follows.exists(viewerId, friendId) && follows.exists(friendId, viewerId));
     }
 }

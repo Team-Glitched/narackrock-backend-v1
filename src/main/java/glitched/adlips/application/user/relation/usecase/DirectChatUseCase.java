@@ -31,6 +31,10 @@ public class DirectChatUseCase {
             return messages.conversation(viewerId, friendId, beforeId, size);
         });
     }
+    public List<ChatMessagePort.Message> latestConversations(Long viewerId) {
+        if (viewerId == null) throw new UserApplicationException(UserErrorCode.VALIDATION_ERROR, "사용자를 확인해 주세요.");
+        return transactions.readOnly(() -> messages.latestConversations(viewerId, 100));
+    }
     private void requireChatAccess(Long a, Long b) {
         if (a == null || b == null || a.equals(b)) {
             throw new UserApplicationException(UserErrorCode.VALIDATION_ERROR, "다른 사용자와의 대화만 가능합니다.");

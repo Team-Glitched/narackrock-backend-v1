@@ -11,6 +11,8 @@ import glitched.adlips.application.user.relation.port.out.ChatMessagePort;
 import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
 import glitched.adlips.application.user.relation.usecase.DirectChatUseCase;
 import glitched.adlips.domain.user.Profile;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
@@ -89,5 +91,34 @@ class DirectChatUseCaseTest {
                 () -> chat.send(1L, 2L, "hello"));
         assertEquals(UserErrorCode.CHAT_FORBIDDEN, error.getErrorCode());
         verifyNoInteractions(messages);
+    }
+
+    @Test
+    void inaccessiblePrivateConversationIsExcludedFromInbox() {
+        privacy(true, true);
+        var latest = new ChatMessagePort.Message(5L, 1L, 2L, "old message", LocalDateTime.now());
+        when(messages.latestConversations(1L, 100)).thenReturn(List.of(latest));
+
+        assertEquals(List.of(), chat.latestConversations(1L));
+    }
+
+    @Test
+    void nonMutualPublicConversationRemainsInInbox() {
+        privacy(true, false);
+        var latest = new ChatMessagePort.Message(5L, 1L, 2L, "old message", LocalDateTime.now());
+        when(messages.latestConversations(1L, 100)).thenReturn(List.of(latest));
+
+        assertEquals(List.of(latest), chat.latestConversations(1L));
+    }
+
+    @Test
+    void mutualPrivateConversationRemainsInInbox() {
+        privacy(true, true);
+        when(follows.exists(1L, 2L)).thenReturn(true);
+        when(follows.exists(2L, 1L)).thenReturn(true);
+        var latest = new ChatMessagePort.Message(5L, 1L, 2L, "old message", LocalDateTime.now());
+        when(messages.latestConversations(1L, 100)).thenReturn(List.of(latest));
+
+        assertEquals(List.of(latest), chat.latestConversations(1L));
     }
 }

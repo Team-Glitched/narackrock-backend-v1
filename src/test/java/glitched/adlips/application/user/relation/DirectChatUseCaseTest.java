@@ -48,8 +48,22 @@ class DirectChatUseCaseTest {
     }
 
     @Test
-    void privateRecipientCanChatWhenBothDirectionsFollow() {
+    void privateSenderCanMessagePublicRecipientWithoutFollow() {
         privacy(true, false);
+        chat.send(1L, 2L, "hello");
+        verify(messages).save(1L, 2L, "hello");
+    }
+
+    @Test
+    void publicRecipientCanReadMessagesFromPrivateSender() {
+        privacy(true, false);
+        chat.conversation(2L, 1L, null, 50);
+        verify(messages).conversation(2L, 1L, null, 50);
+    }
+
+    @Test
+    void privateRecipientCanChatWhenBothDirectionsFollow() {
+        privacy(false, true);
         when(follows.exists(1L, 2L)).thenReturn(true);
         when(follows.exists(2L, 1L)).thenReturn(true);
         chat.send(1L, 2L, "hello");
@@ -58,12 +72,21 @@ class DirectChatUseCaseTest {
 
     @Test
     void privateConversationCannotBeReadAfterUnfollow() {
-        privacy(true, false);
+        privacy(true, true);
         when(follows.exists(1L, 2L)).thenReturn(true);
 
         UserApplicationException error = assertThrows(UserApplicationException.class,
                 () -> chat.conversation(1L, 2L, null, 50));
 
+        assertEquals(UserErrorCode.CHAT_FORBIDDEN, error.getErrorCode());
+        verifyNoInteractions(messages);
+    }
+
+    @Test
+    void privateSenderCannotMessagePrivateRecipientWithoutMutualFollow() {
+        privacy(true, true);
+        UserApplicationException error = assertThrows(UserApplicationException.class,
+                () -> chat.send(1L, 2L, "hello"));
         assertEquals(UserErrorCode.CHAT_FORBIDDEN, error.getErrorCode());
         verifyNoInteractions(messages);
     }

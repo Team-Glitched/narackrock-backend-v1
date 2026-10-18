@@ -26,7 +26,7 @@ public class DirectChatUseCase {
     }
     public List<ChatMessagePort.Message> conversation(Long viewerId, Long friendId, Long beforeId, int size) {
         return transactions.readOnly(() -> {
-            requireChatAccess(viewerId, friendId);
+            requireConversationAccess(viewerId, friendId);
             if (size < 1 || size > 100) throw new UserApplicationException(UserErrorCode.VALIDATION_ERROR, "조회 개수를 확인해 주세요.");
             return messages.conversation(viewerId, friendId, beforeId, size);
         });
@@ -35,9 +35,19 @@ public class DirectChatUseCase {
         if (a == null || b == null || a.equals(b)) {
             throw new UserApplicationException(UserErrorCode.VALIDATION_ERROR, "다른 사용자와의 대화만 가능합니다.");
         }
-        Profile first = profiles.findByUserId(a).orElseThrow(() -> new UserApplicationException(UserErrorCode.PROFILE_NOT_FOUND, "사용자 프로필을 찾을 수 없습니다."));
-        Profile second = profiles.findByUserId(b).orElseThrow(() -> new UserApplicationException(UserErrorCode.PROFILE_NOT_FOUND, "사용자 프로필을 찾을 수 없습니다."));
-        if ((first.isPrivate() || second.isPrivate()) && (!follows.exists(a, b) || !follows.exists(b, a))) {
+        Profile recipient = profiles.findByUserId(b).orElseThrow(() -> new UserApplicationException(UserErrorCode.PROFILE_NOT_FOUND, "사용자 프로필을 찾을 수 없습니다."));
+        if (recipient.isPrivate() && (!follows.exists(a, b) || !follows.exists(b, a))) {
+            throw new UserApplicationException(UserErrorCode.CHAT_FORBIDDEN, "비공개 계정과는 맞팔로우한 경우에만 대화할 수 있습니다.");
+        }
+    }
+
+    private void requireConversationAccess(Long viewerId, Long friendId) {
+        if (viewerId == null || friendId == null || viewerId.equals(friendId)) {
+            throw new UserApplicationException(UserErrorCode.VALIDATION_ERROR, "다른 사용자와의 대화만 가능합니다.");
+        }
+        Profile viewer = profiles.findByUserId(viewerId).orElseThrow(() -> new UserApplicationException(UserErrorCode.PROFILE_NOT_FOUND, "사용자 프로필을 찾을 수 없습니다."));
+        Profile friend = profiles.findByUserId(friendId).orElseThrow(() -> new UserApplicationException(UserErrorCode.PROFILE_NOT_FOUND, "사용자 프로필을 찾을 수 없습니다."));
+        if (viewer.isPrivate() && friend.isPrivate() && (!follows.exists(viewerId, friendId) || !follows.exists(friendId, viewerId))) {
             throw new UserApplicationException(UserErrorCode.CHAT_FORBIDDEN, "비공개 계정과는 맞팔로우한 경우에만 대화할 수 있습니다.");
         }
     }

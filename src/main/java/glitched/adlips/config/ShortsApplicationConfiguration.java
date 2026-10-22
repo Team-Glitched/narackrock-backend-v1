@@ -5,6 +5,11 @@ import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.project.port.out.ProjectMemberJoinPort;
 import glitched.adlips.application.project.usecase.ProjectMemberJoinUseCase;
 import glitched.adlips.application.shorts.GetShortsComposersUseCase;
+import glitched.adlips.application.shorts.GetShortsParticipantTracksUseCase;
+import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
+import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.shorts.GetShortsCompositionDetailUseCase;
 import glitched.adlips.application.shorts.GetShortsShareUseCase;
 import glitched.adlips.application.shorts.GetShortsUseCase;
@@ -127,6 +132,13 @@ public class ShortsApplicationConfiguration {
             UserRepositoryPort userRepositoryPort
     ) {
         return new ProjectMemberJoinUseCase(projectMemberJoinPort, userRepositoryPort);
+    }
+
+    @Bean
+    GetShortsParticipantTracksUseCase getShortsParticipantTracksUseCase(ShortsCompositionQueryPort shorts,
+            ProjectRepositoryPort projects, ProjectTrackRepositoryPort tracks, ProjectClipRepositoryPort clips,
+            MediaFileRepositoryPort media, TransactionRunner transactions) {
+        return new GetShortsParticipantTracksUseCase(shorts, projects, tracks, clips, media, transactions);
     }
 
     @Bean

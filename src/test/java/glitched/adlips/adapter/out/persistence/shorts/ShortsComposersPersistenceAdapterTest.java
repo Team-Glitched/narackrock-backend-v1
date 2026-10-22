@@ -89,6 +89,58 @@ class ShortsComposersPersistenceAdapterTest {
         assertThat(adapter.existsActiveShort(999L)).isFalse();
     }
 
+    @Test
+    void 기존_권한_역할은_승인된_악기로_보완하고_최신_승인_설명을_조회한다() {
+        insertLinkedProject();
+        jdbcTemplate.update("UPDATE shorts_participants SET role = 'EDITOR', description = NULL WHERE user_id = 3");
+        insertTrack(31L, "acoustic-guitar", "APPROVED", false);
+        insertTrack(32L, "piano", "PENDING", false);
+        insertTrack(33L, "drum-kit", "APPROVED", true);
+        insertContribution(41L, "이전 설명", "APPROVED");
+        insertContribution(42L, "메인 기타 리프를 만들었습니다.", "APPROVED");
+        insertContribution(43L, "승인 전 비공개 설명", "PENDING");
+
+        var result = adapter.findByShortId(201L).getFirst();
+
+        assertThat(result.role()).isEqualTo("acoustic-guitar");
+        assertThat(result.description()).isEqualTo("메인 기타 리프를 만들었습니다.");
+    }
+
+    @Test
+    void 오디오_악기와_중복되지_않는_여러_악기를_표시한다() {
+        insertLinkedProject();
+        insertTrack(31L, null, "APPROVED", false);
+        insertTrack(32L, "piano", "APPROVED", false);
+        insertTrack(33L, "piano", "APPROVED", false);
+        assertThat(adapter.findByShortId(201L).getFirst().role()).isEqualTo("AUDIO, piano");
+    }
+
+    private void insertLinkedProject() {
+        jdbcTemplate.update("""
+                INSERT INTO projects (id, owner_id, title, album_image_file_id, bpm,
+                    time_signature_numerator, time_signature_denominator, ppq, max_duration_ms,
+                    major_version, minor_version, status, is_public, created_at)
+                VALUES (20, 902, '곡', 0, 120, 4, 4, 480, 60000, 1, 1, 'IN_PROGRESS', true, CURRENT_TIMESTAMP)
+                """);
+        jdbcTemplate.update("UPDATE shorts SET project_id = 20 WHERE id = 201");
+    }
+
+    private void insertTrack(long id, String instrument, String status, boolean deleted) {
+        jdbcTemplate.update("""
+                INSERT INTO project_tracks (id, project_id, owner_id, name, instrument, volume, pan, sort_order,
+                    is_muted, is_solo, approval_status, is_deleted, created_at)
+                VALUES (?, 20, 3, '트랙', ?, 100, 0, 0, false, false, ?, ?, CURRENT_TIMESTAMP)
+                """, id, instrument, status, deleted);
+    }
+
+    private void insertContribution(long id, String description, String status) {
+        jdbcTemplate.update("""
+                INSERT INTO project_contributions (id, project_id, user_id, description,
+                    base_major_version, base_minor_version, approval_status, created_at)
+                VALUES (?, 20, 3, ?, 1, 1, ?, CURRENT_TIMESTAMP)
+                """, id, description, status);
+    }
+
     private void insertUser(long id, String email) {
         jdbcTemplate.update(
                 "INSERT INTO users (id, email, role, created_at) VALUES (?, ?, 'USER', CURRENT_TIMESTAMP)",

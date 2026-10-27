@@ -1,6 +1,8 @@
 package glitched.adlips.config;
 
 import glitched.adlips.application.opensource.OpenSourceSavePort;
+import glitched.adlips.application.opensource.OpenSourceQueryPort;
+import glitched.adlips.application.opensource.OpenSourceQueryUseCase;
 import glitched.adlips.application.opensource.OpenSourcePublicationPort;
 import glitched.adlips.application.opensource.OpenSourcePublicationUseCase;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
@@ -12,6 +14,11 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class OpenSourceApplicationConfiguration {
+    @Bean
+    OpenSourceQueryUseCase openSourceQueryUseCase(OpenSourceQueryPort query, TransactionRunner transactions) {
+        return new OpenSourceQueryUseCase(query, transactions);
+    }
+
     @Bean
     OpenSourcePublicationUseCase openSourcePublicationUseCase(
             OpenSourcePublicationPort publications,

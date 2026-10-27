@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "open_source_saves", uniqueConstraints = @UniqueConstraint(
+@Table(name = "open_source_saves", indexes = @Index(name = "idx_open_source_saves_user_created", columnList = "user_id,saved_at,open_source_id"), uniqueConstraints = @UniqueConstraint(
         name = "uk_open_source_save_user_source", columnNames = {"user_id", "open_source_id"}))
 public class OpenSourceSaveEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)

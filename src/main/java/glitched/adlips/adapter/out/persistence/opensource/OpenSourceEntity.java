@@ -5,7 +5,8 @@ import jakarta.persistence.*;
 import java.time.Instant;
 
 @Entity
-@Table(name = "open_sources", indexes = @Index(name = "idx_open_sources_owner", columnList = "owner_id"))
+@Table(name = "open_sources", indexes = {@Index(name = "idx_open_sources_owner_created", columnList = "owner_id,created_at,id"),
+        @Index(name = "idx_open_sources_public_created", columnList = "is_public,deleted_at,created_at,id")})
 public class OpenSourceEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

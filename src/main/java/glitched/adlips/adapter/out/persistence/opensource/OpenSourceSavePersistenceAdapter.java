@@ -19,6 +19,8 @@ public class OpenSourceSavePersistenceAdapter implements OpenSourceSavePort {
         return !entityManager.createQuery("""
                 SELECT s FROM OpenSourceEntity s
                 WHERE s.id = :id AND s.isPublic = true AND s.deletedAt IS NULL
+                AND s.ownerId IS NOT NULL AND s.mediaFileId IS NOT NULL AND s.title IS NOT NULL
+                AND s.createdAt IS NOT NULL AND s.updatedAt IS NOT NULL
                 """, OpenSourceEntity.class)
                 .setParameter("id", openSourceId)
                 .setLockMode(LockModeType.PESSIMISTIC_WRITE)

@@ -23,7 +23,7 @@ class OpenSourceSavePersistenceTest {
 
     @BeforeEach void setup() {
         useCase = new OpenSourceSaveUseCase(adapter, transactions);
-        jdbc.update("INSERT INTO open_sources (id, is_public) VALUES (88001, true)");
+        jdbc.update("INSERT INTO open_sources (id, is_public, owner_id, title, media_file_id, created_at, updated_at) VALUES (88001, true, 1, 'test', 20, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
     }
     @AfterEach void cleanup() {
         jdbc.update("DELETE FROM open_source_saves WHERE open_source_id = 88001");

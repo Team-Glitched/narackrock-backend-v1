@@ -30,6 +30,7 @@ public class ProjectExceptionHandler {
     private HttpStatus statusOf(ProjectErrorCode code) {
         return switch (code) {
             case PROJECT_NOT_FOUND,
+                    EDITOR_DRAFT_NOT_FOUND,
                     TRACK_NOT_FOUND,
                     CLIP_NOT_FOUND,
                     MEDIA_FILE_NOT_FOUND,
@@ -45,6 +46,8 @@ public class ProjectExceptionHandler {
                     CONTRIBUTION_REVIEW_DENIED -> HttpStatus.FORBIDDEN;
 
             case MEDIA_FILE_NOT_READY,
+                    EDITOR_DRAFT_CONFLICT,
+                    EDITOR_DRAFT_BASE_CHANGED,
                     PROJECT_NOT_PUBLIC,
                     TRACK_INSTRUMENT_NOT_SET,
                     TRACK_LIMIT_EXCEEDED,

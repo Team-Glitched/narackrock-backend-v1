@@ -24,10 +24,10 @@ public class OpenSourceQueryController {
             long likeCount, long dislikeCount, long commentCount, Instant createdAt) {
         static Summary from(OpenSourceQueryPort.Item item) {
             var writer = item.writer();
-            // No reactions, comments or reuse records can be created yet; wire their counts when those APIs land.
+            // Usage remains zero until successful composition insertion is implemented.
             return new Summary(item.openSourceId(), item.title(), item.description(), item.thumbnailUrl(),
                     new Writer(writer.userId(), writer.nickname(), writer.profileImageUrl()),
-                    0, item.isSaved(), false, false, 0, 0, 0, item.createdAt());
+                    0, item.isSaved(), item.isLiked(), item.isDisliked(), item.likeCount(), item.dislikeCount(), item.commentCount(), item.createdAt());
         }
     }
     @JsonInclude(JsonInclude.Include.ALWAYS)

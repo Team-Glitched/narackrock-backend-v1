@@ -1,7 +1,7 @@
 package glitched.adlips.application.opensource;
 
 public class OpenSourceException extends RuntimeException {
-    public enum Code { INVALID_REQUEST, OPEN_SOURCE_NOT_FOUND, MEDIA_FILE_NOT_FOUND, MEDIA_FILE_NOT_READY }
+    public enum Code { INVALID_REQUEST, OPEN_SOURCE_NOT_FOUND, MEDIA_FILE_NOT_FOUND, MEDIA_FILE_NOT_READY, OPEN_SOURCE_COMMENT_NOT_FOUND, OPEN_SOURCE_ACCESS_DENIED }
     private final Code code;
 
     public OpenSourceException(Code code, String message) {

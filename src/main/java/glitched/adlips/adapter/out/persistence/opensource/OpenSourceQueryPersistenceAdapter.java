@@ -2,6 +2,7 @@ package glitched.adlips.adapter.out.persistence.opensource;
 
 import glitched.adlips.application.opensource.OpenSourceQueryPort;
 import glitched.adlips.domain.opensource.OpenSourcePublication;
+import static glitched.adlips.adapter.out.persistence.opensource.OpenSourceInteractionSql.*;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -19,8 +20,12 @@ public class OpenSourceQueryPersistenceAdapter implements OpenSourceQueryPort {
             AND s.created_at IS NOT NULL AND s.updated_at IS NOT NULL AND s.deleted_at IS NULL
             """;
     private static final String PUBLIC = COMPLETE + " AND s.is_public = true AND u.deleted_at IS NULL";
-    private static final String SELECT = """
-            SELECT s.id, s.title, s.description, s.owner_id, s.created_at,
+    private static final String SELECT = "SELECT "
+            +count("SOURCE","s.id","LIKE")+" AS like_count, "+count("SOURCE","s.id","DISLIKE")+" AS dislike_count, "
+            +reacted("SOURCE","s.id","LIKE")+" AS is_liked, "+reacted("SOURCE","s.id","DISLIKE")+" AS is_disliked, "
+            +"(SELECT COUNT(*) FROM open_source_comments c WHERE c.open_source_id=s.id AND "+visibleComment("c")+") AS comment_count, "
+            +"""
+            s.id, s.title, s.description, s.owner_id, s.created_at,
                    thumb.file_url AS thumbnail_url, COALESCE(p.nickname, '사용자') AS nickname,
                    avatar.file_url AS profile_image_url,
                    EXISTS (SELECT 1 FROM open_source_saves saved
@@ -88,7 +93,8 @@ public class OpenSourceQueryPersistenceAdapter implements OpenSourceQueryPort {
     private Item item(ResultSet rs) throws SQLException {
         return new Item(rs.getLong("id"), rs.getString("title"), rs.getString("description"), rs.getString("thumbnail_url"),
                 new Writer(rs.getLong("owner_id"), rs.getString("nickname"), rs.getString("profile_image_url")),
-                rs.getBoolean("is_saved"), instant(rs, "created_at"), rs.getBoolean("can_preview"));
+                rs.getBoolean("is_saved"), instant(rs, "created_at"), rs.getBoolean("can_preview"), rs.getBoolean("is_liked"), rs.getBoolean("is_disliked"),
+                rs.getLong("like_count"), rs.getLong("dislike_count"), rs.getLong("comment_count"));
     }
     private Instant instant(ResultSet rs, String name) throws SQLException {
         return rs.getTimestamp(name).toInstant();

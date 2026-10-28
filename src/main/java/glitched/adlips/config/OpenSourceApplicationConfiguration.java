@@ -1,6 +1,9 @@
 package glitched.adlips.config;
 
 import glitched.adlips.application.opensource.OpenSourceSavePort;
+import glitched.adlips.application.opensource.OpenSourceInteractionPort;
+import glitched.adlips.application.opensource.OpenSourceInteractionUseCase;
+import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.opensource.OpenSourceQueryPort;
 import glitched.adlips.application.opensource.OpenSourceQueryUseCase;
 import glitched.adlips.application.opensource.OpenSourcePublicationPort;
@@ -14,6 +17,13 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class OpenSourceApplicationConfiguration {
+    @Bean
+    OpenSourceInteractionUseCase openSourceInteractionUseCase(
+            OpenSourceInteractionPort port, TransactionRunner transactions,
+            UserBanQueryPort bans, Clock clock) {
+        return new OpenSourceInteractionUseCase(port, transactions, bans, clock);
+    }
+
     @Bean
     OpenSourceQueryUseCase openSourceQueryUseCase(OpenSourceQueryPort query, TransactionRunner transactions) {
         return new OpenSourceQueryUseCase(query, transactions);

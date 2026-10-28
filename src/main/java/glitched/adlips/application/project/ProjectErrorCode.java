@@ -1,6 +1,9 @@
 package glitched.adlips.application.project;
 
 public enum ProjectErrorCode {
+    EDITOR_DRAFT_NOT_FOUND,
+    EDITOR_DRAFT_CONFLICT,
+    EDITOR_DRAFT_BASE_CHANGED,
     VALIDATION_ERROR,
     PROJECT_NOT_FOUND,
     PROJECT_NOT_PUBLIC,

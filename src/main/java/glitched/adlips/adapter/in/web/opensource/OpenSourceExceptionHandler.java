@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-@RestControllerAdvice(assignableTypes = {OpenSourceSaveController.class, OpenSourcePublicationController.class, OpenSourceQueryController.class, OpenSourceInteractionController.class})
+@RestControllerAdvice(assignableTypes = {OpenSourceSaveController.class, OpenSourcePublicationController.class, OpenSourceQueryController.class, OpenSourceInteractionController.class, OpenSourceMediaController.class})
 public class OpenSourceExceptionHandler {
     @ExceptionHandler(OpenSourceException.class)
     public ResponseEntity<ApiResponse<Void>> handle(OpenSourceException exception) {
@@ -16,7 +16,8 @@ public class OpenSourceExceptionHandler {
             case INVALID_REQUEST -> 400;
             case OPEN_SOURCE_NOT_FOUND, MEDIA_FILE_NOT_FOUND, OPEN_SOURCE_COMMENT_NOT_FOUND -> 404;
             case OPEN_SOURCE_ACCESS_DENIED -> 403;
-            case MEDIA_FILE_NOT_READY -> 409;
+            case MEDIA_FILE_NOT_READY, OPEN_SOURCE_AUDIO_NOT_READY -> 409;
+            case OPEN_SOURCE_PLAYBACK_UNAVAILABLE -> 503;
         };
         return ResponseEntity.status(status)
                 .body(ApiResponse.error(exception.getCode().name(), exception.getMessage()));

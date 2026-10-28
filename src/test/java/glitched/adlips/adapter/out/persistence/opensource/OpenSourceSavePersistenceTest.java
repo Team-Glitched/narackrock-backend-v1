@@ -23,11 +23,24 @@ class OpenSourceSavePersistenceTest {
 
     @BeforeEach void setup() {
         useCase = new OpenSourceSaveUseCase(adapter, transactions);
-        jdbc.update("INSERT INTO open_sources (id, is_public, owner_id, title, media_file_id, created_at, updated_at) VALUES (88001, true, 1, 'test', 20, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
+        jdbc.update("INSERT INTO users(id,email,role,created_at) VALUES(88009,'save-owner@test.local','USER',CURRENT_TIMESTAMP)");
+        jdbc.update("INSERT INTO open_sources (id, is_public, owner_id, title, media_file_id, created_at, updated_at) VALUES (88001, true, 88009, 'test', 20, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)");
     }
     @AfterEach void cleanup() {
         jdbc.update("DELETE FROM open_source_saves WHERE open_source_id = 88001");
         jdbc.update("DELETE FROM open_sources WHERE id = 88001");
+        jdbc.update("DELETE FROM users WHERE id = 88009");
+    }
+    @Test void inactiveOrMissingAuthorCannotReceiveNewSavesButRemovalStillWorks() {
+        useCase.save(1L, 88001L);
+        jdbc.update("UPDATE users SET deleted_at=CURRENT_TIMESTAMP WHERE id=88009");
+        assertThatThrownBy(() -> useCase.save(2L,88001L))
+                .isInstanceOfSatisfying(OpenSourceException.class, e ->
+                        assertThat(e.getCode()).isEqualTo(OpenSourceException.Code.OPEN_SOURCE_NOT_FOUND));
+        useCase.remove(1L,88001L);
+        assertThat(adapter.isSaved(1L,88001L)).isFalse();
+        jdbc.update("DELETE FROM users WHERE id=88009");
+        assertThatThrownBy(() -> useCase.save(2L,88001L)).isInstanceOf(OpenSourceException.class);
     }
     @Test void repeatedSavePreservesTimestampAndRemovalIsUserScoped() {
         useCase.save(1L, 88001L);

@@ -4,6 +4,9 @@ import glitched.adlips.adapter.out.hti.HtiMidiRestAdapter;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.media.port.out.MediaContentStoragePort;
 import glitched.adlips.application.project.port.out.ProjectAudioMixerPort;
+import glitched.adlips.application.project.port.out.EditorDraftRepositoryPort;
+import glitched.adlips.application.project.usecase.EditorDraftUseCase;
+import glitched.adlips.application.project.usecase.EditorDraftWorkflowUseCase;
 import glitched.adlips.application.project.port.out.HtiMidiTransformPort;
 import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectContributionItemRepositoryPort;
@@ -48,6 +51,24 @@ import org.springframework.web.client.RestClient;
 @Configuration
 @EnableScheduling
 public class ProjectApplicationConfiguration {
+
+    @Bean
+    EditorDraftUseCase editorDraftUseCase(ProjectRepositoryPort projects, ProjectMemberRepositoryPort members,
+                                         ProjectTrackRepositoryPort tracks, ProjectClipRepositoryPort clips,
+                                         UserRepositoryPort users, EditorDraftRepositoryPort drafts,
+                                         MidiClipCreateUseCase createClip, MidiClipSaveUseCase saveClip,
+                                         TransactionRunner transactions, Clock clock) {
+        return new EditorDraftUseCase(projects, members, tracks, clips, users, drafts,
+                createClip, saveClip, transactions, clock);
+    }
+
+    @Bean
+    EditorDraftWorkflowUseCase editorDraftWorkflowUseCase(EditorDraftUseCase drafts, ProjectRepositoryPort projects,
+                                                         ProjectTrackRepositoryPort tracks, ProjectClipRepositoryPort clips,
+                                                         ProjectContributionCreateUseCase contributions,
+                                                         TransactionRunner transactions) {
+        return new EditorDraftWorkflowUseCase(drafts, projects, tracks, clips, contributions, transactions);
+    }
 
     @Bean
     HtiMidiTransformPort htiMidiTransformPort(

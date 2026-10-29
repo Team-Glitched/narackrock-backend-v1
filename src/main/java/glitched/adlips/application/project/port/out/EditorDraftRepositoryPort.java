@@ -8,5 +8,6 @@ import java.util.UUID;
 public interface EditorDraftRepositoryPort {
     Optional<EditorDraft> findById(UUID id);
     List<EditorDraft> findActiveByProjectAndOwner(long projectId, long ownerId);
+    List<EditorDraft> findActiveByProject(long projectId);
     EditorDraft save(EditorDraft draft);
 }

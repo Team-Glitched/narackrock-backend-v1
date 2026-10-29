@@ -28,6 +28,7 @@ import glitched.adlips.application.project.usecase.ProjectContributionReviewUseC
 import glitched.adlips.application.project.usecase.ProjectCreateUseCase;
 import glitched.adlips.application.project.usecase.ProjectDraftCreateUseCase;
 import glitched.adlips.application.project.usecase.ProjectMetadataUpdateUseCase;
+import glitched.adlips.application.project.usecase.ProjectTimingUpdateUseCase;
 import glitched.adlips.application.project.usecase.ProjectCompleteUseCase;
 import glitched.adlips.application.project.usecase.ProjectDeleteUseCase;
 import glitched.adlips.application.project.usecase.ProjectExportGetUseCase;
@@ -100,6 +101,13 @@ public class ProjectApplicationConfiguration {
     ProjectDraftCreateUseCase projectDraftCreateUseCase(UserRepositoryPort users, ProjectRepositoryPort projects,
                                                         ProjectMemberRepositoryPort members, TransactionRunner transactions) {
         return new ProjectDraftCreateUseCase(users, projects, members, transactions);
+    }
+
+    @Bean
+    ProjectTimingUpdateUseCase projectTimingUpdateUseCase(ProjectRepositoryPort projects, ProjectMemberRepositoryPort members,
+            ProjectTrackRepositoryPort tracks, ProjectClipRepositoryPort clips, EditorDraftRepositoryPort drafts,
+            ProjectExportRepositoryPort exports, TransactionRunner transactions) {
+        return new ProjectTimingUpdateUseCase(projects, members, tracks, clips, drafts, exports, transactions);
     }
 
     @Bean

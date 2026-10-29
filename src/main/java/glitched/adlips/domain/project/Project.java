@@ -125,6 +125,22 @@ public class Project extends BaseTimeEntity {
         this.albumImageFileId = albumImageFileId;
     }
 
+    public boolean updateTiming(int bpm, int numerator, int denominator) {
+        if (deletedAt != null || (status != ProjectStatus.DRAFT && status != ProjectStatus.IN_PROGRESS)) {
+            throw new IllegalStateException("only an editable project can change timing");
+        }
+        if (bpm < 30 || bpm > 300 || numerator < 1 || numerator > 12
+                || (denominator != 2 && denominator != 4 && denominator != 8 && denominator != 16)) {
+            throw new IllegalArgumentException("invalid tempo or time signature");
+        }
+        if (this.bpm == bpm && timeSignatureNumerator == numerator && timeSignatureDenominator == denominator) return false;
+        this.bpm = bpm;
+        timeSignatureNumerator = numerator;
+        timeSignatureDenominator = denominator;
+        increaseMinorVersion();
+        return true;
+    }
+
     public int tickToMilliseconds(int tick) {
         if (tick < 0) {
             throw new IllegalArgumentException(

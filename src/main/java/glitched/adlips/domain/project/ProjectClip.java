@@ -180,6 +180,17 @@ public class ProjectClip extends BaseTimeEntity {
         track.invalidateRenderedMedia();
     }
 
+    /** MIDI keeps its beat positions; an audio recording keeps its original duration in seconds. */
+    public void refreshProjectTiming() {
+        startTimeMs = project.tickToMilliseconds(startTick);
+        if (clipType == ClipType.MIDI) {
+            durationMs = project.tickToMilliseconds(durationTick);
+        } else {
+            durationTick = Math.toIntExact(((long) durationMs * project.getBpm() * project.getPpq() + 59_999) / 60_000);
+        }
+        track.invalidateRenderedMedia();
+    }
+
     public void submitForReview() {
         if (approvalStatus != ApprovalStatus.DRAFT) {
             throw new IllegalStateException("only draft clip can be submitted");

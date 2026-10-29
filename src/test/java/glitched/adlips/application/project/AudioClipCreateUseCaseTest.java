@@ -58,4 +58,20 @@ class AudioClipCreateUseCaseTest {
         assertThat(response.mediaUrl()).contains("guitar.wav");
         assertThat(track.getMediaFileId()).isNull();
     }
+
+    @Test
+    void requiresAnInstrumentOrVocalRoleBeforeAddingAudio() {
+        User owner=User.create("owner@example.com").withId(1L);
+        var project=new Project(owner,"곡",null,0L);
+        var track=new ProjectTrack(project,owner,"오디오",null,0);
+        var projects=mock(ProjectRepositoryPort.class);var members=mock(ProjectMemberRepositoryPort.class);
+        var tracks=mock(ProjectTrackRepositoryPort.class);
+        when(projects.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(project));
+        when(members.findByProjectIdAndUserId(10L,1L)).thenReturn(Optional.of(new ProjectMember(project,owner,ProjectMemberRole.OWNER)));
+        when(tracks.findTrackByIdAndIsDeletedFalse(21L)).thenReturn(Optional.of(track));
+        org.assertj.core.api.Assertions.assertThatThrownBy(()->new AudioClipCreateUseCase(projects,members,tracks,
+            mock(ProjectClipRepositoryPort.class),mock(UserRepositoryPort.class),mock(MediaFileRepositoryPort.class))
+            .execute(new AudioClipCreateRequest(10L,21L,1L,501L,ClipSourceType.FILE_UPLOAD,0,480,0)))
+            .isInstanceOf(ProjectApplicationException.class).extracting("errorCode").isEqualTo(ProjectErrorCode.TRACK_INSTRUMENT_NOT_SET);
+    }
 }

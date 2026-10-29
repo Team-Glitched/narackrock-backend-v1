@@ -1,5 +1,7 @@
 package glitched.adlips.application.project.usecase;
 
+import glitched.adlips.domain.project.InstrumentFamily;
+
 import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
@@ -58,7 +60,7 @@ public class MidiClipCreateUseCase {
         if (!track.belongsTo(project)) {
             throw error(ProjectErrorCode.TRACK_NOT_IN_PROJECT, "해당 프로젝트에 속한 트랙이 아닙니다.");
         }
-        if (track.getInstrument() == null || track.getInstrument().isBlank()) {
+        if (track.getInstrument() == null || track.getInstrument().isBlank() || InstrumentFamily.audioOnly(track.getInstrument())) {
             throw error(ProjectErrorCode.TRACK_INSTRUMENT_NOT_SET,
                     "MIDI 클립을 생성하려면 트랙의 악기가 먼저 설정되어야 합니다.");
         }

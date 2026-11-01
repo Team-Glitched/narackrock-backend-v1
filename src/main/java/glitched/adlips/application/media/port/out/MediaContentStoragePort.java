@@ -6,6 +6,10 @@ public interface MediaContentStoragePort {
 
     byte[] get(String storageKey);
 
+    default java.io.InputStream open(String storageKey) {
+        return new java.io.ByteArrayInputStream(get(storageKey));
+    }
+
     boolean exists(String storageKey);
 
     long size(String storageKey);

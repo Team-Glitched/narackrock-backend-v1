@@ -14,6 +14,7 @@ import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort
 import glitched.adlips.domain.media.MediaFileStatus;
 import glitched.adlips.domain.media.MediaFileType;
 import glitched.adlips.domain.project.ClipSourceType;
+import glitched.adlips.domain.project.InstrumentFamily;
 import glitched.adlips.domain.project.ProjectClip;
 import glitched.adlips.domain.project.ProjectMemberRole;
 public class AudioClipCreateUseCase {
@@ -59,6 +60,9 @@ public class AudioClipCreateUseCase {
                 .orElseThrow(() -> error(ProjectErrorCode.TRACK_NOT_FOUND, "존재하지 않는 트랙입니다."));
         if (!track.belongsTo(project)) {
             throw error(ProjectErrorCode.TRACK_NOT_IN_PROJECT, "해당 프로젝트에 속한 트랙이 아닙니다.");
+        }
+        if (InstrumentFamily.of(track.getInstrument()) == null) {
+            throw error(ProjectErrorCode.TRACK_INSTRUMENT_NOT_SET,"오디오를 저장하기 전에 악기나 보컬 역할을 선택해 주세요.");
         }
         validateRange(request.startTick(), request.durationTick(), project.getMaxTick());
         var media = mediaFiles.findById(request.mediaFileId())

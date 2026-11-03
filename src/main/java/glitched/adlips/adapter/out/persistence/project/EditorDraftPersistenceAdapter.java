@@ -21,6 +21,11 @@ public class EditorDraftPersistenceAdapter implements EditorDraftRepositoryPort 
                 .stream().map(EditorDraftEntity::toDomain).toList();
     }
 
+    @Override public List<EditorDraft> findActiveByProject(long projectId) {
+        return repository.findByProjectIdAndStatus(projectId, EditorDraft.Status.ACTIVE)
+                .stream().map(EditorDraftEntity::toDomain).toList();
+    }
+
     @Override public EditorDraft save(EditorDraft draft) {
         return repository.save(new EditorDraftEntity(draft)).toDomain();
     }

@@ -93,6 +93,16 @@ public class ProjectTrack extends BaseTimeEntity {
         this.mediaFileId = null;
     }
 
+    public boolean changeInstrument(String instrument) {
+        String next=InstrumentFamily.normalize(instrument);
+        if(InstrumentFamily.of(next)==null) throw new IllegalArgumentException("unknown instrument");
+        if(Objects.equals(this.instrument,next)) return false;
+        if(approvalStatus==ApprovalStatus.APPROVED) project.increaseMinorVersion();
+        this.instrument=next;
+        invalidateRenderedMedia();
+        return true;
+    }
+
     public void changeVolume(int volume) {
         if (volume < 0 || volume > 100) {
             throw new IllegalArgumentException("volume must be between 0 and 100");

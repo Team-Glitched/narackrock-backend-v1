@@ -1,5 +1,7 @@
 package glitched.adlips.application.project.usecase;
 
+import glitched.adlips.domain.project.InstrumentFamily;
+
 import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
 import glitched.adlips.application.project.ProjectApplicationException;
 import glitched.adlips.application.project.ProjectErrorCode;
@@ -55,7 +57,8 @@ public class MidiClipSaveUseCase {
                 && clip.getApprovalStatus() != ApprovalStatus.APPROVED) {
             throw error(ProjectErrorCode.CLIP_NOT_EDITABLE, "수정할 수 없는 클립입니다.");
         }
-        if (clip.getTrack().getInstrument() == null || clip.getTrack().getInstrument().isBlank()) {
+        if (clip.getTrack().getInstrument() == null || clip.getTrack().getInstrument().isBlank()
+                || InstrumentFamily.audioOnly(clip.getTrack().getInstrument())) {
             throw error(ProjectErrorCode.TRACK_INSTRUMENT_NOT_SET, "트랙의 악기가 설정되어 있지 않습니다.");
         }
         validateRange(request.startTick(), request.durationTick(), clip.getProject().getMaxTick());

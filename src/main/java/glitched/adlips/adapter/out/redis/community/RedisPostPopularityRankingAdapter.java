@@ -9,6 +9,7 @@ import java.util.Set;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.dao.DataAccessException;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
@@ -34,11 +35,10 @@ public class RedisPostPopularityRankingAdapter implements PostPopularityRankingP
     private final String seededKey;
 
     @Autowired
-    public RedisPostPopularityRankingAdapter(StringRedisTemplate redisTemplate) {
-        this(redisTemplate, "adlips");
-    }
-
-    RedisPostPopularityRankingAdapter(StringRedisTemplate redisTemplate, String keyPrefix) {
+    public RedisPostPopularityRankingAdapter(
+            StringRedisTemplate redisTemplate,
+            @Value("${app.redis.key-prefix:narackrock}") String keyPrefix
+    ) {
         this.redisTemplate = Objects.requireNonNull(redisTemplate);
         String prefix = Objects.requireNonNull(keyPrefix).strip();
         while (prefix.endsWith(":")) prefix = prefix.substring(0, prefix.length() - 1);

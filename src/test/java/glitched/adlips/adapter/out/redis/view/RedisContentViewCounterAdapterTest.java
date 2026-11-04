@@ -82,7 +82,7 @@ class RedisContentViewCounterAdapterTest {
     @Test
     void 게시글_인기순은_좋아요_다섯배와_조회수를_합산한다() {
         RedisContentViewCounterAdapter views = new RedisContentViewCounterAdapter(redisTemplate, "adlips");
-        RedisPostPopularityRankingAdapter ranking = new RedisPostPopularityRankingAdapter(redisTemplate);
+        RedisPostPopularityRankingAdapter ranking = new RedisPostPopularityRankingAdapter(redisTemplate, "adlips");
         ranking.seedBaseline(List.of(new PostPopularityScore(1L, 2, 1), new PostPopularityScore(2L, 3, 0)));
         views.recordIfFirst(ContentViewTarget.POST, 2L, "user:1", Duration.ofMinutes(30));
 

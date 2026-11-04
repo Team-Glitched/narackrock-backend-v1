@@ -27,15 +27,8 @@ public class RedisShortReactionCountCacheAdapter implements ShortReactionCountCa
     @Autowired
     public RedisShortReactionCountCacheAdapter(
             StringRedisTemplate redisTemplate,
+            @Value("${app.redis.key-prefix:narackrock}") String keyPrefix,
             @Value("${app.redis.short-reaction-cache-ttl:PT10M}") Duration ttl
-    ) {
-        this(redisTemplate, "adlips", ttl);
-    }
-
-    RedisShortReactionCountCacheAdapter(
-            StringRedisTemplate redisTemplate,
-            String keyPrefix,
-            Duration ttl
     ) {
         this.redisTemplate = Objects.requireNonNull(redisTemplate);
         this.keyPrefix = normalizePrefix(keyPrefix);

@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataAccessException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
 import org.springframework.stereotype.Component;
@@ -34,11 +35,10 @@ public class RedisShortPopularityRankingAdapter implements ShortPopularityRankin
     private final String seededKey;
 
     @Autowired
-    public RedisShortPopularityRankingAdapter(StringRedisTemplate redisTemplate) {
-        this(redisTemplate, "adlips");
-    }
-
-    RedisShortPopularityRankingAdapter(StringRedisTemplate redisTemplate, String keyPrefix) {
+    public RedisShortPopularityRankingAdapter(
+            StringRedisTemplate redisTemplate,
+            @Value("${app.redis.key-prefix:narackrock}") String keyPrefix
+    ) {
         this.redisTemplate = Objects.requireNonNull(redisTemplate);
         String prefix = normalizePrefix(keyPrefix);
         this.viewRankingKey = prefix + ":shorts:popularity:views";

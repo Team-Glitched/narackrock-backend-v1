@@ -59,6 +59,7 @@ public class SecurityConfig {
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/ws/chat").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/open-sources/*/audio").permitAll()
                         .requestMatchers(
                                 HttpMethod.POST,
                                 "/api/v1/shorts/*/views",

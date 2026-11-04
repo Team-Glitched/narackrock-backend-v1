@@ -10,6 +10,9 @@ import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.domain.project.Project;
+import glitched.adlips.domain.project.ProjectStatus;
+import glitched.adlips.domain.project.InstrumentFamily;
+import glitched.adlips.domain.project.ApprovalStatus;
 import glitched.adlips.domain.project.ProjectMemberRole;
 import glitched.adlips.domain.project.ProjectTrack;
 import glitched.adlips.domain.user.User;
@@ -54,14 +57,21 @@ public class TrackCreateUseCase {
             throw new ProjectApplicationException(ProjectErrorCode.TRACK_LIMIT_EXCEEDED,
                     "한 곡에는 사용자당 하나의 레이어만 만들 수 있습니다.");
         }
+        if(project.getStatus()==ProjectStatus.COMPLETED) {
+            throw new ProjectApplicationException(ProjectErrorCode.PROJECT_ACCESS_DENIED,"완료된 곡에는 레이어를 추가할 수 없습니다.");
+        }
+        String instrument=InstrumentFamily.normalize(request.instrument());
+        var family=InstrumentFamily.of(instrument);
+        if(family==null) throw new ProjectApplicationException(ProjectErrorCode.VALIDATION_ERROR,"악기나 보컬 역할을 선택해 주세요.");
+        if(tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(request.projectId()).stream()
+                .anyMatch(track -> track.getApprovalStatus()!=ApprovalStatus.REJECTED && InstrumentFamily.of(track.getInstrument())==family)) {
+            throw new ProjectApplicationException(ProjectErrorCode.INSTRUMENT_FAMILY_TAKEN,family.label()+" 종류는 팀원이 이미 사용 중입니다. 다른 종류를 선택해 주세요.");
+        }
         ProjectTrack saved = tracks.save(new ProjectTrack(project, user, request.name().trim(),
-                normalize(request.instrument()), request.sortOrder()));
+                instrument, request.sortOrder()));
         return new TrackCreateResponse(saved.getId(), project.getId(), saved.getName(), saved.getInstrument(),
                 null, null, saved.getVolume(), saved.getPan(), saved.getSortOrder(), saved.isMuted(),
                 saved.isSolo(), saved.getApprovalStatus());
     }
 
-    private String normalize(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
-    }
 }

@@ -66,4 +66,22 @@ class TrackCreateUseCaseTest {
                 .isEqualTo(ProjectErrorCode.TRACK_LIMIT_EXCEEDED);
         verify(tracks, never()).save(any(ProjectTrack.class));
     }
+
+    @Test
+    void rejectsAnotherPlayersInstrumentFamilyEvenWithADifferentTone() {
+        User owner = User.create("owner@example.com").withId(1L);
+        User editor = User.create("editor@example.com").withId(2L);
+        Project project = new Project(owner, "곡", null, 0L);
+        var projects=mock(ProjectRepositoryPort.class);var members=mock(ProjectMemberRepositoryPort.class);
+        var tracks=mock(ProjectTrackRepositoryPort.class);var users=mock(UserRepositoryPort.class);
+        when(projects.findByIdAndDeletedAtIsNullForUpdate(10L)).thenReturn(Optional.of(project));
+        when(members.findByProjectIdAndUserId(10L,2L)).thenReturn(Optional.of(new ProjectMember(project,editor,ProjectMemberRole.EDITOR)));
+        when(users.findById(2L)).thenReturn(Optional.of(editor));
+        when(tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(10L))
+            .thenReturn(java.util.List.of(new ProjectTrack(project,owner,"기타","electric-guitar",0)));
+        assertThatThrownBy(()->new TrackCreateUseCase(projects,members,tracks,users)
+            .execute(new TrackCreateRequest(10L,2L,"기타2","distortion-guitar",1)))
+            .isInstanceOf(ProjectApplicationException.class).hasMessageContaining("이미");
+        verify(tracks,never()).save(any());
+    }
 }

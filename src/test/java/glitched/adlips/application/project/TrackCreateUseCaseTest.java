@@ -16,12 +16,15 @@ import glitched.adlips.application.project.dto.response.TrackCreateResponse;
 import glitched.adlips.application.project.usecase.TrackCreateUseCase;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.domain.project.Project;
+import glitched.adlips.domain.project.ApprovalStatus;
 import glitched.adlips.domain.project.ProjectMember;
 import glitched.adlips.domain.project.ProjectMemberRole;
 import glitched.adlips.domain.project.ProjectTrack;
 import glitched.adlips.domain.user.User;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class TrackCreateUseCaseTest {
     @Test
@@ -67,8 +70,16 @@ class TrackCreateUseCaseTest {
         verify(tracks, never()).save(any(ProjectTrack.class));
     }
 
-    @Test
-    void rejectsAnotherPlayersInstrumentFamilyEvenWithADifferentTone() {
+    @ParameterizedTest
+    @CsvSource({
+        "electric-guitar, electric-guitar, DRAFT",
+        "electric-guitar, distortion-guitar, PENDING",
+        "nylon-guitar, acoustic-guitar, APPROVED",
+        "vocal, vocal, APPROVED",
+        "vocal, backing-vocal, PENDING",
+        "backing-vocal, rap, DRAFT"
+    })
+    void allowsAnotherPlayerToChooseTheSameInstrumentFamily(String existing, String selected, ApprovalStatus status) {
         User owner = User.create("owner@example.com").withId(1L);
         User editor = User.create("editor@example.com").withId(2L);
         Project project = new Project(owner, "곡", null, 0L);
@@ -77,11 +88,17 @@ class TrackCreateUseCaseTest {
         when(projects.findByIdAndDeletedAtIsNullForUpdate(10L)).thenReturn(Optional.of(project));
         when(members.findByProjectIdAndUserId(10L,2L)).thenReturn(Optional.of(new ProjectMember(project,editor,ProjectMemberRole.EDITOR)));
         when(users.findById(2L)).thenReturn(Optional.of(editor));
-        when(tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(10L))
-            .thenReturn(java.util.List.of(new ProjectTrack(project,owner,"기타","electric-guitar",0)));
-        assertThatThrownBy(()->new TrackCreateUseCase(projects,members,tracks,users)
-            .execute(new TrackCreateRequest(10L,2L,"기타2","distortion-guitar",1)))
-            .isInstanceOf(ProjectApplicationException.class).hasMessageContaining("이미");
-        verify(tracks,never()).save(any());
+        var teammate = new ProjectTrack(project, owner, "팀원 레이어", existing, 0);
+        if (status == ApprovalStatus.PENDING) teammate.submitForReview();
+        if (status == ApprovalStatus.APPROVED) teammate.approve();
+        when(tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(10L)).thenReturn(java.util.List.of(teammate));
+        when(tracks.save(any(ProjectTrack.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = new TrackCreateUseCase(projects, members, tracks, users)
+            .execute(new TrackCreateRequest(10L, 2L, "내 레이어", selected, 1));
+
+        assertThat(response.instrument()).isEqualTo(selected);
+        assertThat(teammate.getInstrument()).isEqualTo(existing);
+        verify(tracks).save(any(ProjectTrack.class));
     }
 }

@@ -50,7 +50,6 @@ public class ProjectExceptionHandler {
                     EDITOR_DRAFT_BASE_CHANGED,
                     PROJECT_NOT_PUBLIC,
                     TRACK_INSTRUMENT_NOT_SET,
-                    INSTRUMENT_FAMILY_TAKEN,
                     TRACK_LIMIT_EXCEEDED,
                     TRACK_HAS_PENDING_CONTRIBUTION,
                     CONTRIBUTION_ALREADY_PENDING,

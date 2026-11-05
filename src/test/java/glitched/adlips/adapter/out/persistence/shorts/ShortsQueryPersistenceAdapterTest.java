@@ -76,6 +76,17 @@ class ShortsQueryPersistenceAdapterTest {
         assertThat(items).extracting(ShortsQueryItem::shortId).containsExactly(12L, 11L);
     }
 
+    @Test
+    void searchMatchesTitleAndAuthorWithoutExposingHiddenShorts() {
+        assertThat(adapter.searchByCursor("멜로디", null, 20, null))
+                .extracting(ShortsQueryItem::shortId).containsExactly(12L);
+        assertThat(adapter.searchByCursor("GUITAR_MOON", 12L, 20, 99L))
+                .extracting(ShortsQueryItem::shortId).containsExactly(11L);
+        assertThat(adapter.searchByCursor("%", null, 20, null)).isEmpty();
+        assertThat(adapter.searchByCursor("비공개", null, 20, null)).isEmpty();
+        assertThat(adapter.searchByCursor("삭제됨", null, 20, null)).isEmpty();
+    }
+
     private void insertFixture() {
         jdbcTemplate.update("INSERT INTO users (id, email, role, created_at) VALUES (99, 'viewer@test.com', 'USER', CURRENT_TIMESTAMP)");
         jdbcTemplate.update("INSERT INTO users (id, email, role, created_at) VALUES (123, 'author@test.com', 'USER', CURRENT_TIMESTAMP)");

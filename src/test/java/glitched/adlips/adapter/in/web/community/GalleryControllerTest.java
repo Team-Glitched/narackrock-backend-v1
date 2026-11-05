@@ -14,6 +14,7 @@ import glitched.adlips.adapter.out.token.JwtTokenIssuerAdapter;
 import glitched.adlips.application.community.GalleryApplicationException;
 import glitched.adlips.application.community.GalleryErrorCode;
 import glitched.adlips.application.community.GetGalleriesUseCase;
+import glitched.adlips.application.community.GetManageableGalleriesUseCase;
 import glitched.adlips.application.community.GetSubscribedGalleriesUseCase;
 import glitched.adlips.application.community.SubscribeGalleryUseCase;
 import glitched.adlips.application.community.UnsubscribeGalleryUseCase;
@@ -38,6 +39,7 @@ class GalleryControllerTest {
     @Autowired JwtTokenIssuerAdapter jwtTokenIssuerAdapter;
 
     @MockitoBean GetGalleriesUseCase getGalleriesUseCase;
+    @MockitoBean GetManageableGalleriesUseCase getManageableGalleriesUseCase;
     @MockitoBean GetSubscribedGalleriesUseCase getSubscribedGalleriesUseCase;
     @MockitoBean SubscribeGalleryUseCase subscribeGalleryUseCase;
     @MockitoBean UnsubscribeGalleryUseCase unsubscribeGalleryUseCase;
@@ -51,6 +53,17 @@ class GalleryControllerTest {
         validToken = jwtTokenIssuerAdapter.issue(1L);
         when(accessTokenPort.verify(validToken)).thenReturn(1L);
         when(authenticatedUserResolver.requireUserId("Bearer " + validToken)).thenReturn(1L);
+    }
+
+    @Test
+    void manageableGalleriesRequireAuthenticationAndUseCallerIdentity() throws Exception {
+        mockMvc.perform(get("/api/v1/galleries/manageable"))
+                .andExpect(status().isUnauthorized());
+
+        when(getManageableGalleriesUseCase.execute(1L)).thenReturn(List.of(sampleItem()));
+        mockMvc.perform(get("/api/v1/galleries/manageable").header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].galleryId").value(1));
     }
 
     @Test

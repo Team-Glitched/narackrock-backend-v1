@@ -9,6 +9,8 @@ import glitched.adlips.domain.project.*;
 import glitched.adlips.domain.user.User;
 import java.util.*;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 class TrackInstrumentUpdateUseCaseTest {
     final User owner=User.create("owner@example.com").withId(1L);
@@ -35,12 +37,40 @@ class TrackInstrumentUpdateUseCaseTest {
         assertThat(clip.getMidiNotes()).containsExactly(note);assertThat(track.getMediaFileId()).isNull();
         verify(exports).save(any(ProjectExport.class));
     }
-    @Test void rejectsTeammatesFamilyEvenWhenToneDiffers(){
-        var other=new ProjectTrack(project,User.create("other@example.com").withId(2L),"기타","electric-guitar",1);
+    @ParameterizedTest
+    @CsvSource({
+        "electric-guitar, electric-guitar",
+        "electric-guitar, distortion-guitar",
+        "nylon-guitar, acoustic-guitar",
+        "vocal, vocal",
+        "vocal, backing-vocal",
+        "backing-vocal, rap"
+    })
+    void allowsChangingToATeammatesInstrumentFamily(String existing, String selected){
+        var other=new ProjectTrack(project,User.create("other@example.com").withId(2L),"팀원 레이어",existing,1);
         when(tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of(track,other));
-        assertThatThrownBy(()->useCase.execute(10L,20L,1L,"distortion-guitar")).isInstanceOf(ProjectApplicationException.class).hasMessageContaining("이미");
-        assertThat(track.getInstrument()).isEqualTo("piano");
-        useCase.execute(10L,20L,1L,"acoustic-guitar");assertThat(track.getInstrument()).isEqualTo("acoustic-guitar");
+
+        assertThat(useCase.execute(10L,20L,1L,selected)).isEqualTo(selected);
+        assertThat(track.getInstrument()).isEqualTo(selected);
+        assertThat(other.getInstrument()).isEqualTo(existing);
+    }
+    @Test void sharingAGuitarPreservesSavedNotesAndPrivateDrafts(){
+        var other=new ProjectTrack(project,User.create("other@example.com").withId(2L),"리듬 기타","electric-guitar",1);
+        when(tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of(track,other));
+        var note=new MidiNote(60,0,480,90,null,Map.of());
+        var clip=ProjectClip.createMidi(project,track,owner,0,480,List.of(note),0);
+        when(clips.findByTrackIdAndIsDeletedFalseOrderByStartTickAscIdAsc(20L)).thenReturn(List.of(clip));
+        var draftNote=new MidiNote(64,480,240,100,null,Map.of());
+        var draft=EditorDraft.create(UUID.randomUUID(),1L,10L,20L,null,
+                new EditorDraftSnapshot(0,720,List.of(draftNote)),null,UUID.randomUUID(),java.time.Instant.now());
+        when(drafts.findActiveByProjectAndOwner(10L,1L)).thenReturn(List.of(draft));
+
+        useCase.execute(10L,20L,1L,"electric-guitar");
+
+        assertThat(clip.getMidiNotes()).containsExactly(note);
+        assertThat(draft.content().midiNotes()).containsExactly(draftNote);
+        assertThat(draft.status()).isEqualTo(EditorDraft.Status.ACTIVE);
+        verify(drafts,never()).save(any());
     }
     @Test void preventsOtherUserAndPendingTrackAndCompletedProjectChanges(){
         assertThatThrownBy(()->useCase.execute(10L,20L,2L,"organ")).isInstanceOf(ProjectApplicationException.class);

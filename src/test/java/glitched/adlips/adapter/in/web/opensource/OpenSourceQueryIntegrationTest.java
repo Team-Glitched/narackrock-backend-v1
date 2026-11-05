@@ -79,7 +79,7 @@ class OpenSourceQueryIntegrationTest {
         assertThat(data.get("writer").get("profileImageUrl").isNull()).isTrue();
         assertThat(data.get("thumbnailUrl").asText()).isEqualTo("http://local/thumb.png");
         assertThat(data.toString()).doesNotContain("private.wav","secret/","mediaFileId");
-        assertThat(data.get("usageCount").asLong()).isZero();
+        assertThat(data.get("usageCount").isNull()).isTrue();
         assertThat(data.get("isLiked").asBoolean()).isFalse();
         for(long id:List.of(96204L,96205L,96206L,96299L)) assertThat(get("/api/v1/open-sources/"+id,96001L).status()).isEqualTo(404);
     }

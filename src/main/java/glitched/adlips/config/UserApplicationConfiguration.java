@@ -28,6 +28,8 @@ import glitched.adlips.application.user.relation.port.out.FollowRequestPort;
 import glitched.adlips.application.user.relation.usecase.FollowRequestUseCase;
 import glitched.adlips.application.user.relation.port.out.ChatMessagePort;
 import glitched.adlips.application.user.relation.usecase.DirectChatUseCase;
+import glitched.adlips.application.user.profile.port.out.ProfileFeaturedShortPort;
+import glitched.adlips.application.user.profile.usecase.ProfileFeaturedShortUseCase;
 import glitched.adlips.application.user.profile.usecase.ProfilePrivacyUpdateUseCase;
 import glitched.adlips.application.user.relation.port.out.ProfileQueryPort;
 import glitched.adlips.application.user.relation.usecase.FollowCancelUseCase;
@@ -250,6 +252,12 @@ public class UserApplicationConfiguration {
     FollowRequestUseCase followRequestUseCase(FollowRequestPort requests, FollowRepositoryPort follows,
             ProfileRepositoryPort profiles, FollowCreateUseCase createFollow, TransactionRunner transactionRunner) {
         return new FollowRequestUseCase(requests, follows, profiles, createFollow, transactionRunner);
+    }
+
+    @Bean
+    ProfileFeaturedShortUseCase profileFeaturedShortUseCase(ProfileFeaturedShortPort featuredShorts,
+            TransactionRunner transactionRunner) {
+        return new ProfileFeaturedShortUseCase(featuredShorts, transactionRunner);
     }
 
     @Bean

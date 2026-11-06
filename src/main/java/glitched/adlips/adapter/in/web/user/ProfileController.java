@@ -16,9 +16,12 @@ import glitched.adlips.application.user.profile.usecase.ProfileImageUpdateUseCas
 import glitched.adlips.application.user.profile.usecase.ProfileShareUseCase;
 import glitched.adlips.application.user.profile.usecase.ProfileUpdateUseCase;
 import glitched.adlips.application.user.profile.usecase.ProfilePrivacyUpdateUseCase;
+import glitched.adlips.application.user.profile.usecase.ProfileFeaturedShortUseCase;
 import java.io.IOException;
 import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -38,6 +41,7 @@ public class ProfileController {
     private final ProfilePrivacyUpdateUseCase profilePrivacyUpdateUseCase;
     private final ProfileImageUpdateUseCase profileImageUpdateUseCase;
     private final ProfileShareUseCase profileShareUseCase;
+    private final ProfileFeaturedShortUseCase profileFeaturedShortUseCase;
     private final AuthenticatedUserResolver authenticatedUserResolver;
 
     public ProfileController(
@@ -46,6 +50,7 @@ public class ProfileController {
             ProfilePrivacyUpdateUseCase profilePrivacyUpdateUseCase,
             ProfileImageUpdateUseCase profileImageUpdateUseCase,
             ProfileShareUseCase profileShareUseCase,
+            ProfileFeaturedShortUseCase profileFeaturedShortUseCase,
             AuthenticatedUserResolver authenticatedUserResolver
     ) {
         this.profileGetUseCase = profileGetUseCase;
@@ -53,6 +58,7 @@ public class ProfileController {
         this.profilePrivacyUpdateUseCase = profilePrivacyUpdateUseCase;
         this.profileImageUpdateUseCase = profileImageUpdateUseCase;
         this.profileShareUseCase = profileShareUseCase;
+        this.profileFeaturedShortUseCase = profileFeaturedShortUseCase;
         this.authenticatedUserResolver = authenticatedUserResolver;
     }
 
@@ -63,6 +69,19 @@ public class ProfileController {
             @RequestBody ProfilePrivacyRequest request) {
         Long userId = authenticatedUserResolver.requireUserId(authorization);
         return ApiResponse.success("프로필 공개 설정이 변경되었습니다.", new ProfilePrivacyRequest(profilePrivacyUpdateUseCase.execute(userId, request.isPrivate())));
+    }
+
+    @PutMapping("/me/profile/featured-music/{shortId}")
+    public ApiResponse<Void> setFeaturedMusic(@RequestHeader("Authorization") String authorization,
+            @PathVariable Long shortId) {
+        profileFeaturedShortUseCase.execute(authenticatedUserResolver.requireUserId(authorization), shortId);
+        return ApiResponse.success("대표 음악을 설정했습니다.");
+    }
+
+    @DeleteMapping("/me/profile/featured-music")
+    public ApiResponse<Void> clearFeaturedMusic(@RequestHeader("Authorization") String authorization) {
+        profileFeaturedShortUseCase.execute(authenticatedUserResolver.requireUserId(authorization), null);
+        return ApiResponse.success("대표 음악 설정을 해제했습니다.");
     }
 
     @GetMapping("/profiles/{userId}")

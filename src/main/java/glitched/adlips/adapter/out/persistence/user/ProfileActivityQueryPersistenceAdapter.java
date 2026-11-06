@@ -2,13 +2,14 @@ package glitched.adlips.adapter.out.persistence.user;
 
 import glitched.adlips.application.user.profile.dto.response.UserProfileGetResponse;
 import glitched.adlips.application.user.profile.port.out.ProfileActivityQueryPort;
+import glitched.adlips.application.user.profile.port.out.ProfileFeaturedShortPort;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import java.util.List;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public class ProfileActivityQueryPersistenceAdapter implements ProfileActivityQueryPort {
+public class ProfileActivityQueryPersistenceAdapter implements ProfileActivityQueryPort, ProfileFeaturedShortPort {
     private static final int PROFILE_ACTIVITY_LIMIT = 6;
 
     private final EntityManager entityManager;
@@ -25,6 +26,41 @@ public class ProfileActivityQueryPersistenceAdapter implements ProfileActivityQu
                 participatedShorts(userId),
                 pinnedShorts(userId)
         );
+    }
+
+    @Override
+    public boolean replaceFeaturedShort(Long userId, Long shortId) {
+        // Serialize edits even when the profile has no pinned songs yet.
+        entityManager.createNativeQuery("SELECT id FROM users WHERE id = :userId FOR UPDATE")
+                .setParameter("userId", userId)
+                .getSingleResult();
+
+        if (shortId != null && entityManager.createNativeQuery("""
+                SELECT id FROM shorts
+                 WHERE id = :shortId AND user_id = :userId
+                   AND status = 'COMPLETED' AND deleted_at IS NULL
+                 FOR UPDATE
+                """)
+                .setParameter("shortId", shortId)
+                .setParameter("userId", userId)
+                .getResultList().isEmpty()) {
+            return false;
+        }
+
+        entityManager.createNativeQuery("DELETE FROM profile_pinned_shorts WHERE user_id = :userId")
+                .setParameter("userId", userId)
+                .executeUpdate();
+
+        if (shortId != null) {
+            entityManager.createNativeQuery("""
+                    INSERT INTO profile_pinned_shorts (user_id, shorts_id, display_order, created_at)
+                    VALUES (:userId, :shortId, 0, CURRENT_TIMESTAMP)
+                    """)
+                    .setParameter("userId", userId)
+                    .setParameter("shortId", shortId)
+                    .executeUpdate();
+        }
+        return true;
     }
 
     private int postCount(Long userId) {

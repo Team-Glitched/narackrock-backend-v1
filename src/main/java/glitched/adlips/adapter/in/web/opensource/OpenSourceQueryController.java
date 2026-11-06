@@ -20,14 +20,14 @@ public class OpenSourceQueryController {
     public record Writer(Long userId, String nickname, String profileImageUrl) {}
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public record Summary(Long openSourceId, String title, String description, String thumbnailUrl, Writer writer,
-            long usageCount, boolean isSaved, boolean isLiked, boolean isDisliked,
+            Long usageCount, boolean isSaved, boolean isLiked, boolean isDisliked,
             long likeCount, long dislikeCount, long commentCount, Instant createdAt) {
         static Summary from(OpenSourceQueryPort.Item item) {
             var writer = item.writer();
-            // Usage remains zero until successful composition insertion is implemented.
+            // Usage is unavailable until project insertion can be tracked.
             return new Summary(item.openSourceId(), item.title(), item.description(), item.thumbnailUrl(),
                     new Writer(writer.userId(), writer.nickname(), writer.profileImageUrl()),
-                    0, item.isSaved(), item.isLiked(), item.isDisliked(), item.likeCount(), item.dislikeCount(), item.commentCount(), item.createdAt());
+                    null, item.isSaved(), item.isLiked(), item.isDisliked(), item.likeCount(), item.dislikeCount(), item.commentCount(), item.createdAt());
         }
     }
     @JsonInclude(JsonInclude.Include.ALWAYS)

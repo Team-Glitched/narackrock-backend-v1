@@ -79,6 +79,20 @@ public class ShortsController {
                 "숏폼 목록 조회가 완료되었습니다.", ShortsResponse.from(page)));
     }
 
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<ShortsResponse>> search(
+            @RequestParam String keyword,
+            @RequestParam(required = false) Long cursor,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestHeader(value = "Authorization", required = false) String authorization
+    ) {
+        int clampedSize = Math.min(Math.max(size, 1), MAX_PAGE_SIZE);
+        Long userId = authenticatedUserResolver.resolveOptionalUserId(authorization);
+        return ResponseEntity.ok(ApiResponse.success(
+                "숏폼 검색이 완료되었습니다.",
+                ShortsResponse.from(getShortsUseCase.search(keyword, cursor, clampedSize, userId))));
+    }
+
     @GetMapping("/{shortId}")
     public ResponseEntity<ApiResponse<ShortsResponse.ShortItem>> getShort(
             @PathVariable Long shortId,

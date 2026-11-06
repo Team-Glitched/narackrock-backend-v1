@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import glitched.adlips.application.project.port.out.MidiAudioRendererPort;
 import glitched.adlips.domain.project.MidiNote;
+import java.io.BufferedInputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -29,8 +30,24 @@ public class SampledMidiAudioRendererAdapter implements MidiAudioRendererPort {
     private static final int DRUM_FRAMES = OUTPUT_RATE * 145 / 100;
     private static final String RESOURCE_ROOT = "audio/instruments/";
 
-    private final Map<String, Instrument> instruments = loadInstruments();
+    private final ResourceOpener resources;
+    private final Map<String, Instrument> instruments;
     private final Map<String, short[]> sampleCache = new ConcurrentHashMap<>();
+
+    /** Opens a classpath-relative resource, returning null when it does not exist. */
+    @FunctionalInterface
+    interface ResourceOpener {
+        InputStream open(String path) throws IOException;
+    }
+
+    public SampledMidiAudioRendererAdapter() {
+        this(path -> SampledMidiAudioRendererAdapter.class.getClassLoader().getResourceAsStream(path));
+    }
+
+    SampledMidiAudioRendererAdapter(ResourceOpener resources) {
+        this.resources = resources;
+        this.instruments = loadInstruments();
+    }
 
     @Override
     public byte[] render(String instrumentId, List<MidiNote> notes, int bpm, int ppq, int durationMs) {
@@ -89,11 +106,13 @@ public class SampledMidiAudioRendererAdapter implements MidiAudioRendererPort {
 
     private short[] loadSample(String key) {
         String path = RESOURCE_ROOT + key + ".wav";
-        try (InputStream resource = getClass().getClassLoader().getResourceAsStream(path)) {
+        try (InputStream resource = resources.open(path)) {
             if (resource == null) {
                 throw new IllegalStateException("악기 샘플이 없습니다: " + path);
             }
-            try (AudioInputStream wave = AudioSystem.getAudioInputStream(resource)) {
+            // AudioSystem rewinds after sniffing the header. Packaged-jar entries are inflater streams without
+            // mark/reset (filesystem resources are already buffered), so buffer them to read the same way in both.
+            try (AudioInputStream wave = AudioSystem.getAudioInputStream(new BufferedInputStream(resource))) {
                 AudioFormat format = wave.getFormat();
                 if (format.getSampleRate() != SOURCE_RATE || format.getChannels() != 1
                         || format.getSampleSizeInBits() != 16 || format.isBigEndian()) {
@@ -112,7 +131,7 @@ public class SampledMidiAudioRendererAdapter implements MidiAudioRendererPort {
     }
 
     private Map<String, Instrument> loadInstruments() {
-        try (InputStream input = getClass().getClassLoader().getResourceAsStream(RESOURCE_ROOT + "manifest.json")) {
+        try (InputStream input = resources.open(RESOURCE_ROOT + "manifest.json")) {
             if (input == null) {
                 throw new IllegalStateException("악기 목록이 없습니다.");
             }

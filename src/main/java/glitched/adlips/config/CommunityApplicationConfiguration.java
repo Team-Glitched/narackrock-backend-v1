@@ -5,6 +5,7 @@ import glitched.adlips.application.community.CreatePostUseCase;
 import glitched.adlips.application.community.DeletePostCommentUseCase;
 import glitched.adlips.application.community.DeletePostUseCase;
 import glitched.adlips.application.community.GetGalleriesUseCase;
+import glitched.adlips.application.community.GetManageableGalleriesUseCase;
 import glitched.adlips.application.community.GetGalleryBansUseCase;
 import glitched.adlips.application.community.GetGalleryModerationLogsUseCase;
 import glitched.adlips.application.community.GetMyGalleryProposalsUseCase;
@@ -253,6 +254,13 @@ public class CommunityApplicationConfiguration {
                 mediaFileRepository,
                 transactionRunner,
                 clock);
+    }
+
+    @Bean
+    GetManageableGalleriesUseCase getManageableGalleriesUseCase(
+            GalleryQueryPort galleries, UserBanQueryPort bans, TransactionRunner transactions, Clock clock
+    ) {
+        return new GetManageableGalleriesUseCase(galleries, bans, transactions, clock);
     }
 
     @Bean

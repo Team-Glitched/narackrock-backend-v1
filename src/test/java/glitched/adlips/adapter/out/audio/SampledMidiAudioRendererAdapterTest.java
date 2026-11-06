@@ -4,6 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import glitched.adlips.domain.project.MidiNote;
 import java.io.ByteArrayInputStream;
+import java.io.FilterInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import javax.sound.sampled.AudioSystem;
@@ -43,6 +46,39 @@ class SampledMidiAudioRendererAdapterTest {
 
         try (var stream = AudioSystem.getAudioInputStream(new ByteArrayInputStream(wave))) {
             assertThat(stream.getFrameLength()).isEqualTo(88_200);
+            assertThat(stream.readAllBytes()).containsAnyOf((byte) 1, (byte) 2, (byte) -1);
+        }
+    }
+
+    /**
+     * Entries inside the packaged boot jar are inflater streams without mark/reset; AudioSystem rewinds after sniffing
+     * the header, so every export with a MIDI track failed in production while filesystem runs passed.
+     */
+    @Test
+    void readsSamplesFromStreamsThatCannotRewindLikePackagedJarEntries() throws Exception {
+        SampledMidiAudioRendererAdapter.ResourceOpener jarLike = path -> {
+            InputStream stream = SampledMidiAudioRendererAdapter.class.getClassLoader().getResourceAsStream(path);
+            return stream == null ? null : new FilterInputStream(stream) {
+                @Override
+                public boolean markSupported() {
+                    return false;
+                }
+
+                @Override
+                public synchronized void mark(int readLimit) {
+                }
+
+                @Override
+                public synchronized void reset() throws IOException {
+                    throw new IOException("mark/reset not supported");
+                }
+            };
+        };
+
+        byte[] wave = new SampledMidiAudioRendererAdapter(jarLike).render("marimba",
+                List.of(new MidiNote(84, 0, 480, 100, null, Map.of())), 120, 480, 1_000);
+
+        try (var stream = AudioSystem.getAudioInputStream(new ByteArrayInputStream(wave))) {
             assertThat(stream.readAllBytes()).containsAnyOf((byte) 1, (byte) 2, (byte) -1);
         }
     }

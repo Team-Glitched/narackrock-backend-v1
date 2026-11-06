@@ -8,6 +8,7 @@ import glitched.adlips.adapter.in.web.dto.GalleryListItemResponse;
 import glitched.adlips.adapter.in.web.dto.GallerySubscriptionResponse;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.application.community.GetGalleriesUseCase;
+import glitched.adlips.application.community.GetManageableGalleriesUseCase;
 import glitched.adlips.application.community.GetSubscribedGalleriesUseCase;
 import glitched.adlips.application.community.SubscribeGalleryUseCase;
 import glitched.adlips.application.community.UnsubscribeGalleryUseCase;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class GalleryController {
 
     private final GetGalleriesUseCase getGalleriesUseCase;
+    private final GetManageableGalleriesUseCase getManageableGalleriesUseCase;
     private final GetSubscribedGalleriesUseCase getSubscribedGalleriesUseCase;
     private final SubscribeGalleryUseCase subscribeGalleryUseCase;
     private final UnsubscribeGalleryUseCase unsubscribeGalleryUseCase;
@@ -36,12 +38,14 @@ public class GalleryController {
 
     public GalleryController(
             GetGalleriesUseCase getGalleriesUseCase,
+            GetManageableGalleriesUseCase getManageableGalleriesUseCase,
             GetSubscribedGalleriesUseCase getSubscribedGalleriesUseCase,
             SubscribeGalleryUseCase subscribeGalleryUseCase,
             UnsubscribeGalleryUseCase unsubscribeGalleryUseCase,
             AuthenticatedUserResolver authenticatedUserResolver
     ) {
         this.getGalleriesUseCase = getGalleriesUseCase;
+        this.getManageableGalleriesUseCase = getManageableGalleriesUseCase;
         this.getSubscribedGalleriesUseCase = getSubscribedGalleriesUseCase;
         this.subscribeGalleryUseCase = subscribeGalleryUseCase;
         this.unsubscribeGalleryUseCase = unsubscribeGalleryUseCase;
@@ -53,6 +57,17 @@ public class GalleryController {
         List<GalleryQueryItem> items = getGalleriesUseCase.execute();
         return ResponseEntity.ok(ApiResponse.success(
                 "갤러리 목록 조회가 완료되었습니다.", toResponses(items)));
+    }
+
+    @SecurityRequirement(name = "bearerAuth")
+    @GetMapping("/manageable")
+    public ResponseEntity<ApiResponse<List<GalleryListItemResponse>>> getManageableGalleries(
+            @RequestHeader("Authorization") String authorization
+    ) {
+        Long userId = authenticatedUserResolver.requireUserId(authorization);
+        return ResponseEntity.ok(ApiResponse.success(
+                "관리 가능한 갤러리 목록 조회가 완료되었습니다.",
+                toResponses(getManageableGalleriesUseCase.execute(userId))));
     }
 
     @SecurityRequirement(name = "bearerAuth")

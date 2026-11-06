@@ -13,6 +13,8 @@ public interface ShortsQueryPort {
             Long currentUserId
     );
 
+    List<ShortsQueryItem> searchByCursor(String keyword, Long cursor, int limit, Long currentUserId);
+
     List<ShortsParticipantQueryItem> findParticipants(List<Long> shortIds);
 
     List<ShortsQueryItem> findByIds(List<Long> shortIds, Long currentUserId);

@@ -105,6 +105,19 @@ class GalleryQueryPersistenceAdapterTest {
         assertThat(adapter.findSubscribedGalleries(99L)).isEmpty();
     }
 
+    @Test
+    void manageableListIncludesOnlyAssignmentsUnlessUserIsAnActiveAdmin() {
+        jdbcTemplate.update("INSERT INTO gallery_managers (gallery_id, user_id, role, created_at) VALUES (20, 1, 'MANAGER', CURRENT_TIMESTAMP)");
+        jdbcTemplate.update("UPDATE users SET role = 'ADMIN' WHERE id IN (2, 3)");
+        jdbcTemplate.update("UPDATE users SET deleted_at = CURRENT_TIMESTAMP WHERE id = 3");
+
+        assertThat(adapter.findManageableGalleries(1L)).extracting(GalleryQueryItem::galleryId)
+                .containsExactly(20L);
+        assertThat(adapter.findManageableGalleries(2L)).extracting(GalleryQueryItem::galleryId)
+                .containsExactly(10L, 30L, 20L);
+        assertThat(adapter.findManageableGalleries(3L)).isEmpty();
+    }
+
     private void insertUser(long id, String email) {
         jdbcTemplate.update(
                 "INSERT INTO users (id, email, role, created_at) VALUES (?, ?, 'USER', CURRENT_TIMESTAMP)",

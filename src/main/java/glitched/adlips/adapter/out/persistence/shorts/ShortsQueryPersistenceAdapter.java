@@ -134,6 +134,21 @@ public class ShortsQueryPersistenceAdapter implements ShortsQueryPort {
     }
 
     @Override
+    public List<ShortsQueryItem> searchByCursor(String keyword, Long cursor, int limit, Long currentUserId) {
+        String cursorCondition = cursor == null ? "" : " AND s.id < :cursor";
+        Query query = entityManager.createNativeQuery(selectSql(currentUserId)
+                + " AND POSITION(LOWER(:keyword) IN LOWER(CONCAT(s.title, ' ', p.nickname))) > 0"
+                + cursorCondition + " ORDER BY s.id DESC")
+                .setParameter("keyword", keyword)
+                .setMaxResults(limit);
+        if (cursor != null) query.setParameter("cursor", cursor);
+        setCurrentUser(query, currentUserId);
+        @SuppressWarnings("unchecked")
+        List<Object[]> rows = query.getResultList();
+        return rows.stream().map(this::toShortsQueryItem).toList();
+    }
+
+    @Override
     public List<ShortsParticipantQueryItem> findParticipants(List<Long> shortIds) {
         if (shortIds.isEmpty()) {
             return List.of();

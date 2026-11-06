@@ -30,6 +30,16 @@ public class GetShortsUseCase {
     ) {
         List<ShortsQueryItem> fetched = shortsQueryPort.findByCursor(
                 cursor, source, status, size + 1, currentUserId);
+        return toPage(fetched, size);
+    }
+
+    public ShortsPage search(String keyword, Long cursor, int size, Long currentUserId) {
+        String term = keyword.strip();
+        if (term.isEmpty()) return new ShortsPage(List.of(), null, false, size);
+        return toPage(shortsQueryPort.searchByCursor(term, cursor, size + 1, currentUserId), size);
+    }
+
+    private ShortsPage toPage(List<ShortsQueryItem> fetched, int size) {
         boolean hasMore = fetched.size() > size;
         List<ShortsQueryItem> visibleItems = hasMore ? fetched.subList(0, size) : fetched;
 

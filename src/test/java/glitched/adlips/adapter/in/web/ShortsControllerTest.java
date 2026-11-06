@@ -55,6 +55,16 @@ class ShortsControllerTest {
     }
 
     @Test
+    void publicSearchReturnsMatchingPageAndCursor() throws Exception {
+        when(getShortsUseCase.search("멜로디", 20L, 20, null)).thenReturn(singleItemPage());
+
+        mockMvc.perform(get("/api/v1/shorts/search").param("keyword", "멜로디").param("cursor", "20"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[0].shortId").value(12))
+                .andExpect(jsonPath("$.data.page.nextCursor").value(12));
+    }
+
+    @Test
     void 상태_파라미터가_없으면_공개된_전체_숏폼을_조회한다() throws Exception {
         mockMvc.perform(get("/api/v1/shorts"))
                 .andExpect(status().isOk());

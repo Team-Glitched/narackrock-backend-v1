@@ -51,6 +51,20 @@ public class GalleryQueryPersistenceAdapter implements GalleryQueryPort {
         return toQueryItems(query);
     }
 
+    @Override
+    public List<GalleryQueryItem> findManageableGalleries(Long userId) {
+        Query query = entityManager.createNativeQuery(
+                SELECT_GALLERY + """
+                    JOIN users u ON u.id = :userId AND u.deleted_at IS NULL
+               LEFT JOIN gallery_subs s ON s.gallery_id = g.id
+                   WHERE u.role = 'ADMIN' OR EXISTS (
+                       SELECT 1 FROM gallery_managers gm
+                        WHERE gm.user_id = u.id AND gm.gallery_id = g.id AND gm.role = 'MANAGER'
+                   )
+                """ + GROUP_AND_ORDER).setParameter("userId", userId);
+        return toQueryItems(query);
+    }
+
     private List<GalleryQueryItem> toQueryItems(Query query) {
         @SuppressWarnings("unchecked")
         List<Object[]> rows = query.getResultList();

@@ -3,6 +3,7 @@ package glitched.adlips.config;
 import glitched.adlips.adapter.out.hti.HtiMidiRestAdapter;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.media.port.out.MediaContentStoragePort;
+import glitched.adlips.application.opensource.OpenSourceMediaPort;
 import glitched.adlips.application.project.port.out.ProjectAudioMixerPort;
 import glitched.adlips.application.project.port.out.EditorDraftRepositoryPort;
 import glitched.adlips.application.project.usecase.EditorDraftUseCase;
@@ -21,6 +22,7 @@ import glitched.adlips.application.project.usecase.AudioClipCreateUseCase;
 import glitched.adlips.application.project.usecase.HtiMidiTransformUseCase;
 import glitched.adlips.application.project.usecase.MidiClipCreateUseCase;
 import glitched.adlips.application.project.usecase.MidiClipSaveUseCase;
+import glitched.adlips.application.project.usecase.OpenSourceClipCreateUseCase;
 import glitched.adlips.application.project.usecase.ProjectContributionCreateUseCase;
 import glitched.adlips.application.project.usecase.ProjectContributionGetListUseCase;
 import glitched.adlips.application.project.usecase.ProjectContributionNotificationUseCase;
@@ -238,6 +240,21 @@ public class ProjectApplicationConfiguration {
             TransactionRunner transactionRunner
     ) {
         return new AudioClipCreateUseCase(projects, members, tracks, clips, users, mediaFiles, transactionRunner);
+    }
+
+    @Bean
+    OpenSourceClipCreateUseCase openSourceClipCreateUseCase(
+            ProjectRepositoryPort projects,
+            ProjectMemberRepositoryPort members,
+            ProjectTrackRepositoryPort tracks,
+            ProjectClipRepositoryPort clips,
+            UserRepositoryPort users,
+            MediaFileRepositoryPort mediaFiles,
+            OpenSourceMediaPort openSources,
+            TransactionRunner transactionRunner
+    ) {
+        return new OpenSourceClipCreateUseCase(
+                projects, members, tracks, clips, users, mediaFiles, openSources, transactionRunner);
     }
 
     @Bean

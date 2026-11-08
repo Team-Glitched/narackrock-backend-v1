@@ -1,5 +1,8 @@
 package glitched.adlips.application.project.usecase;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectContributionItemRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectContributionRepositoryPort;
@@ -28,6 +31,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 public class ProjectContributionCreateUseCase {
+    private final NotificationEvents notifications;
     private final ProjectRepositoryPort projects;
     private final ProjectMemberRepositoryPort members;
     private final ProjectContributionRepositoryPort contributions;
@@ -57,6 +61,17 @@ public class ProjectContributionCreateUseCase {
             ProjectClipRepositoryPort clips,
             UserRepositoryPort users,
             TransactionRunner transactionRunner) {
+        this(projects, members, contributions, contributionItems, tracks, clips, users, transactionRunner, NotificationEvents.none());
+    }
+
+    public ProjectContributionCreateUseCase(ProjectRepositoryPort projects,
+            ProjectMemberRepositoryPort members,
+            ProjectContributionRepositoryPort contributions,
+            ProjectContributionItemRepositoryPort contributionItems,
+            ProjectTrackRepositoryPort tracks,
+            ProjectClipRepositoryPort clips,
+            UserRepositoryPort users,
+            TransactionRunner transactionRunner, NotificationEvents notifications) {
         this.projects = projects;
         this.members = members;
         this.contributions = contributions;
@@ -65,6 +80,8 @@ public class ProjectContributionCreateUseCase {
         this.clips = clips;
         this.users = users;
         this.transactionRunner = transactionRunner;
+    
+        this.notifications = notifications;
     }
 
     public ProjectContributionCreateResponse execute(ProjectContributionCreateRequest request) {
@@ -117,6 +134,7 @@ public class ProjectContributionCreateUseCase {
         contributionItems.saveAll(savedItems);
         markAddTargetsPending(request.items());
 
+        notifications.record(CONTRIBUTION_CREATED,request.userId(),saved.getId());
         return new ProjectContributionCreateResponse(
                 request.projectId(), saved.getId(),
                 new ProjectVersionResponse(saved.getBaseMajorVersion(), saved.getBaseMinorVersion(),

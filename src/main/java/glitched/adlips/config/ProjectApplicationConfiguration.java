@@ -289,9 +289,9 @@ public class ProjectApplicationConfiguration {
             ProjectClipRepositoryPort clips,
             UserRepositoryPort users,
             TransactionRunner transactionRunner
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new ProjectContributionCreateUseCase(
-                projects, members, contributions, contributionItems, tracks, clips, users, transactionRunner);
+                projects, members, contributions, contributionItems, tracks, clips, users, transactionRunner, notificationEvents);
     }
 
     @Bean
@@ -331,8 +331,8 @@ public class ProjectApplicationConfiguration {
             UserRepositoryPort users,
             ProjectExportRepositoryPort exports,
             TransactionRunner transactionRunner
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new ProjectContributionReviewUseCase(
-                contributions, members, tracks, clips, users, exports, transactionRunner);
+                contributions, members, tracks, clips, users, exports, transactionRunner, notificationEvents);
     }
 }

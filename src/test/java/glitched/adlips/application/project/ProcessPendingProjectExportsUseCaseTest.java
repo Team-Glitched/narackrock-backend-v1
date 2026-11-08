@@ -2,6 +2,8 @@ package glitched.adlips.application.project;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -51,6 +53,7 @@ class ProcessPendingProjectExportsUseCaseTest {
     private final MidiAudioRendererPort midiRenderer = mock(MidiAudioRendererPort.class);
     private final ProjectLayerArchivePort archiver = mock(ProjectLayerArchivePort.class);
     private final PublishedShortPort publishedShorts = mock(PublishedShortPort.class);
+    private final glitched.adlips.application.notification.NotificationEvents notifications = mock(glitched.adlips.application.notification.NotificationEvents.class);
     private final Clock clock = Clock.fixed(Instant.parse("2026-09-14T01:00:00Z"), ZoneOffset.UTC);
 
     private User owner;
@@ -142,10 +145,18 @@ class ProcessPendingProjectExportsUseCaseTest {
         verify(publishedShorts).publish(project, 20L, 801L);
     }
 
+    @Test
+    void refreshingAnExistingPublicSongDoesNotAnnounceANewPublication() {
+        project.publish(java.time.LocalDateTime.now(clock));
+        mixesApprovedAudioAndStoresWaveAndLayerArchive();
+        verify(notifications).record(glitched.adlips.domain.notification.NotificationType.PROJECT_REFRESHED,null,901L,20L,null);
+        verify(notifications,never()).record(eq(glitched.adlips.domain.notification.NotificationType.FOLLOWING_SHORT_PUBLISHED),any(),any());
+    }
+
     private ProcessPendingProjectExportsUseCase useCase() {
         return new ProcessPendingProjectExportsUseCase(
                 exports, tracks, clips, mediaFiles, storage, mixer, midiRenderer, archiver,
-                publishedShorts, clock, 10);
+                publishedShorts, clock, 10, glitched.adlips.application.port.TransactionRunner.direct(), notifications);
     }
 
     private ProjectTrack approvedTrack(Long id, String instrument) {

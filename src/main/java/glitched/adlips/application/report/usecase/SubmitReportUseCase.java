@@ -1,5 +1,8 @@
 package glitched.adlips.application.report.usecase;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.report.port.out.ReportSubmissionPort;
 import glitched.adlips.application.report.port.out.ReportTarget;
@@ -10,6 +13,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 
 public class SubmitReportUseCase {
+    private final NotificationEvents notifications;
 
     private final ReportTargetQueryPort targetQueryPort;
     private final ReportSubmissionPort submissionPort;
@@ -33,11 +37,21 @@ public class SubmitReportUseCase {
             Clock clock,
             TransactionRunner transactionRunner
     ) {
+        this(targetQueryPort, submissionPort, restrictionPort, clock, transactionRunner, NotificationEvents.none());
+    }
+
+    public SubmitReportUseCase(ReportTargetQueryPort targetQueryPort,
+            ReportSubmissionPort submissionPort,
+            ReportUserRestrictionPort restrictionPort,
+            Clock clock,
+            TransactionRunner transactionRunner, NotificationEvents notifications) {
         this.targetQueryPort = targetQueryPort;
         this.submissionPort = submissionPort;
         this.restrictionPort = restrictionPort;
         this.clock = clock;
         this.transactionRunner = transactionRunner;
+    
+        this.notifications = notifications;
     }
 
     public ReportSubmissionResult execute(
@@ -84,6 +98,7 @@ public class SubmitReportUseCase {
                         normalize(description)
                 )
                 .orElseThrow(() -> alreadyReported(targetType));
+        notifications.record(REPORT_CREATED,reporterId,reportId);
         return new ReportSubmissionResult(reportId, targetType, targetId);
     }
 

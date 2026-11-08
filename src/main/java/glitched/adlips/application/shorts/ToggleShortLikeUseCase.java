@@ -1,5 +1,8 @@
 package glitched.adlips.application.shorts;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.shorts.port.out.ShortReactionPort;
 import glitched.adlips.application.shorts.port.out.ShortReactionCountCachePort;
@@ -8,6 +11,7 @@ import glitched.adlips.domain.reaction.ReactionType;
 import java.util.Optional;
 
 public class ToggleShortLikeUseCase {
+    private final NotificationEvents notifications;
 
     private final ShortReactionPort reactionPort;
     private final ShortReactionCountCachePort reactionCountCache;
@@ -20,10 +24,19 @@ public class ToggleShortLikeUseCase {
             ShortPopularityRankingPort popularityRanking,
             TransactionRunner transactionRunner
     ) {
+        this(reactionPort, reactionCountCache, popularityRanking, transactionRunner, NotificationEvents.none());
+    }
+
+    public ToggleShortLikeUseCase(ShortReactionPort reactionPort,
+            ShortReactionCountCachePort reactionCountCache,
+            ShortPopularityRankingPort popularityRanking,
+            TransactionRunner transactionRunner, NotificationEvents notifications) {
         this.reactionPort = reactionPort;
         this.reactionCountCache = reactionCountCache;
         this.popularityRanking = popularityRanking;
         this.transactionRunner = transactionRunner;
+    
+        this.notifications = notifications;
     }
 
     public ShortLikeResult toggle(Long userId, Long shortId) {
@@ -45,6 +58,7 @@ public class ToggleShortLikeUseCase {
                 reactionPort.adjustLikeCount(shortId, +1);
                 isLiked = true;
             }
+            if(isLiked)notifications.record(SHORT_LIKED,userId,shortId);
             return new ShortLikeResult(shortId, isLiked, reactionPort.getLikeCount(shortId));
         });
         reactionCountCache.evict(shortId);

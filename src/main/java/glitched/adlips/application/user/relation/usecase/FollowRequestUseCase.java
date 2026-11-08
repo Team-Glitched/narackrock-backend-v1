@@ -1,5 +1,8 @@
 package glitched.adlips.application.user.relation.usecase;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
@@ -10,6 +13,7 @@ import glitched.adlips.application.user.relation.port.out.FollowRequestPort;
 import java.util.List;
 
 public class FollowRequestUseCase {
+    private final NotificationEvents notifications;
     public record Result(String status, Long requestId) {}
     private final FollowRequestPort requests;
     private final FollowRepositoryPort follows;
@@ -21,7 +25,13 @@ public class FollowRequestUseCase {
         this(requests, follows, profiles, createFollow, TransactionRunner.direct());
     }
     public FollowRequestUseCase(FollowRequestPort requests, FollowRepositoryPort follows, ProfileRepositoryPort profiles, FollowCreateUseCase createFollow, TransactionRunner transactions) {
+        this(requests, follows, profiles, createFollow, transactions, NotificationEvents.none());
+    }
+
+    public FollowRequestUseCase(FollowRequestPort requests, FollowRepositoryPort follows, ProfileRepositoryPort profiles, FollowCreateUseCase createFollow, TransactionRunner transactions, NotificationEvents notifications) {
         this.requests = requests; this.follows = follows; this.profiles = profiles; this.createFollow = createFollow; this.transactions = transactions;
+    
+        this.notifications = notifications;
     }
     public Result follow(Long requesterId, Long targetId) {
         return transactions.required(() -> {
@@ -29,8 +39,10 @@ public class FollowRequestUseCase {
             var profile = profiles.findByUserId(targetId).orElseThrow(() -> error(UserErrorCode.PROFILE_NOT_FOUND, "프로필이 없습니다."));
             if (follows.exists(requesterId, targetId)) throw error(UserErrorCode.ALREADY_FOLLOWING, "이미 팔로우 중입니다.");
             if (requests.exists(requesterId, targetId)) throw error(UserErrorCode.ALREADY_FOLLOWING, "이미 요청했습니다.");
-            if (!profile.isPrivate()) { createFollow.execute(new FollowCreateRequest(requesterId, targetId)); return new Result("FOLLOWING", null); }
-            return new Result("PENDING", requests.create(requesterId, targetId));
+            if (!profile.isPrivate()) { createFollow.execute(new FollowCreateRequest(requesterId, targetId)); notifications.record(FOLLOW_CREATED, requesterId, targetId); return new Result("FOLLOWING", null); }
+            Long requestId=requests.create(requesterId, targetId);
+            notifications.record(FOLLOW_REQUESTED,requesterId,targetId,requestId,null);
+            return new Result("PENDING", requestId);
         });
     }
     public void accept(Long targetId, Long requestId) { review(targetId, requestId, true); }
@@ -39,6 +51,7 @@ public class FollowRequestUseCase {
         transactions.required(() -> {
             var request = requireOwned(targetId, requestId);
             if (accept) createFollow.execute(new FollowCreateRequest(request.requesterId(), targetId));
+            notifications.record(accept?FOLLOW_ACCEPTED:FOLLOW_REJECTED,targetId,request.requesterId(),requestId,null);
             requests.delete(requestId);
             return null;
         });

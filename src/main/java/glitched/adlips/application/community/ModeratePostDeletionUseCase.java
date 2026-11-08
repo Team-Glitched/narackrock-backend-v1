@@ -1,5 +1,8 @@
 package glitched.adlips.application.community;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.community.port.out.GalleryAuthorityPort;
 import glitched.adlips.application.community.port.out.GalleryModerationLogPort;
 import glitched.adlips.application.community.port.out.PostPort;
@@ -11,6 +14,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 
 public class ModeratePostDeletionUseCase {
+    private final NotificationEvents notifications;
 
     private final GalleryAuthorityPort authorityPort;
     private final PostPort postPort;
@@ -25,11 +29,21 @@ public class ModeratePostDeletionUseCase {
             TransactionRunner transactionRunner,
             Clock clock
     ) {
+        this(authorityPort, postPort, logPort, transactionRunner, clock, NotificationEvents.none());
+    }
+
+    public ModeratePostDeletionUseCase(GalleryAuthorityPort authorityPort,
+            PostPort postPort,
+            GalleryModerationLogPort logPort,
+            TransactionRunner transactionRunner,
+            Clock clock, NotificationEvents notifications) {
         this.authorityPort = authorityPort;
         this.postPort = postPort;
         this.logPort = logPort;
         this.transactionRunner = transactionRunner;
         this.clock = clock;
+    
+        this.notifications = notifications;
     }
 
     public void execute(Long actorId, Long galleryId, Long postId, String reason) {
@@ -47,6 +61,7 @@ public class ModeratePostDeletionUseCase {
             postPort.update(post);
             logPort.save(galleryId, actorId, GalleryModerationActionType.DELETE_POST,
                     post.getUserId(), postId, reason.trim());
+            notifications.record(POST_MODERATED,actorId,postId,null,reason);
             return null;
         });
     }

@@ -27,7 +27,7 @@ public class ChatStompAuthenticationInterceptor implements ChannelInterceptor {
             Long userId = users.requireUserId(headers.getFirstNativeHeader("Authorization"));
             headers.setUser(new ChatPrincipal(userId.toString()));
         } else if (headers.getCommand() == StompCommand.SUBSCRIBE) {
-            if (headers.getUser() == null || !"/user/queue/chat".equals(headers.getDestination())) {
+            if (headers.getUser() == null || !("/user/queue/chat".equals(headers.getDestination()) || "/user/queue/notifications".equals(headers.getDestination()))) {
                 throw new AccessDeniedException("채팅 구독 권한이 없습니다.");
             }
         } else if (headers.getCommand() == StompCommand.SEND) {

@@ -19,7 +19,8 @@ class FollowRequestUseCaseTest {
     private final FollowRepositoryPort follows = mock(FollowRepositoryPort.class);
     private final FollowCreateUseCase create = mock(FollowCreateUseCase.class);
     private final ProfileRepositoryPort profiles = mock(ProfileRepositoryPort.class);
-    private final FollowRequestUseCase useCase = new FollowRequestUseCase(requests, follows, profiles, create);
+    private final glitched.adlips.application.notification.NotificationEvents notifications = mock(glitched.adlips.application.notification.NotificationEvents.class);
+    private final FollowRequestUseCase useCase = new FollowRequestUseCase(requests, follows, profiles, create, glitched.adlips.application.port.TransactionRunner.direct(), notifications);
 
     @Test
     void privateProfileRequiresApproval() {
@@ -31,6 +32,8 @@ class FollowRequestUseCaseTest {
         useCase.accept(2L, 10L);
         verify(create).execute(new glitched.adlips.application.user.relation.dto.request.FollowCreateRequest(1L, 2L));
         verify(requests).delete(10L);
+        verify(notifications).record(glitched.adlips.domain.notification.NotificationType.FOLLOW_REQUESTED,1L,2L,10L,null);
+        verify(notifications).record(glitched.adlips.domain.notification.NotificationType.FOLLOW_ACCEPTED,2L,1L,10L,null);
     }
 
     @Test
@@ -46,6 +49,6 @@ class FollowRequestUseCaseTest {
     void anotherUserCannotAcceptRequest() {
         when(requests.find(10L)).thenReturn(new FollowRequestPort.Request(10L, 1L, 2L));
         assertThrows(UserApplicationException.class, () -> useCase.accept(3L, 10L));
-        verifyNoInteractions(create);
+        verifyNoInteractions(create, notifications);
     }
 }

@@ -1,5 +1,8 @@
 package glitched.adlips.application.project.usecase;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectContributionRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectExportRepositoryPort;
@@ -25,6 +28,7 @@ import glitched.adlips.domain.project.Project;
 import java.time.LocalDateTime;
 import java.util.Map;
 public class ProjectContributionReviewUseCase {
+    private final NotificationEvents notifications;
     private final ProjectContributionRepositoryPort contributions;
     private final ProjectMemberRepositoryPort members;
     private final ProjectTrackRepositoryPort tracks;
@@ -51,6 +55,16 @@ public class ProjectContributionReviewUseCase {
             UserRepositoryPort users,
             ProjectExportRepositoryPort exports,
             TransactionRunner transactionRunner) {
+        this(contributions, members, tracks, clips, users, exports, transactionRunner, NotificationEvents.none());
+    }
+
+    public ProjectContributionReviewUseCase(ProjectContributionRepositoryPort contributions,
+            ProjectMemberRepositoryPort members,
+            ProjectTrackRepositoryPort tracks,
+            ProjectClipRepositoryPort clips,
+            UserRepositoryPort users,
+            ProjectExportRepositoryPort exports,
+            TransactionRunner transactionRunner, NotificationEvents notifications) {
         this.contributions = contributions;
         this.members = members;
         this.tracks = tracks;
@@ -58,6 +72,8 @@ public class ProjectContributionReviewUseCase {
         this.users = users;
         this.exports = exports;
         this.transactionRunner = transactionRunner;
+    
+        this.notifications = notifications;
     }
 
     public ProjectContributionReviewResponse execute(ProjectContributionReviewRequest request) {
@@ -95,6 +111,7 @@ public class ProjectContributionReviewUseCase {
             contribution.getItems().forEach(this::applyRejectedItem);
         }
 
+        notifications.record(request.approvalStatus()==ContributionApprovalStatus.APPROVED?CONTRIBUTION_ACCEPTED:CONTRIBUTION_REJECTED,request.userId(),contribution.getId());
         return new ProjectContributionReviewResponse(
                 request.projectId(), request.contributionId(), contribution.getApprovalStatus(),
                 previousVersion, version(project.getMajorVersion(), project.getMinorVersion()),

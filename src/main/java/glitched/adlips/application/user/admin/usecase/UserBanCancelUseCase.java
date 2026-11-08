@@ -1,5 +1,8 @@
 package glitched.adlips.application.user.admin.usecase;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.admin.dto.request.UserBanCancelRequest;
 import glitched.adlips.application.user.admin.dto.response.UserBanCancelResponse;
@@ -14,6 +17,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 
 public class UserBanCancelUseCase {
+    private final NotificationEvents notifications;
 
     private final UserRepositoryPort userRepository;
     private final UserBanRepositoryPort userBanRepository;
@@ -26,10 +30,19 @@ public class UserBanCancelUseCase {
             Clock clock,
             TransactionRunner transactionRunner
     ) {
+        this(userRepository, userBanRepository, clock, transactionRunner, NotificationEvents.none());
+    }
+
+    public UserBanCancelUseCase(UserRepositoryPort userRepository,
+            UserBanRepositoryPort userBanRepository,
+            Clock clock,
+            TransactionRunner transactionRunner, NotificationEvents notifications) {
         this.userRepository = userRepository;
         this.userBanRepository = userBanRepository;
         this.clock = clock;
         this.transactionRunner = transactionRunner;
+    
+        this.notifications = notifications;
     }
 
     public UserBanCancelUseCase(
@@ -69,6 +82,7 @@ public class UserBanCancelUseCase {
 
         userBanRepository.save(activeBan.lift(now));
 
+        notifications.record(USER_BAN_LIFTED,request.adminId(),activeBan.getId());
         return new UserBanCancelResponse(request.userId());
     }
 

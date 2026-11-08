@@ -1,5 +1,8 @@
 package glitched.adlips.application.community;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.community.port.out.PostCommentReactionPort;
 import glitched.adlips.application.community.port.out.ReactionCounts;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
@@ -11,6 +14,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 
 public class TogglePostCommentReactionUseCase {
+    private final NotificationEvents notifications;
 
     private final PostCommentReactionPort reactionPort;
     private final UserBanQueryPort userBanQueryPort;
@@ -34,11 +38,21 @@ public class TogglePostCommentReactionUseCase {
             TransactionRunner transactionRunner,
             Clock clock
     ) {
+        this(reactionPort, userBanQueryPort, galleryBanQueryPort, transactionRunner, clock, NotificationEvents.none());
+    }
+
+    public TogglePostCommentReactionUseCase(PostCommentReactionPort reactionPort,
+            UserBanQueryPort userBanQueryPort,
+            GalleryBanQueryPort galleryBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock, NotificationEvents notifications) {
         this.reactionPort = reactionPort;
         this.userBanQueryPort = userBanQueryPort;
         this.galleryBanQueryPort = galleryBanQueryPort;
         this.transactionRunner = transactionRunner;
         this.clock = clock;
+    
+        this.notifications = notifications;
     }
 
     public PostCommentReactionResult toggle(Long userId, Long commentId, ReactionType requested) {
@@ -65,6 +79,7 @@ public class TogglePostCommentReactionUseCase {
             }
             reactionPort.adjustReactionCounts(commentId, toggle.likeDelta(), toggle.dislikeDelta());
             ReactionCounts counts = reactionPort.findReactionCounts(commentId);
+            if(toggle.result()==ReactionType.LIKE)notifications.record(POST_COMMENT_LIKED,userId,commentId);
             return new PostCommentReactionResult(
                     commentId,
                     toggle.result() == ReactionType.LIKE,

@@ -49,9 +49,9 @@ public class AdminApplicationConfiguration {
             UserRepositoryPort userRepositoryPort,
             TransactionRunner transactionRunner,
             Clock clock
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new ApproveGalleryProposalUseCase(
-                galleryProposalPort, galleryManagementPort, userRepositoryPort, transactionRunner, clock);
+                galleryProposalPort, galleryManagementPort, userRepositoryPort, transactionRunner, clock, notificationEvents);
     }
 
     @Bean
@@ -60,8 +60,8 @@ public class AdminApplicationConfiguration {
             UserRepositoryPort userRepositoryPort,
             TransactionRunner transactionRunner,
             Clock clock
-    ) {
-        return new RejectGalleryProposalUseCase(galleryProposalPort, userRepositoryPort, transactionRunner, clock);
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
+        return new RejectGalleryProposalUseCase(galleryProposalPort, userRepositoryPort, transactionRunner, clock, notificationEvents);
     }
 
     @Bean
@@ -70,9 +70,9 @@ public class AdminApplicationConfiguration {
             UserBanRepositoryPort userBanRepositoryPort,
             Clock clock,
             TransactionRunner transactionRunner
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new UserBanCreateUseCase(
-                userRepositoryPort, userBanRepositoryPort, clock, transactionRunner);
+                userRepositoryPort, userBanRepositoryPort, clock, transactionRunner, notificationEvents);
     }
 
     @Bean
@@ -81,9 +81,9 @@ public class AdminApplicationConfiguration {
             UserBanRepositoryPort userBanRepositoryPort,
             Clock clock,
             TransactionRunner transactionRunner
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new UserBanCancelUseCase(
-                userRepositoryPort, userBanRepositoryPort, clock, transactionRunner);
+                userRepositoryPort, userBanRepositoryPort, clock, transactionRunner, notificationEvents);
     }
 
     @Bean
@@ -94,9 +94,9 @@ public class AdminApplicationConfiguration {
             UserRepositoryPort userRepositoryPort,
             Clock clock,
             TransactionRunner transactionRunner
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new ResolveReportUseCase(reportResolutionPort, reportContentModerationPort, userBanRepositoryPort,
-                userRepositoryPort, clock, transactionRunner);
+                userRepositoryPort, clock, transactionRunner, notificationEvents);
     }
 
     @Bean
@@ -105,8 +105,8 @@ public class AdminApplicationConfiguration {
             UserRepositoryPort userRepositoryPort,
             Clock clock,
             TransactionRunner transactionRunner
-    ) {
-        return new RejectReportUseCase(reportResolutionPort, userRepositoryPort, clock, transactionRunner);
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
+        return new RejectReportUseCase(reportResolutionPort, userRepositoryPort, clock, transactionRunner, notificationEvents);
     }
 
 }

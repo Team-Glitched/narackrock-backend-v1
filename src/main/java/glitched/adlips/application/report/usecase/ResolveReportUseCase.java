@@ -1,5 +1,8 @@
 package glitched.adlips.application.report.usecase;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.report.port.out.ReportContentModerationPort;
 import glitched.adlips.application.report.port.out.ReportResolutionPort;
@@ -17,6 +20,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 
 public class ResolveReportUseCase {
+    private final NotificationEvents notifications;
 
     private final ReportResolutionPort port;
     private final ReportContentModerationPort contentPort;
@@ -33,12 +37,23 @@ public class ResolveReportUseCase {
             Clock clock,
             TransactionRunner transactionRunner
     ) {
+        this(port, contentPort, userBanRepository, userRepository, clock, transactionRunner, NotificationEvents.none());
+    }
+
+    public ResolveReportUseCase(ReportResolutionPort port,
+            ReportContentModerationPort contentPort,
+            UserBanRepositoryPort userBanRepository,
+            UserRepositoryPort userRepository,
+            Clock clock,
+            TransactionRunner transactionRunner, NotificationEvents notifications) {
         this.port = port;
         this.contentPort = contentPort;
         this.userBanRepository = userBanRepository;
         this.userRepository = userRepository;
         this.clock = clock;
         this.transactionRunner = transactionRunner;
+    
+        this.notifications = notifications;
     }
 
     public ReportResolutionResult execute(Long reportId, Long adminUserId, String actionTypeValue, String reason) {
@@ -86,6 +101,9 @@ public class ResolveReportUseCase {
         port.saveModerationAction(new ModerationAction(
                 report, admin, report.getTargetType(), report.getTargetId(), actionType, reason));
 
+        notifications.record(REPORT_RESOLVED,admin.getId(),report.getId(),null,reason);
+        if(actionType==ModerationActionType.WARN_USER)notifications.record(USER_WARNED,admin.getId(),report.getId(),null,reason);
+        if(actionType==ModerationActionType.DELETE_CONTENT)notifications.record(CONTENT_MODERATED,admin.getId(),report.getId(),null,reason);
         return new ReportResolutionResult(
                 report.getId(), report.getStatus(), actionType,
                 report.getHandledAt(), report.getTargetType(), report.getTargetId());
@@ -111,7 +129,8 @@ public class ResolveReportUseCase {
                     ReportResolutionErrorCode.ALREADY_BANNED_USER, "이미 정지된 사용자입니다.");
         }
         LocalDateTime bannedUntil = banDurationDays == null ? null : now.plusDays(banDurationDays);
-        userBanRepository.save(UserBan.create(owner, admin, reason, bannedUntil));
+        var savedBan=userBanRepository.save(UserBan.create(owner, admin, reason, bannedUntil));
+        notifications.record(USER_BANNED,admin.getId(),savedBan.getId());
     }
 
     private User requireAdmin(Long adminUserId) {

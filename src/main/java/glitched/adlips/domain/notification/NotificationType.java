@@ -38,6 +38,7 @@ public enum NotificationType {
     SOURCE_IMPORTED("OPEN_SOURCE", "오픈소스 사용"),
     SOURCE_USED_IN_SHORT("OPEN_SOURCE", "오픈소스 사용곡 공개"),
     FOLLOWING_SOURCE_PUBLISHED("OPEN_SOURCE", "새 오픈소스"),
+    CONTENT_MODERATED("SYSTEM", "콘텐츠 삭제 안내"),
     REPORT_CREATED("SYSTEM", "새 신고"),
     REPORT_RESOLVED("SYSTEM", "신고 처리 완료"),
     REPORT_REJECTED("SYSTEM", "신고 반려"),

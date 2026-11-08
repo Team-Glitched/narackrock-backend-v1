@@ -149,8 +149,8 @@ public class ShortsApplicationConfiguration {
     }
 
     @Bean
-    SubmitShortReportUseCase submitShortReportUseCase(ShortReportPort shortReportPort) {
-        return new SubmitShortReportUseCase(shortReportPort);
+    SubmitShortReportUseCase submitShortReportUseCase(ShortReportPort shortReportPort, TransactionRunner transactionRunner, glitched.adlips.application.notification.NotificationEvents notificationEvents) {
+        return new SubmitShortReportUseCase(shortReportPort, transactionRunner, notificationEvents);
     }
 
     @Bean
@@ -223,7 +223,7 @@ public class ShortsApplicationConfiguration {
     SubmitShortCommentReportUseCase submitShortCommentReportUseCase(
             ShortCommentPort shortCommentPort,
             ShortCommentReportPort shortCommentReportPort
-    ) {
-        return new SubmitShortCommentReportUseCase(shortCommentPort, shortCommentReportPort);
+    , TransactionRunner transactionRunner, glitched.adlips.application.notification.NotificationEvents notificationEvents) {
+        return new SubmitShortCommentReportUseCase(shortCommentPort, shortCommentReportPort, transactionRunner, notificationEvents);
     }
 }

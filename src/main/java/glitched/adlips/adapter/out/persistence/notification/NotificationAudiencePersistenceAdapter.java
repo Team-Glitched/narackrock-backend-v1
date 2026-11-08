@@ -123,15 +123,15 @@ public class NotificationAudiencePersistenceAdapter implements NotificationAudie
             // Never expose the importing user's private project title or link.
             return to(List.of(id(p[0])),type,who+"님이 ‘"+text(p[2])+"’ 오픈소스를 작곡에 사용했습니다.","/sources/"+p[1],"SOURCE",id(p[1]),null,null,"source-import:"+actor+":"+p[1]+":"+reference);
         }
-        if(type==REPORT_CREATED||type==REPORT_RESOLVED||type==REPORT_REJECTED||type==USER_WARNED){
+        if(type==REPORT_CREATED||type==REPORT_RESOLVED||type==REPORT_REJECTED||type==USER_WARNED||type==CONTENT_MODERATED){
             var p=one("select reporter_id,target_type,target_id from reports where id=:p0",target);if(p==null)return List.of();
             List<Long> recipients;
             if(type==REPORT_CREATED)recipients=users("select id from users where role='ADMIN' and deleted_at is null");
-            else if(type==USER_WARNED){
+            else if(type==USER_WARNED||type==CONTENT_MODERATED){
                 String table=switch(text(p[1])){case "POST"->"posts";case "POST_COMMENT"->"post_comments";case "SHORT"->"shorts";case "SHORT_COMMENT"->"shorts_comments";default->null;};
                 recipients=table==null?List.of():users("select user_id from "+table+" where id=:p0",id(p[2]));
             }else recipients=List.of(id(p[0]));
-            String body=type==REPORT_CREATED?"새 신고가 접수되었습니다.":type==USER_WARNED?"운영 정책 위반으로 경고가 부여되었습니다.":type==REPORT_RESOLVED?"회원님의 신고가 검토되어 처리되었습니다.":"회원님의 신고가 반려되었습니다.";
+            String body=type==REPORT_CREATED?"새 신고가 접수되었습니다.":type==USER_WARNED?"운영 정책 위반으로 경고가 부여되었습니다.":type==CONTENT_MODERATED?"운영 정책에 따라 회원님의 콘텐츠가 삭제되었습니다.":type==REPORT_RESOLVED?"회원님의 신고가 검토되어 처리되었습니다.":"회원님의 신고가 반려되었습니다.";
             return to(recipients,type,body+(extra.isEmpty()?"":"\n안내: "+extra),type==REPORT_CREATED?"/admin":null,type==REPORT_CREATED?"ADMIN":"NOTICE",target,null,null,null);
         }
         if(type==USER_BANNED||type==USER_BAN_LIFTED){

@@ -1,10 +1,15 @@
 package glitched.adlips.application.shorts;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.shorts.port.out.ShortCommentPort;
 import glitched.adlips.application.shorts.port.out.ShortCommentReportPort;
 import glitched.adlips.domain.shorts.ShortComment;
 
 public class SubmitShortCommentReportUseCase {
+    private final NotificationEvents notifications;
+    private final glitched.adlips.application.port.TransactionRunner transactionRunner;
 
     private final ShortCommentPort shortCommentPort;
     private final ShortCommentReportPort reportPort;
@@ -13,11 +18,31 @@ public class SubmitShortCommentReportUseCase {
             ShortCommentPort shortCommentPort,
             ShortCommentReportPort reportPort
     ) {
+        this(shortCommentPort, reportPort, glitched.adlips.application.port.TransactionRunner.direct());
+    }
+    public SubmitShortCommentReportUseCase(
+            ShortCommentPort shortCommentPort,
+            ShortCommentReportPort reportPort
+    , glitched.adlips.application.port.TransactionRunner transactionRunner) {
+        this(shortCommentPort, reportPort, transactionRunner, NotificationEvents.none());
+    }
+
+    public SubmitShortCommentReportUseCase(ShortCommentPort shortCommentPort,
+            ShortCommentReportPort reportPort
+    , glitched.adlips.application.port.TransactionRunner transactionRunner, NotificationEvents notifications) {
         this.shortCommentPort = shortCommentPort;
         this.reportPort = reportPort;
+    
+        this.transactionRunner=transactionRunner;
+    
+        this.notifications = notifications;
     }
 
     public ShortCommentReportResult execute(
+            Long shortId, Long commentId, Long reporterId, String reason, String description
+    ) {return transactionRunner.required(()->executeInternal(shortId, commentId, reporterId, reason, description));}
+
+    private ShortCommentReportResult executeInternal(
             Long shortId, Long commentId, Long reporterId, String reason, String description
     ) {
         if (reason == null || reason.isBlank()) {
@@ -39,6 +64,7 @@ public class SubmitShortCommentReportUseCase {
         Long reportId = reportPort.save(reporterId, commentId, reason.trim(), normalize(description))
                 .orElseThrow(() -> new ShortCommentApplicationException(
                         ShortCommentErrorCode.ALREADY_REPORTED, "이미 신고한 댓글입니다."));
+        notifications.record(REPORT_CREATED,reporterId,reportId);
         return new ShortCommentReportResult(reportId, commentId);
     }
 

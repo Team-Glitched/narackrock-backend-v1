@@ -284,11 +284,12 @@ public class ProcessPendingProjectExportsUseCase {
                     .orElseThrow(() -> new IllegalStateException("처리 중인 Export를 찾을 수 없습니다."));
             Long shortId = publishedShorts.publish(
                     export.getProject(), export.getId(), mixedAudio.getId());
+            boolean firstPublication = !export.getProject().isPublic();
             export.complete(
                     mixedAudio.getId(), layerArchive.getId(), shortId, mixed.durationMs(), now());
             exports.save(export);
-            notifications.record(PROJECT_PUBLISHED,null,shortId,export.getId(),null);
-            notifications.record(FOLLOWING_SHORT_PUBLISHED,export.getProject().getOwner().getId(),shortId);
+            notifications.record(firstPublication ? PROJECT_PUBLISHED : PROJECT_REFRESHED,null,shortId,export.getId(),null);
+            if (firstPublication) notifications.record(FOLLOWING_SHORT_PUBLISHED,export.getProject().getOwner().getId(),shortId);
             notifications.record(SOURCE_USED_IN_SHORT,export.getProject().getOwner().getId(),shortId);
             return null;
         });

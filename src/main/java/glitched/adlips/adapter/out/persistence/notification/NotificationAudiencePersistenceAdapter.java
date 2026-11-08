@@ -203,11 +203,7 @@ public class NotificationAudiencePersistenceAdapter implements NotificationAudie
                         null,
                         "source-used-short:" + target);
             }
-            boolean refreshed =
-                    exists(
-                            "select id from service_notifications where resource_type='SHORT' and"
-                                + " resource_id=:p0 and type='PROJECT_PUBLISHED'",
-                            target);
+            boolean refreshed = type == PROJECT_REFRESHED;
             NotificationType actual = refreshed ? PROJECT_REFRESHED : PROJECT_PUBLISHED;
             return to(
                     refreshed && project != null ? contributors(project, false) : List.of(id(s[0])),
@@ -321,7 +317,7 @@ public class NotificationAudiencePersistenceAdapter implements NotificationAudie
             return to(
                     List.of(id(p[0])),
                     type,
-                    who + "님이 ‘" + text(p[1]) + "’을 좋아합니다.",
+                    who + "님이 ‘" + text(p[1]) + "’에 좋아요를 남겼습니다.",
                     (type == POST_LIKED ? "/posts/" : type == SHORT_LIKED ? "/abyss/" : "/sources/")
                             + target,
                     type == POST_LIKED ? "POST" : type == SHORT_LIKED ? "SHORT" : "SOURCE",

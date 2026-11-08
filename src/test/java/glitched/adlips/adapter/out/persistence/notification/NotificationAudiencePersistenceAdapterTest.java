@@ -58,5 +58,6 @@ class NotificationAudiencePersistenceAdapterTest {
         assertThat(audience.access(1L,n).requestStatus()).isEqualTo("CLOSED");
         service.record(NotificationType.FOLLOW_ACCEPTED,1L,2L,1L,null);
         assertThat(store.unread(2L)).isEqualTo(1);
+        assertThat(audience.access(1L,n).requestStatus()).isEqualTo("APPROVED");
     }
 }

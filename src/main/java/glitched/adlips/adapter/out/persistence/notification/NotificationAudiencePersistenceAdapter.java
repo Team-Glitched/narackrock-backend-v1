@@ -49,7 +49,7 @@ public class NotificationAudiencePersistenceAdapter implements NotificationAudie
         if(type.category.equals("FOLLOW")){
             String body=switch(type){case FOLLOW_CREATED->who+"님이 회원님을 팔로우했습니다.";case FOLLOW_REQUESTED->who+"님이 팔로우를 요청했습니다.";
                 case FOLLOW_ACCEPTED->who+"님이 팔로우 요청을 수락했습니다.";default->who+"님이 팔로우 요청을 거절했습니다.";};
-            return to(List.of(target),type,body,"/users/"+actor,"USER",actor,null,type==FOLLOW_REQUESTED?reference:null,null);
+            return to(List.of(target),type,body,"/users/"+actor,"USER",actor,null,reference,null);
         }
         if(type==CONTRIBUTION_CREATED||type==CONTRIBUTION_ACCEPTED||type==CONTRIBUTION_REJECTED){
             var c=one("select c.user_id,p.owner_id,p.id,p.title,c.review_comment from project_contributions c join projects p on p.id=c.project_id where c.id=:p0",target);
@@ -150,17 +150,25 @@ public class NotificationAudiencePersistenceAdapter implements NotificationAudie
     }
     public Access access(Long user,ServiceNotification n){
         String kind=n.getResourceType();Long id=n.getResourceId();String status=null;
-        if(n.getType()==FOLLOW_REQUESTED){status=exists("select id from follow_requests where id=:p0 and target_id=:p1",n.getRequestId(),user)?"PENDING":"CLOSED";}
+        if(n.getType()==FOLLOW_REQUESTED){
+            status=exists("select id from follow_requests where id=:p0 and target_id=:p1",n.getRequestId(),user)?"PENDING":"CLOSED";
+            if(status.equals("CLOSED")){
+                var result=one("select type from service_notifications where request_id=:p0 and type in ('FOLLOW_ACCEPTED','FOLLOW_REJECTED') order by id desc",n.getRequestId());
+                if(result!=null)status=text(result[0]).equals("FOLLOW_ACCEPTED")?"APPROVED":"REJECTED";
+            }
+        }
+        if(n.getType()==FOLLOW_ACCEPTED)status="APPROVED";
+        if(n.getType()==FOLLOW_REJECTED)status="REJECTED";
         if(n.getRequestId()!=null&&n.getType().category.equals("CONTRIBUTION")){
             var c=one("select approval_status from project_contributions where id=:p0",n.getRequestId());status=c==null?"CLOSED":text(c[0]);
         }
         boolean available=switch(kind==null?"NOTICE":kind){
             case "POST_COMMENT"->exists("select c.id from post_comments c join posts p on p.id=c.post_id where c.id=:p0 and c.deleted_at is null and p.deleted_at is null",id);
-            case "SHORT_COMMENT"->exists("select c.id from shorts_comments c join shorts s on s.id=c.shorts_id where c.id=:p0 and c.deleted_at is null and s.deleted_at is null",id);
-            case "SOURCE_COMMENT"->exists("select c.id from open_source_comments c join open_sources s on s.id=c.open_source_id where c.id=:p0 and s.deleted_at is null and s.is_public=true",id);
+            case "SHORT_COMMENT"->exists("select c.id from shorts_comments c join shorts s on s.id=c.shorts_id left join projects p on p.id=s.project_id where c.id=:p0 and c.deleted_at is null and s.deleted_at is null and (s.project_id is null or (p.deleted_at is null and p.is_public=true))",id);
+            case "SOURCE_COMMENT"->exists("select c.id from open_source_comments c join open_sources s on s.id=c.open_source_id join users u on u.id=s.owner_id where c.id=:p0 and s.deleted_at is null and s.is_public=true and u.deleted_at is null",id);
             case "POST"->exists("select id from posts where id=:p0 and deleted_at is null",id);
             case "SHORT"->exists("select s.id from shorts s left join projects p on p.id=s.project_id where s.id=:p0 and s.deleted_at is null and (s.project_id is null or (p.deleted_at is null and p.is_public=true))",id);
-            case "SOURCE"->exists("select id from open_sources where id=:p0 and deleted_at is null and is_public=true",id);
+            case "SOURCE"->exists("select s.id from open_sources s join users u on u.id=s.owner_id where s.id=:p0 and s.deleted_at is null and s.is_public=true and u.deleted_at is null",id);
             case "USER"->exists("select id from users where id=:p0 and deleted_at is null",id);
             case "PROJECT"->exists("select p.id from projects p where p.id=:p0 and p.deleted_at is null and (p.owner_id=:p1 or exists(select c.id from project_contributions c where c.project_id=p.id and c.user_id=:p1))",id,user);
             case "ADMIN"->exists("select id from users where id=:p0 and role='ADMIN' and deleted_at is null",user);

@@ -20,5 +20,7 @@ public class NotificationActivityService implements NotificationEvents {
             if(store.insert(new NotificationDraft(item.recipientId(),item.type(),actorId,item.type().title,item.body(),
                     item.path(),item.resourceType(),item.resourceId(),item.projectId(),item.requestId(),key,clock.instant())))delivery.changed(item.recipientId());
         }
+        if(actorId!=null&&(type==NotificationType.FOLLOW_ACCEPTED||type==NotificationType.FOLLOW_REJECTED
+                ||type==NotificationType.CONTRIBUTION_ACCEPTED||type==NotificationType.CONTRIBUTION_REJECTED))delivery.changed(actorId);
     }
 }

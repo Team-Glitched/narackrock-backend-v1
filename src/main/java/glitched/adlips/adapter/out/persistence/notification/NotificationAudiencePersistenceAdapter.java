@@ -95,7 +95,7 @@ public class NotificationAudiencePersistenceAdapter implements NotificationAudie
             String path=post?"/posts/"+c[3]:source?"/sources/"+c[3]+"/comments":"/abyss/"+c[3];
             path+="?commentId="+target+(c[1]==null?"":"&parentCommentId="+c[1]);
             return to(List.of(recipient),type,who+"님이 ‘"+text(c[4])+"’에서 "+(type.reaction()?"회원님의 댓글을 좋아합니다.":c[1]!=null?"회원님의 댓글에 답글을 남겼습니다.":"댓글을 남겼습니다."),path,
-                post?"POST":source?"SOURCE":"SHORT",id(c[3]),null,null,null);
+                post?"POST_COMMENT":source?"SOURCE_COMMENT":"SHORT_COMMENT",target,null,null,null);
         }
         if(type==POST_LIKED||type==SHORT_LIKED||type==SOURCE_LIKED){
             String table=type==POST_LIKED?"posts":type==SHORT_LIKED?"shorts":"open_sources";
@@ -155,6 +155,9 @@ public class NotificationAudiencePersistenceAdapter implements NotificationAudie
             var c=one("select approval_status from project_contributions where id=:p0",n.getRequestId());status=c==null?"CLOSED":text(c[0]);
         }
         boolean available=switch(kind==null?"NOTICE":kind){
+            case "POST_COMMENT"->exists("select c.id from post_comments c join posts p on p.id=c.post_id where c.id=:p0 and c.deleted_at is null and p.deleted_at is null",id);
+            case "SHORT_COMMENT"->exists("select c.id from shorts_comments c join shorts s on s.id=c.shorts_id where c.id=:p0 and c.deleted_at is null and s.deleted_at is null",id);
+            case "SOURCE_COMMENT"->exists("select c.id from open_source_comments c join open_sources s on s.id=c.open_source_id where c.id=:p0 and s.deleted_at is null and s.is_public=true",id);
             case "POST"->exists("select id from posts where id=:p0 and deleted_at is null",id);
             case "SHORT"->exists("select s.id from shorts s left join projects p on p.id=s.project_id where s.id=:p0 and s.deleted_at is null and (s.project_id is null or (p.deleted_at is null and p.is_public=true))",id);
             case "SOURCE"->exists("select id from open_sources where id=:p0 and deleted_at is null and is_public=true",id);

@@ -29,7 +29,8 @@ public class NotificationInboxUseCase {
                     access.available()?n.getBody():"삭제되었거나 현재 접근할 수 없는 내용입니다.",access.available()?n.getPath():null,
                     n.getCreatedAt(),n.getReadAt(),access.available(),n.getProjectId(),n.getRequestId(),access.requestStatus());
             }).toList();
-            return new Page(items,all.size()>size?items.getLast().id():null,store.unread(user),items.isEmpty()?null:items.getFirst().id());
+            var newest=store.list(user,null,null,false,1);
+            return new Page(items,all.size()>size?items.getLast().id():null,store.unread(user),newest.isEmpty()?null:newest.getFirst().getId());
         });
     }
     private void synchronize(Long user){for(var pending:audiences.pending(user))events.record(pending.type(),pending.actorId(),pending.targetId(),pending.referenceId(),null);}

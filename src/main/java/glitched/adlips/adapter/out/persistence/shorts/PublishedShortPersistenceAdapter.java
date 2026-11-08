@@ -41,12 +41,19 @@ public class PublishedShortPersistenceAdapter implements PublishedShortPort {
             shortForm.refreshFromExport(exportId, mixedAudioFileId);
             shortForm = shortForms.save(shortForm);
         }
-        Set<Long> existingUserIds = participants.findByShortsId(shortForm.getId()).stream()
+        var eligibleMembers = projectMembers.findPublishedContributors(project.getId());
+        Set<Long> eligibleUserIds = eligibleMembers.stream()
+                .map(member -> member.getUser().getId()).collect(Collectors.toSet());
+        var existingParticipants = participants.findByShortsId(shortForm.getId());
+        // Editor access alone does not grant a public composition credit.
+        participants.deleteAll(existingParticipants.stream()
+                .filter(participant -> !eligibleUserIds.contains(participant.getUser().getId()))
+                .toList());
+        Set<Long> existingUserIds = existingParticipants.stream()
                 .map(participant -> participant.getUser().getId())
                 .collect(Collectors.toSet());
         ShortForm target = shortForm;
-        List<ShortParticipant> shortParticipants = projectMembers
-                .findByProjectIdOrderByIdAsc(project.getId())
+        List<ShortParticipant> shortParticipants = eligibleMembers
                 .stream()
                 .filter(member -> !existingUserIds.contains(member.getUser().getId()))
                 .map(member -> new ShortParticipant(

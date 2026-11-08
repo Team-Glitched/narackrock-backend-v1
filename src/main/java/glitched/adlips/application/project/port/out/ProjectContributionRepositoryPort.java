@@ -26,5 +26,7 @@ public interface ProjectContributionRepositoryPort {
             Long projectId, Long userId, Collection<ContributionApprovalStatus> statuses,
             Long cursor, int pageSize);
 
+    List<ProjectContribution> findSentByUserId(Long userId, Long cursor, int pageSize);
+
     ProjectContribution save(ProjectContribution contribution);
 }

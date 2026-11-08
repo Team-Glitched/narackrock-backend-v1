@@ -1,5 +1,8 @@
 package glitched.adlips.application.community;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.community.port.out.GalleryAuthorityPort;
 import glitched.adlips.application.community.port.out.GalleryBanPort;
 import glitched.adlips.application.community.port.out.GalleryManagementPort;
@@ -12,6 +15,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 
 public class LiftGalleryBanUseCase {
+    private final NotificationEvents notifications;
 
     private final GalleryAuthorityPort authorityPort;
     private final GalleryManagementPort managementPort;
@@ -30,6 +34,16 @@ public class LiftGalleryBanUseCase {
             TransactionRunner transactionRunner,
             Clock clock
     ) {
+        this(authorityPort, managementPort, banPort, userRepository, logPort, transactionRunner, clock, NotificationEvents.none());
+    }
+
+    public LiftGalleryBanUseCase(GalleryAuthorityPort authorityPort,
+            GalleryManagementPort managementPort,
+            GalleryBanPort banPort,
+            UserRepositoryPort userRepository,
+            GalleryModerationLogPort logPort,
+            TransactionRunner transactionRunner,
+            Clock clock, NotificationEvents notifications) {
         this.authorityPort = authorityPort;
         this.managementPort = managementPort;
         this.banPort = banPort;
@@ -37,6 +51,8 @@ public class LiftGalleryBanUseCase {
         this.logPort = logPort;
         this.transactionRunner = transactionRunner;
         this.clock = clock;
+    
+        this.notifications = notifications;
     }
 
     public void execute(Long actorId, Long galleryId, Long banId) {
@@ -53,6 +69,7 @@ public class LiftGalleryBanUseCase {
             ban.lift(userRepository.findById(actorId).orElseThrow(), now);
             banPort.update(ban);
             logPort.save(galleryId, actorId, GalleryModerationActionType.LIFT_BAN, ban.getUserId(), banId, null);
+            notifications.record(GALLERY_BAN_LIFTED,actorId,banId);
             return null;
         });
     }

@@ -155,6 +155,9 @@ public class ProjectClip extends BaseTimeEntity {
         }
         validateAudioData(sourceType, mediaFileId, clipOffsetMs, durationMs);
         validateProjectAndTimeline(project, track, startTick, durationTick);
+        if (!Objects.equals(this.mediaFileId, mediaFileId) || this.sourceType != sourceType) {
+            this.originOpenSourceId = null;
+        }
         this.sourceType = sourceType;
         this.mediaFileId = mediaFileId;
         this.waveformFileId = waveformFileId;

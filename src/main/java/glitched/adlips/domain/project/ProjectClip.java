@@ -57,6 +57,11 @@ public class ProjectClip extends BaseTimeEntity {
     @Column(name = "source_type", nullable = false)
     private ClipSourceType sourceType;
 
+    @Column(name = "origin_open_source_id")
+    private Long originOpenSourceId;
+
+    public void attributeOpenSource(Long sourceId) { this.originOpenSourceId = Objects.requireNonNull(sourceId); }
+
     @Column(name = "media_file_id")
     private Long mediaFileId;
 

@@ -54,8 +54,8 @@ public class OpenSourceApplicationConfiguration {
     OpenSourcePublicationUseCase openSourcePublicationUseCase(
             OpenSourcePublicationPort publications,
             MediaFileRepositoryPort media,
-            TransactionRunner transactions, Clock clock) {
-        return new OpenSourcePublicationUseCase(publications, media, transactions, clock);
+            TransactionRunner transactions, Clock clock, glitched.adlips.application.notification.NotificationEvents notificationEvents) {
+        return new OpenSourcePublicationUseCase(publications, media, transactions, clock, notificationEvents);
     }
 
     @Bean

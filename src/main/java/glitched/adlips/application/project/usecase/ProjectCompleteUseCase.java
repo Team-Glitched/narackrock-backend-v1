@@ -1,5 +1,8 @@
 package glitched.adlips.application.project.usecase;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.project.ProjectApplicationException;
 import glitched.adlips.application.project.ProjectErrorCode;
@@ -11,6 +14,7 @@ import glitched.adlips.domain.project.ProjectMemberRole;
 import glitched.adlips.domain.project.ProjectStatus;
 
 public class ProjectCompleteUseCase {
+    private final NotificationEvents notifications;
     private final ProjectRepositoryPort projects;
     private final ProjectMemberRepositoryPort members;
     private final PublishedShortPort publishedShorts;
@@ -22,10 +26,19 @@ public class ProjectCompleteUseCase {
             PublishedShortPort publishedShorts,
             TransactionRunner transactionRunner
     ) {
+        this(projects, members, publishedShorts, transactionRunner, NotificationEvents.none());
+    }
+
+    public ProjectCompleteUseCase(ProjectRepositoryPort projects,
+            ProjectMemberRepositoryPort members,
+            PublishedShortPort publishedShorts,
+            TransactionRunner transactionRunner, NotificationEvents notifications) {
         this.projects = projects;
         this.members = members;
         this.publishedShorts = publishedShorts;
         this.transactionRunner = transactionRunner;
+    
+        this.notifications = notifications;
     }
 
     public ProjectCompleteResponse execute(Long projectId, Long userId) {
@@ -47,6 +60,7 @@ public class ProjectCompleteUseCase {
         if (project.getStatus() != ProjectStatus.COMPLETED) {
             project.complete();
             publishedShorts.completeProject(projectId);
+            notifications.record(PROJECT_COMPLETED,userId,projectId);
         }
         return new ProjectCompleteResponse(projectId, project.getStatus(), project.isPublic());
     }

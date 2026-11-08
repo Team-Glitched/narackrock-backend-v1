@@ -133,8 +133,8 @@ public class ProjectApplicationConfiguration {
             ProjectRepositoryPort projects,
             Clock clock,
             TransactionRunner transactionRunner
-    ) {
-        return new ProjectDeleteUseCase(projects, clock, transactionRunner);
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
+        return new ProjectDeleteUseCase(projects, clock, transactionRunner, notificationEvents);
     }
 
     @Bean
@@ -143,8 +143,8 @@ public class ProjectApplicationConfiguration {
             ProjectMemberRepositoryPort members,
             PublishedShortPort publishedShorts,
             TransactionRunner transactionRunner
-    ) {
-        return new ProjectCompleteUseCase(projects, members, publishedShorts, transactionRunner);
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
+        return new ProjectCompleteUseCase(projects, members, publishedShorts, transactionRunner, notificationEvents);
     }
 
     @Bean
@@ -184,10 +184,10 @@ public class ProjectApplicationConfiguration {
             Clock clock,
             @Value("${app.project.export-processing-batch-size:5}") int batchSize,
             TransactionRunner transactionRunner
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new ProcessPendingProjectExportsUseCase(
                 exports, tracks, clips, mediaFiles, storage, mixer, midiRenderer, archiver,
-                publishedShorts, clock, batchSize, transactionRunner);
+                publishedShorts, clock, batchSize, transactionRunner, notificationEvents);
     }
 
     @Bean
@@ -253,9 +253,9 @@ public class ProjectApplicationConfiguration {
             MediaFileRepositoryPort mediaFiles,
             OpenSourceMediaPort openSources,
             TransactionRunner transactionRunner
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new OpenSourceClipCreateUseCase(
-                projects, members, tracks, clips, users, mediaFiles, openSources, transactionRunner);
+                projects, members, tracks, clips, users, mediaFiles, openSources, transactionRunner, notificationEvents);
     }
 
     @Bean

@@ -1,5 +1,8 @@
 package glitched.adlips.application.project.usecase;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.opensource.OpenSourceMediaPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.project.ProjectApplicationException;
@@ -22,6 +25,7 @@ import glitched.adlips.domain.project.ProjectStatus;
 
 /** Places a public open source's audio on the caller's own layer; the media stays owned by the source owner. */
 public class OpenSourceClipCreateUseCase {
+    private final NotificationEvents notifications;
     private final ProjectRepositoryPort projects;
     private final ProjectMemberRepositoryPort members;
     private final ProjectTrackRepositoryPort tracks;
@@ -35,6 +39,13 @@ public class OpenSourceClipCreateUseCase {
                                        ProjectTrackRepositoryPort tracks, ProjectClipRepositoryPort clips,
                                        UserRepositoryPort users, MediaFileRepositoryPort mediaFiles,
                                        OpenSourceMediaPort openSources, TransactionRunner transactionRunner) {
+        this(projects, members, tracks, clips, users, mediaFiles, openSources, transactionRunner, NotificationEvents.none());
+    }
+
+    public OpenSourceClipCreateUseCase(ProjectRepositoryPort projects, ProjectMemberRepositoryPort members,
+                                       ProjectTrackRepositoryPort tracks, ProjectClipRepositoryPort clips,
+                                       UserRepositoryPort users, MediaFileRepositoryPort mediaFiles,
+                                       OpenSourceMediaPort openSources, TransactionRunner transactionRunner, NotificationEvents notifications) {
         this.projects = projects;
         this.members = members;
         this.tracks = tracks;
@@ -43,6 +54,8 @@ public class OpenSourceClipCreateUseCase {
         this.mediaFiles = mediaFiles;
         this.openSources = openSources;
         this.transactionRunner = transactionRunner;
+    
+        this.notifications = notifications;
     }
 
     public AudioClipCreateResponse execute(OpenSourceClipCreateRequest request) {
@@ -88,6 +101,8 @@ public class OpenSourceClipCreateUseCase {
         ProjectClip clip = clips.save(ProjectClip.createAudio(
                 project, track, user, ClipSourceType.IMPORTED, media.getId(), null,
                 request.startTick(), request.durationTick(), 0, durationMs, sortOrder));
+        clip.attributeOpenSource(request.openSourceId());
+        notifications.record(SOURCE_IMPORTED,request.userId(),clip.getId(),project.getId(),null);
         return new AudioClipCreateResponse(
                 request.projectId(), request.trackId(), clip.getId(), clip.getClipType(), clip.getSourceType(),
                 clip.getMediaFileId(), media.getFileUrl(), null, clip.getStartTick(), clip.getDurationTick(),

@@ -35,6 +35,14 @@ public class NotificationAudiencePersistenceAdapter implements NotificationAudie
         return users("select owner_id from projects where id=:p0 union select user_id from project_contributions where project_id=:p0 and approval_status "
             +(pending?"in ('APPROVED','PENDING')":"= 'APPROVED'"),project);
     }
+    public List<Pending> pending(Long user){
+        List<Pending> result=new ArrayList<>();
+        for(var r:rows("select c.id,c.user_id from project_contributions c join projects p on p.id=c.project_id where p.owner_id=:p0 and p.deleted_at is null and c.approval_status='PENDING'",user))
+            result.add(new Pending(CONTRIBUTION_CREATED,id(r[1]),id(r[0]),null));
+        for(var r:rows("select id,requester_id from follow_requests where target_id=:p0",user))
+            result.add(new Pending(FOLLOW_REQUESTED,id(r[1]),user,id(r[0])));
+        return result;
+    }
     public List<Delivery> resolve(NotificationType type,Long actor,Long target,Long reference,String detail){
         em.flush();
         String who=name(actor),extra=detail==null?"":detail.strip();

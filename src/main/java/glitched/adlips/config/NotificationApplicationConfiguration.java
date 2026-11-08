@@ -6,5 +6,5 @@ import org.springframework.context.annotation.*;
 @Configuration
 public class NotificationApplicationConfiguration {
     @Bean NotificationEvents notificationEvents(NotificationStore store,NotificationAudiencePort audiences,NotificationDeliveryPort delivery,Clock clock){return new NotificationActivityService(store,audiences,delivery,clock);}
-    @Bean NotificationInboxUseCase notificationInboxUseCase(NotificationStore store,NotificationAudiencePort audiences,TransactionRunner transactions,NotificationDeliveryPort delivery,Clock clock){return new NotificationInboxUseCase(store,audiences,transactions,delivery,clock);}
+    @Bean NotificationInboxUseCase notificationInboxUseCase(NotificationStore store,NotificationAudiencePort audiences,TransactionRunner transactions,NotificationDeliveryPort delivery,Clock clock,NotificationEvents events){return new NotificationInboxUseCase(store,audiences,transactions,delivery,clock,events);}
 }

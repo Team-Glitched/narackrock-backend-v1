@@ -8,6 +8,7 @@ import glitched.adlips.application.media.usecase.MediaUploadSessionCreateUseCase
 import glitched.adlips.application.project.usecase.AudioClipCreateUseCase;
 import glitched.adlips.application.project.usecase.MidiClipCreateUseCase;
 import glitched.adlips.application.project.usecase.MidiClipSaveUseCase;
+import glitched.adlips.application.project.usecase.OpenSourceClipCreateUseCase;
 import glitched.adlips.application.project.usecase.ProjectContributionCreateUseCase;
 import glitched.adlips.application.project.usecase.ProjectContributionGetListUseCase;
 import glitched.adlips.application.project.usecase.ProjectContributionReviewUseCase;
@@ -33,6 +34,7 @@ class ApplicationAdapterDependencyTest {
                 AudioClipCreateUseCase.class,
                 MidiClipCreateUseCase.class,
                 MidiClipSaveUseCase.class,
+                OpenSourceClipCreateUseCase.class,
                 ProjectContributionCreateUseCase.class,
                 ProjectContributionGetListUseCase.class,
                 ProjectContributionReviewUseCase.class,

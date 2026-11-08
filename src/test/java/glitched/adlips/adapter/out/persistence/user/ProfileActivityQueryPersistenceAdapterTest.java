@@ -46,6 +46,36 @@ class ProfileActivityQueryPersistenceAdapterTest {
     }
 
     @Test
+    void 본인의_완성곡만_대표곡으로_설정하고_교체하거나_해제한다() {
+        jdbcTemplate.update("""
+                INSERT INTO shorts (
+                    id, user_id, title, media_file_id, status,
+                    view_count, like_count, dislike_count, comment_count, contribution_count, created_at
+                )
+                VALUES
+                    (30, 1, '첫 곡', 101, 'COMPLETED', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP),
+                    (31, 1, '다음 곡', 101, 'COMPLETED', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP),
+                    (32, 2, '다른 유저 곡', 101, 'COMPLETED', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP),
+                    (33, 1, '작업 중', 101, 'IN_PROGRESS', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP),
+                    (34, 1, '삭제한 곡', 101, 'COMPLETED', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP)
+                """);
+        jdbcTemplate.update("UPDATE shorts SET deleted_at = CURRENT_TIMESTAMP WHERE id = 34");
+
+        assertThat(adapter.replaceFeaturedShort(1L, 30L)).isTrue();
+        assertThat(adapter.replaceFeaturedShort(1L, 32L)).isFalse();
+        assertThat(adapter.replaceFeaturedShort(1L, 33L)).isFalse();
+        assertThat(adapter.replaceFeaturedShort(1L, 34L)).isFalse();
+        assertThat(adapter.findByUserId(1L).pinnedShorts())
+                .extracting(UserProfileGetResponse.PinnedShortActivity::shortId).containsExactly(30L);
+        assertThat(adapter.replaceFeaturedShort(1L, 31L)).isTrue();
+        assertThat(adapter.replaceFeaturedShort(1L, 31L)).isTrue();
+        assertThat(adapter.findByUserId(1L).pinnedShorts())
+                .extracting(UserProfileGetResponse.PinnedShortActivity::shortId).containsExactly(31L);
+        assertThat(adapter.replaceFeaturedShort(1L, null)).isTrue();
+        assertThat(adapter.findByUserId(1L).pinnedShorts()).isEmpty();
+    }
+
+    @Test
     void 프로필_활동_목록을_조회한다() {
         jdbcTemplate.update("""
                 INSERT INTO posts (

@@ -3,15 +3,18 @@ package glitched.adlips.adapter.in.web.project;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.application.project.dto.request.AudioClipCreateRequest;
+import glitched.adlips.application.project.dto.request.OpenSourceClipCreateRequest;
 import glitched.adlips.application.project.dto.response.AudioClipCreateResponse;
 import glitched.adlips.application.project.dto.request.MidiClipCreateRequest;
 import glitched.adlips.application.project.dto.response.MidiClipCreateResponse;
 import glitched.adlips.application.project.usecase.AudioClipCreateUseCase;
 import glitched.adlips.application.project.usecase.MidiClipCreateUseCase;
+import glitched.adlips.application.project.usecase.OpenSourceClipCreateUseCase;
 import glitched.adlips.domain.project.ApprovalStatus;
 import glitched.adlips.domain.project.ClipSourceType;
 import glitched.adlips.domain.project.ClipType;
@@ -29,12 +32,32 @@ class ClipControllerTest {
                 10L, 21L, 301L, ClipType.AUDIO, ClipSourceType.RECORDING, 501L,
                 "media", null, 0, 1920, 0, 2000, 0, ApprovalStatus.DRAFT, null));
 
-        var result = new ClipController(useCase, midiUseCase, resolver).createAudio(
-                10L, 21L, "Bearer token", new AudioClipCreateRequest(
+        var result = new ClipController(useCase, midiUseCase, mock(OpenSourceClipCreateUseCase.class), resolver)
+                .createAudio(10L, 21L, "Bearer token", new AudioClipCreateRequest(
                         null, null, null, 501L, ClipSourceType.RECORDING, 0, 1920, 0));
 
         assertThat(result.getStatusCode().value()).isEqualTo(201);
         assertThat(result.getBody().data().clipId()).isEqualTo(301L);
+    }
+
+    @Test
+    void returnsCreatedForOpenSourceClipWithPathAndCallerFromRequestContext() {
+        OpenSourceClipCreateUseCase useCase = mock(OpenSourceClipCreateUseCase.class);
+        AuthenticatedUserResolver resolver = mock(AuthenticatedUserResolver.class);
+        when(resolver.requireUserId("Bearer token")).thenReturn(1L);
+        when(useCase.execute(any())).thenReturn(new AudioClipCreateResponse(
+                10L, 21L, 302L, ClipType.AUDIO, ClipSourceType.IMPORTED, 777L,
+                "http://localhost/files/riff.wav", null, 480, 960, 500, 1000, 0, ApprovalStatus.DRAFT, null));
+
+        var result = new ClipController(mock(AudioClipCreateUseCase.class), mock(MidiClipCreateUseCase.class),
+                useCase, resolver).createFromOpenSource(10L, 21L, "Bearer token",
+                new OpenSourceClipCreateRequest(99L, 98L, 97L, 55L, 480, 960));
+
+        verify(useCase).execute(new OpenSourceClipCreateRequest(10L, 21L, 1L, 55L, 480, 960));
+        assertThat(result.getStatusCode().value()).isEqualTo(201);
+        assertThat(result.getBody().message()).isEqualTo("오픈소스를 레이어에 추가했습니다.");
+        assertThat(result.getBody().data().sourceType()).isEqualTo(ClipSourceType.IMPORTED);
+        assertThat(result.getBody().data().mediaUrl()).isEqualTo("http://localhost/files/riff.wav");
     }
 
     @Test
@@ -47,8 +70,8 @@ class ClipControllerTest {
                 10L, 103L, 1003L, ClipType.MIDI, ClipSourceType.MIDI_INPUT, "PIANO",
                 0, 1920, 0, 2000, List.of(), ApprovalStatus.DRAFT, null));
 
-        var result = new ClipController(audioUseCase, midiUseCase, resolver).createMidi(
-                10L, 103L, "Bearer token", new MidiClipCreateRequest(
+        var result = new ClipController(audioUseCase, midiUseCase, mock(OpenSourceClipCreateUseCase.class), resolver)
+                .createMidi(10L, 103L, "Bearer token", new MidiClipCreateRequest(
                         null, null, null, 0, 1920, List.of()));
 
         assertThat(result.getStatusCode().value()).isEqualTo(201);

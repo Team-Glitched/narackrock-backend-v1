@@ -41,8 +41,8 @@ public class OpenSourceApplicationConfiguration {
     @Bean
     OpenSourceInteractionUseCase openSourceInteractionUseCase(
             OpenSourceInteractionPort port, TransactionRunner transactions,
-            UserBanQueryPort bans, Clock clock) {
-        return new OpenSourceInteractionUseCase(port, transactions, bans, clock);
+            UserBanQueryPort bans, Clock clock, glitched.adlips.application.notification.NotificationEvents notificationEvents) {
+        return new OpenSourceInteractionUseCase(port, transactions, bans, clock, notificationEvents);
     }
 
     @Bean

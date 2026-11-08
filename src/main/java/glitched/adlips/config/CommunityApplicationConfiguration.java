@@ -246,14 +246,14 @@ public class CommunityApplicationConfiguration {
             MediaFileRepositoryPort mediaFileRepository,
             TransactionRunner transactionRunner,
             Clock clock
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new CreatePostUseCase(
                 postPort,
                 userBanQueryPort,
                 galleryBanQueryPort,
                 mediaFileRepository,
                 transactionRunner,
-                clock);
+                clock, notificationEvents);
     }
 
     @Bean
@@ -370,14 +370,14 @@ public class CommunityApplicationConfiguration {
             GalleryBanQueryPort galleryBanQueryPort,
             TransactionRunner transactionRunner,
             Clock clock
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new TogglePostReactionUseCase(
                 postReactionPort,
                 ranking,
                 userBanQueryPort,
                 galleryBanQueryPort,
                 transactionRunner,
-                clock);
+                clock, notificationEvents);
     }
 
     @Bean
@@ -387,13 +387,13 @@ public class CommunityApplicationConfiguration {
             GalleryBanQueryPort galleryBanQueryPort,
             TransactionRunner transactionRunner,
             Clock clock
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new TogglePostCommentReactionUseCase(
                 postCommentReactionPort,
                 userBanQueryPort,
                 galleryBanQueryPort,
                 transactionRunner,
-                clock);
+                clock, notificationEvents);
     }
 
     @Bean
@@ -411,13 +411,13 @@ public class CommunityApplicationConfiguration {
             GalleryBanQueryPort galleryBanQueryPort,
             TransactionRunner transactionRunner,
             Clock clock
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new CreatePostCommentUseCase(
                 postCommentPort,
                 userBanQueryPort,
                 galleryBanQueryPort,
                 transactionRunner,
-                clock);
+                clock, notificationEvents);
     }
 
     @Bean

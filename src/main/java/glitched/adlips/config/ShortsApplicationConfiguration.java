@@ -84,10 +84,10 @@ public class ShortsApplicationConfiguration {
             ShortReactionCountCachePort shortReactionCountCachePort,
             ShortPopularityRankingPort shortPopularityRankingPort,
             TransactionRunner transactionRunner
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new ToggleShortLikeUseCase(
                 shortReactionPort, shortReactionCountCachePort,
-                shortPopularityRankingPort, transactionRunner);
+                shortPopularityRankingPort, transactionRunner, notificationEvents);
     }
 
     @Bean
@@ -176,9 +176,9 @@ public class ShortsApplicationConfiguration {
             UserBanQueryPort userBanQueryPort,
             TransactionRunner transactionRunner,
             Clock clock
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new SubmitShortCommentUseCase(
-                shortCommentPort, userBanQueryPort, transactionRunner, clock);
+                shortCommentPort, userBanQueryPort, transactionRunner, clock, notificationEvents);
     }
 
     @Bean
@@ -207,8 +207,8 @@ public class ShortsApplicationConfiguration {
     ToggleShortCommentLikeUseCase toggleShortCommentLikeUseCase(
             ShortCommentReactionPort shortCommentReactionPort,
             TransactionRunner transactionRunner
-    ) {
-        return new ToggleShortCommentLikeUseCase(shortCommentReactionPort, transactionRunner);
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
+        return new ToggleShortCommentLikeUseCase(shortCommentReactionPort, transactionRunner, notificationEvents);
     }
 
     @Bean

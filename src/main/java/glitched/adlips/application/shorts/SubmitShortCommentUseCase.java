@@ -1,5 +1,8 @@
 package glitched.adlips.application.shorts;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.shorts.port.out.ShortCommentPort;
 import glitched.adlips.application.shorts.port.out.UserBanQueryPort;
@@ -7,6 +10,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 
 public class SubmitShortCommentUseCase {
+    private final NotificationEvents notifications;
 
     private final ShortCommentPort port;
     private final UserBanQueryPort userBanQueryPort;
@@ -19,10 +23,19 @@ public class SubmitShortCommentUseCase {
             TransactionRunner transactionRunner,
             Clock clock
     ) {
+        this(port, userBanQueryPort, transactionRunner, clock, NotificationEvents.none());
+    }
+
+    public SubmitShortCommentUseCase(ShortCommentPort port,
+            UserBanQueryPort userBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock, NotificationEvents notifications) {
         this.port = port;
         this.userBanQueryPort = userBanQueryPort;
         this.transactionRunner = transactionRunner;
         this.clock = clock;
+    
+        this.notifications = notifications;
     }
 
     public ShortCommentResult execute(Long shortId, Long userId, String content, Long parentCommentId) {
@@ -54,6 +67,7 @@ public class SubmitShortCommentUseCase {
             if (isReply) {
                 port.adjustParentReplyCount(parentCommentId, 1);
             }
+            notifications.record(isReply?SHORT_REPLY:SHORT_COMMENT,userId,commentId);
             return new ShortCommentResult(shortId, commentId, parentCommentId);
         });
     }

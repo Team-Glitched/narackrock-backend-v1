@@ -6,11 +6,13 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.application.project.dto.request.AudioClipCreateRequest;
+import glitched.adlips.application.project.dto.request.OpenSourceClipCreateRequest;
 import glitched.adlips.application.project.dto.response.AudioClipCreateResponse;
 import glitched.adlips.application.project.dto.request.MidiClipCreateRequest;
 import glitched.adlips.application.project.dto.response.MidiClipCreateResponse;
 import glitched.adlips.application.project.usecase.AudioClipCreateUseCase;
 import glitched.adlips.application.project.usecase.MidiClipCreateUseCase;
+import glitched.adlips.application.project.usecase.OpenSourceClipCreateUseCase;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -27,13 +29,16 @@ import org.springframework.web.bind.annotation.RestController;
 public class ClipController {
     private final AudioClipCreateUseCase audioClipCreateUseCase;
     private final MidiClipCreateUseCase midiClipCreateUseCase;
+    private final OpenSourceClipCreateUseCase openSourceClipCreateUseCase;
     private final AuthenticatedUserResolver userResolver;
 
     public ClipController(AudioClipCreateUseCase audioClipCreateUseCase,
                           MidiClipCreateUseCase midiClipCreateUseCase,
+                          OpenSourceClipCreateUseCase openSourceClipCreateUseCase,
                           AuthenticatedUserResolver userResolver) {
         this.audioClipCreateUseCase = audioClipCreateUseCase;
         this.midiClipCreateUseCase = midiClipCreateUseCase;
+        this.openSourceClipCreateUseCase = openSourceClipCreateUseCase;
         this.userResolver = userResolver;
     }
 
@@ -48,6 +53,19 @@ public class ClipController {
                 request.sourceType(), request.startTick(), request.durationTick(), request.clipOffsetMs()));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success("오디오 클립이 생성되었습니다.", response));
+    }
+
+    @PostMapping("/open-source")
+    public ResponseEntity<ApiResponse<AudioClipCreateResponse>> createFromOpenSource(
+            @PathVariable Long projectId,
+            @PathVariable Long trackId,
+            @RequestHeader("Authorization") String authorization,
+            @RequestBody OpenSourceClipCreateRequest request) {
+        var response = openSourceClipCreateUseCase.execute(new OpenSourceClipCreateRequest(
+                projectId, trackId, userResolver.requireUserId(authorization), request.openSourceId(),
+                request.startTick(), request.durationTick()));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("오픈소스를 레이어에 추가했습니다.", response));
     }
 
     @PostMapping("/midi")

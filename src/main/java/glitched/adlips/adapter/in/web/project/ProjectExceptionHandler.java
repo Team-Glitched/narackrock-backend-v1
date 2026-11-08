@@ -34,6 +34,7 @@ public class ProjectExceptionHandler {
                     TRACK_NOT_FOUND,
                     CLIP_NOT_FOUND,
                     MEDIA_FILE_NOT_FOUND,
+                    OPEN_SOURCE_NOT_FOUND,
                     CONTRIBUTION_NOT_FOUND,
                     EXPORT_NOT_FOUND -> HttpStatus.NOT_FOUND;
 

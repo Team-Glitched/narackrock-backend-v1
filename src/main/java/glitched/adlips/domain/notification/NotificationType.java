@@ -47,9 +47,25 @@ public enum NotificationType {
     USER_BAN_LIFTED("SYSTEM", "서비스 이용 정지 해제");
     public final String category;
     public final String title;
-    NotificationType(String category, String title) { this.category=category; this.title=title; }
-    public boolean reaction() { return name().endsWith("_LIKED"); }
-    public boolean followingContent() { return name().startsWith("FOLLOWING_"); }
-    public boolean communityPosts() { return this==GALLERY_POST_PUBLISHED; }
-    public boolean sourceUsage() { return this==SOURCE_IMPORTED || this==SOURCE_USED_IN_SHORT; }
+
+    NotificationType(String category, String title) {
+        this.category = category;
+        this.title = title;
+    }
+
+    public boolean reaction() {
+        return name().endsWith("_LIKED");
+    }
+
+    public boolean followingContent() {
+        return name().startsWith("FOLLOWING_");
+    }
+
+    public boolean communityPosts() {
+        return this == GALLERY_POST_PUBLISHED;
+    }
+
+    public boolean sourceUsage() {
+        return this == SOURCE_IMPORTED || this == SOURCE_USED_IN_SHORT;
+    }
 }

@@ -57,6 +57,7 @@ class ResolveReportUseCaseTest {
                 invocation.<Supplier<?>>getArgument(0).get());
         contentPort = mock(ReportContentModerationPort.class);
         userBanRepository = mock(UserBanRepositoryPort.class);
+        when(userBanRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
         useCase = new ResolveReportUseCase(port, contentPort, userBanRepository, userRepository, clock, transactionRunner);
 
         admin = User.restore(2L, "admin@example.com", UserRole.ADMIN, null);

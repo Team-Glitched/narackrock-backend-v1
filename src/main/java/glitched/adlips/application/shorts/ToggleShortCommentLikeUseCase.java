@@ -1,18 +1,28 @@
 package glitched.adlips.application.shorts;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.shorts.port.out.ShortCommentReactionPort;
 import glitched.adlips.domain.reaction.ReactionType;
 import java.util.Optional;
 
 public class ToggleShortCommentLikeUseCase {
+    private final NotificationEvents notifications;
 
     private final ShortCommentReactionPort reactionPort;
     private final TransactionRunner transactionRunner;
 
     public ToggleShortCommentLikeUseCase(ShortCommentReactionPort reactionPort, TransactionRunner transactionRunner) {
+        this(reactionPort, transactionRunner, NotificationEvents.none());
+    }
+
+    public ToggleShortCommentLikeUseCase(ShortCommentReactionPort reactionPort, TransactionRunner transactionRunner, NotificationEvents notifications) {
         this.reactionPort = reactionPort;
         this.transactionRunner = transactionRunner;
+    
+        this.notifications = notifications;
     }
 
     public ShortCommentLikeResult toggle(Long userId, Long shortId, Long commentId) {
@@ -38,6 +48,7 @@ public class ToggleShortCommentLikeUseCase {
                 reactionPort.adjustLikeCount(commentId, 1);
                 isLiked = true;
             }
+            if(isLiked)notifications.record(SHORT_COMMENT_LIKED,userId,commentId);
             return new ShortCommentLikeResult(commentId, isLiked, reactionPort.getLikeCount(commentId));
         });
     }

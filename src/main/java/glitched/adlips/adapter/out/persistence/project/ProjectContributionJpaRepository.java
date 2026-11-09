@@ -8,6 +8,8 @@ import java.util.Optional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface ProjectContributionJpaRepository extends JpaRepository<ProjectContribution, Long> {
     Optional<ProjectContribution> findByIdAndProjectId(Long id, Long projectId);
@@ -27,6 +29,19 @@ public interface ProjectContributionJpaRepository extends JpaRepository<ProjectC
     List<ProjectContribution> findByProjectIdAndUserIdAndApprovalStatusInAndIdLessThanOrderByIdDesc(
             Long projectId, Long userId, Collection<ContributionApprovalStatus> statuses,
             Long cursor, Pageable pageable);
+
+    @Query("""
+            select c from ProjectContribution c join fetch c.project p
+            where c.user.id = :userId and p.deletedAt is null
+              and (:cursor is null or c.id < :cursor)
+            order by c.id desc
+            """)
+    List<ProjectContribution> findSentByUserId(@Param("userId") Long userId,
+                                              @Param("cursor") Long cursor, Pageable pageable);
+
+    default List<ProjectContribution> findSentByUserId(Long userId, Long cursor, int pageSize) {
+        return findSentByUserId(userId, cursor, PageRequest.of(0, pageSize));
+    }
 
     default List<ProjectContribution> findByProjectIdAndApprovalStatusInOrderByIdDesc(
             Long projectId, Collection<ContributionApprovalStatus> statuses, int pageSize) {

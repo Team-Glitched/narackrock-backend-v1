@@ -57,6 +57,11 @@ public class ProjectClip extends BaseTimeEntity {
     @Column(name = "source_type", nullable = false)
     private ClipSourceType sourceType;
 
+    @Column(name = "origin_open_source_id")
+    private Long originOpenSourceId;
+
+    public void attributeOpenSource(Long sourceId) { this.originOpenSourceId = Objects.requireNonNull(sourceId); }
+
     @Column(name = "media_file_id")
     private Long mediaFileId;
 
@@ -150,6 +155,9 @@ public class ProjectClip extends BaseTimeEntity {
         }
         validateAudioData(sourceType, mediaFileId, clipOffsetMs, durationMs);
         validateProjectAndTimeline(project, track, startTick, durationTick);
+        if (!Objects.equals(this.mediaFileId, mediaFileId) || this.sourceType != sourceType) {
+            this.originOpenSourceId = null;
+        }
         this.sourceType = sourceType;
         this.mediaFileId = mediaFileId;
         this.waveformFileId = waveformFileId;

@@ -1,5 +1,8 @@
 package glitched.adlips.application.community;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.community.port.out.GalleryProposalPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
@@ -9,6 +12,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 
 public class RejectGalleryProposalUseCase {
+    private final NotificationEvents notifications;
 
     private final GalleryProposalPort proposalPort;
     private final UserRepositoryPort userRepository;
@@ -21,10 +25,19 @@ public class RejectGalleryProposalUseCase {
             TransactionRunner transactionRunner,
             Clock clock
     ) {
+        this(proposalPort, userRepository, transactionRunner, clock, NotificationEvents.none());
+    }
+
+    public RejectGalleryProposalUseCase(GalleryProposalPort proposalPort,
+            UserRepositoryPort userRepository,
+            TransactionRunner transactionRunner,
+            Clock clock, NotificationEvents notifications) {
         this.proposalPort = proposalPort;
         this.userRepository = userRepository;
         this.transactionRunner = transactionRunner;
         this.clock = clock;
+    
+        this.notifications = notifications;
     }
 
     public GalleryProposalReviewResult execute(Long proposalId, Long adminUserId, String reason) {
@@ -44,6 +57,7 @@ public class RejectGalleryProposalUseCase {
 
             proposal.reject(admin, reason, LocalDateTime.now(clock));
             proposalPort.update(proposal);
+            notifications.record(GALLERY_REJECTED,adminUserId,proposal.getId());
             return new GalleryProposalReviewResult(
                     proposal.getId(), proposal.getStatus(), null, proposal.getReviewedAt());
         });

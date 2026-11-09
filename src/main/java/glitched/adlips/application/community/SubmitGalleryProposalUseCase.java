@@ -1,5 +1,8 @@
 package glitched.adlips.application.community;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.community.port.out.GalleryProposalPort;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
@@ -8,6 +11,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 
 public class SubmitGalleryProposalUseCase {
+    private final NotificationEvents notifications;
 
     static final long MAX_PENDING_PROPOSALS = 1;
 
@@ -22,10 +26,19 @@ public class SubmitGalleryProposalUseCase {
             TransactionRunner transactionRunner,
             Clock clock
     ) {
+        this(port, userBanQueryPort, transactionRunner, clock, NotificationEvents.none());
+    }
+
+    public SubmitGalleryProposalUseCase(GalleryProposalPort port,
+            UserBanQueryPort userBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock, NotificationEvents notifications) {
         this.port = port;
         this.userBanQueryPort = userBanQueryPort;
         this.transactionRunner = transactionRunner;
         this.clock = clock;
+    
+        this.notifications = notifications;
     }
 
     public Long execute(Long userId, String name, String description) {
@@ -56,7 +69,9 @@ public class SubmitGalleryProposalUseCase {
                 throw new GalleryProposalApplicationException(
                         GalleryProposalErrorCode.TOO_MANY_PENDING_PROPOSALS, "검토 중인 개설 요청이 이미 있습니다.");
             }
-            return port.save(userId, normalizedName, normalizedDescription);
+            Long proposalId=port.save(userId, normalizedName, normalizedDescription);
+            notifications.record(GALLERY_PROPOSED,userId,proposalId);
+            return proposalId;
         });
     }
 }

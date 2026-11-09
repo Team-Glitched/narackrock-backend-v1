@@ -75,14 +75,14 @@ public class CommunityApplicationConfiguration {
             ReportUserRestrictionPort restrictionPort,
             Clock clock,
             TransactionRunner transactionRunner
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new SubmitReportUseCase(
                 targetQueryPort,
                 submissionPort,
                 restrictionPort,
                 clock,
                 transactionRunner
-        );
+        , notificationEvents);
     }
 
     @Bean
@@ -91,9 +91,9 @@ public class CommunityApplicationConfiguration {
             UserBanQueryPort userBanQueryPort,
             TransactionRunner transactionRunner,
             Clock clock
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new SubmitGalleryProposalUseCase(
-                galleryProposalPort, userBanQueryPort, transactionRunner, clock);
+                galleryProposalPort, userBanQueryPort, transactionRunner, clock, notificationEvents);
     }
 
     @Bean
@@ -153,7 +153,7 @@ public class CommunityApplicationConfiguration {
             GalleryModerationLogPort galleryModerationLogPort,
             TransactionRunner transactionRunner,
             Clock clock
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new SanctionGalleryUserUseCase(
                 galleryAuthorityPort,
                 galleryManagementPort,
@@ -162,7 +162,7 @@ public class CommunityApplicationConfiguration {
                 userRepositoryPort,
                 galleryModerationLogPort,
                 transactionRunner,
-                clock);
+                clock, notificationEvents);
     }
 
     @Bean
@@ -174,7 +174,7 @@ public class CommunityApplicationConfiguration {
             GalleryModerationLogPort galleryModerationLogPort,
             TransactionRunner transactionRunner,
             Clock clock
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new LiftGalleryBanUseCase(
                 galleryAuthorityPort,
                 galleryManagementPort,
@@ -182,7 +182,7 @@ public class CommunityApplicationConfiguration {
                 userRepositoryPort,
                 galleryModerationLogPort,
                 transactionRunner,
-                clock);
+                clock, notificationEvents);
     }
 
     @Bean
@@ -203,13 +203,13 @@ public class CommunityApplicationConfiguration {
             GalleryModerationLogPort galleryModerationLogPort,
             TransactionRunner transactionRunner,
             Clock clock
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new ModeratePostDeletionUseCase(
                 galleryAuthorityPort,
                 postPort,
                 galleryModerationLogPort,
                 transactionRunner,
-                clock);
+                clock, notificationEvents);
     }
 
     @Bean
@@ -220,14 +220,14 @@ public class CommunityApplicationConfiguration {
             GalleryModerationLogPort galleryModerationLogPort,
             TransactionRunner transactionRunner,
             Clock clock
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new ModeratePostCommentDeletionUseCase(
                 galleryAuthorityPort,
                 postPort,
                 postCommentPort,
                 galleryModerationLogPort,
                 transactionRunner,
-                clock);
+                clock, notificationEvents);
     }
 
     @Bean
@@ -246,14 +246,14 @@ public class CommunityApplicationConfiguration {
             MediaFileRepositoryPort mediaFileRepository,
             TransactionRunner transactionRunner,
             Clock clock
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new CreatePostUseCase(
                 postPort,
                 userBanQueryPort,
                 galleryBanQueryPort,
                 mediaFileRepository,
                 transactionRunner,
-                clock);
+                clock, notificationEvents);
     }
 
     @Bean
@@ -370,14 +370,14 @@ public class CommunityApplicationConfiguration {
             GalleryBanQueryPort galleryBanQueryPort,
             TransactionRunner transactionRunner,
             Clock clock
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new TogglePostReactionUseCase(
                 postReactionPort,
                 ranking,
                 userBanQueryPort,
                 galleryBanQueryPort,
                 transactionRunner,
-                clock);
+                clock, notificationEvents);
     }
 
     @Bean
@@ -387,13 +387,13 @@ public class CommunityApplicationConfiguration {
             GalleryBanQueryPort galleryBanQueryPort,
             TransactionRunner transactionRunner,
             Clock clock
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new TogglePostCommentReactionUseCase(
                 postCommentReactionPort,
                 userBanQueryPort,
                 galleryBanQueryPort,
                 transactionRunner,
-                clock);
+                clock, notificationEvents);
     }
 
     @Bean
@@ -411,13 +411,13 @@ public class CommunityApplicationConfiguration {
             GalleryBanQueryPort galleryBanQueryPort,
             TransactionRunner transactionRunner,
             Clock clock
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new CreatePostCommentUseCase(
                 postCommentPort,
                 userBanQueryPort,
                 galleryBanQueryPort,
                 transactionRunner,
-                clock);
+                clock, notificationEvents);
     }
 
     @Bean

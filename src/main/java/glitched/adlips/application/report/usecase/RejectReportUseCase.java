@@ -1,5 +1,8 @@
 package glitched.adlips.application.report.usecase;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.report.port.out.ReportResolutionPort;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
@@ -13,6 +16,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 
 public class RejectReportUseCase {
+    private final NotificationEvents notifications;
 
     private final ReportResolutionPort port;
     private final UserRepositoryPort userRepository;
@@ -25,10 +29,19 @@ public class RejectReportUseCase {
             Clock clock,
             TransactionRunner transactionRunner
     ) {
+        this(port, userRepository, clock, transactionRunner, NotificationEvents.none());
+    }
+
+    public RejectReportUseCase(ReportResolutionPort port,
+            UserRepositoryPort userRepository,
+            Clock clock,
+            TransactionRunner transactionRunner, NotificationEvents notifications) {
         this.port = port;
         this.userRepository = userRepository;
         this.clock = clock;
         this.transactionRunner = transactionRunner;
+    
+        this.notifications = notifications;
     }
 
     public ReportResolutionResult execute(Long reportId, Long adminUserId, String reason) {
@@ -58,6 +71,7 @@ public class RejectReportUseCase {
                 report.getTargetId(),
                 ModerationActionType.REJECT_REPORT,
                 reason));
+        notifications.record(REPORT_REJECTED,admin.getId(),report.getId(),null,reason);
         return new ReportResolutionResult(
                 report.getId(),
                 report.getStatus(),

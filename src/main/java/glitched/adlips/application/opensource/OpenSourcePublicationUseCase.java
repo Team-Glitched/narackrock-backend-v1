@@ -1,5 +1,8 @@
 package glitched.adlips.application.opensource;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.domain.media.MediaFileStatus;
@@ -9,6 +12,7 @@ import java.time.Clock;
 import static glitched.adlips.application.opensource.OpenSourceException.Code.*;
 
 public class OpenSourcePublicationUseCase {
+    private final NotificationEvents notifications;
     public record Patch(boolean hasTitle, String title, boolean hasDescription, String description,
                         boolean hasThumbnail, Long thumbnailMediaFileId) {}
     private final OpenSourcePublicationPort publications;
@@ -18,10 +22,17 @@ public class OpenSourcePublicationUseCase {
 
     public OpenSourcePublicationUseCase(OpenSourcePublicationPort publications, MediaFileRepositoryPort media,
                                         TransactionRunner transactions, Clock clock) {
+        this(publications, media, transactions, clock, NotificationEvents.none());
+    }
+
+    public OpenSourcePublicationUseCase(OpenSourcePublicationPort publications, MediaFileRepositoryPort media,
+                                        TransactionRunner transactions, Clock clock, NotificationEvents notifications) {
         this.publications = publications;
         this.media = media;
         this.transactions = transactions;
         this.clock = clock;
+    
+        this.notifications = notifications;
     }
 
     public OpenSourcePublication create(Long userId, String title, String description, Long mediaFileId, Long thumbnailMediaFileId) {
@@ -63,7 +74,9 @@ public class OpenSourcePublicationUseCase {
                 validateMedia(userId, current.mediaFileId(), MediaFileType.AUDIO);
                 if (current.thumbnailMediaFileId() != null) validateMedia(userId, current.thumbnailMediaFileId(), MediaFileType.IMAGE);
             }
-            return publications.save(current.visibility(visible, clock.instant()));
+            var saved=publications.save(current.visibility(visible, clock.instant()));
+            if(visible&&!current.isPublic())notifications.record(FOLLOWING_SOURCE_PUBLISHED,userId,id);
+            return saved;
         });
     }
 

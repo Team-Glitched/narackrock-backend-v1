@@ -250,8 +250,8 @@ public class UserApplicationConfiguration {
 
     @Bean
     FollowRequestUseCase followRequestUseCase(FollowRequestPort requests, FollowRepositoryPort follows,
-            ProfileRepositoryPort profiles, FollowCreateUseCase createFollow, TransactionRunner transactionRunner) {
-        return new FollowRequestUseCase(requests, follows, profiles, createFollow, transactionRunner);
+            ProfileRepositoryPort profiles, FollowCreateUseCase createFollow, TransactionRunner transactionRunner, glitched.adlips.application.notification.NotificationEvents notificationEvents) {
+        return new FollowRequestUseCase(requests, follows, profiles, createFollow, transactionRunner, notificationEvents);
     }
 
     @Bean

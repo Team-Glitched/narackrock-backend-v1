@@ -25,6 +25,7 @@ import glitched.adlips.application.project.usecase.MidiClipSaveUseCase;
 import glitched.adlips.application.project.usecase.OpenSourceClipCreateUseCase;
 import glitched.adlips.application.project.usecase.ProjectContributionCreateUseCase;
 import glitched.adlips.application.project.usecase.ProjectContributionGetListUseCase;
+import glitched.adlips.application.project.usecase.SentContributionGetListUseCase;
 import glitched.adlips.application.project.usecase.ProjectContributionNotificationUseCase;
 import glitched.adlips.application.project.usecase.ProjectContributionReviewUseCase;
 import glitched.adlips.application.project.usecase.ProjectCreateUseCase;
@@ -132,8 +133,8 @@ public class ProjectApplicationConfiguration {
             ProjectRepositoryPort projects,
             Clock clock,
             TransactionRunner transactionRunner
-    ) {
-        return new ProjectDeleteUseCase(projects, clock, transactionRunner);
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
+        return new ProjectDeleteUseCase(projects, clock, transactionRunner, notificationEvents);
     }
 
     @Bean
@@ -142,8 +143,8 @@ public class ProjectApplicationConfiguration {
             ProjectMemberRepositoryPort members,
             PublishedShortPort publishedShorts,
             TransactionRunner transactionRunner
-    ) {
-        return new ProjectCompleteUseCase(projects, members, publishedShorts, transactionRunner);
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
+        return new ProjectCompleteUseCase(projects, members, publishedShorts, transactionRunner, notificationEvents);
     }
 
     @Bean
@@ -183,10 +184,10 @@ public class ProjectApplicationConfiguration {
             Clock clock,
             @Value("${app.project.export-processing-batch-size:5}") int batchSize,
             TransactionRunner transactionRunner
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new ProcessPendingProjectExportsUseCase(
                 exports, tracks, clips, mediaFiles, storage, mixer, midiRenderer, archiver,
-                publishedShorts, clock, batchSize, transactionRunner);
+                publishedShorts, clock, batchSize, transactionRunner, notificationEvents);
     }
 
     @Bean
@@ -252,9 +253,9 @@ public class ProjectApplicationConfiguration {
             MediaFileRepositoryPort mediaFiles,
             OpenSourceMediaPort openSources,
             TransactionRunner transactionRunner
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new OpenSourceClipCreateUseCase(
-                projects, members, tracks, clips, users, mediaFiles, openSources, transactionRunner);
+                projects, members, tracks, clips, users, mediaFiles, openSources, transactionRunner, notificationEvents);
     }
 
     @Bean
@@ -288,9 +289,9 @@ public class ProjectApplicationConfiguration {
             ProjectClipRepositoryPort clips,
             UserRepositoryPort users,
             TransactionRunner transactionRunner
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new ProjectContributionCreateUseCase(
-                projects, members, contributions, contributionItems, tracks, clips, users, transactionRunner);
+                projects, members, contributions, contributionItems, tracks, clips, users, transactionRunner, notificationEvents);
     }
 
     @Bean
@@ -304,6 +305,12 @@ public class ProjectApplicationConfiguration {
     ) {
         return new ProjectContributionGetListUseCase(
                 projects, members, contributions, profiles, mediaFiles, transactionRunner);
+    }
+
+    @Bean
+    SentContributionGetListUseCase sentContributionGetListUseCase(
+            ProjectContributionRepositoryPort contributions, TransactionRunner transactionRunner) {
+        return new SentContributionGetListUseCase(contributions, transactionRunner);
     }
 
     @Bean
@@ -324,8 +331,8 @@ public class ProjectApplicationConfiguration {
             UserRepositoryPort users,
             ProjectExportRepositoryPort exports,
             TransactionRunner transactionRunner
-    ) {
+    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new ProjectContributionReviewUseCase(
-                contributions, members, tracks, clips, users, exports, transactionRunner);
+                contributions, members, tracks, clips, users, exports, transactionRunner, notificationEvents);
     }
 }

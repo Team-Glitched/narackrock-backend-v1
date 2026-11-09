@@ -29,7 +29,7 @@ import org.junit.jupiter.api.Test;
 
 class ProjectContributionGetListUseCaseTest {
     @Test
-    void ownerGetsPendingAndApprovedContributionsByDefault() {
+    void ownerGetsPendingApprovedAndRejectedContributionsByDefault() {
         User owner = User.create("owner@example.com").withId(1L);
         User contributor = User.create("contributor@example.com").withId(2L);
         Project project = new Project(owner, "곡", null, 701L);
@@ -64,7 +64,30 @@ class ProjectContributionGetListUseCaseTest {
         assertThat(response.items().getFirst().nickname()).isEqualTo("guitar_moon");
         assertThat(response.page().nextCursor()).isEqualTo(10L);
         verify(contributions).findByProjectIdAndApprovalStatusInOrderByIdDesc(
-                any(), argThat(statuses -> !statuses.contains(ContributionApprovalStatus.REJECTED)),
+                any(), argThat(statuses -> statuses.containsAll(List.of(ContributionApprovalStatus.PENDING,
+                        ContributionApprovalStatus.APPROVED, ContributionApprovalStatus.REJECTED))),
                 anyInt());
+    }
+
+    @Test
+    void contributorCanReloadOnlyTheirOwnRejectedRequests() {
+        User owner = User.create("owner@example.com").withId(1L);
+        User sender = User.create("sender@example.com").withId(2L);
+        Project project = new Project(owner, "곡", null, 701L);
+        ProjectRepositoryPort projects = mock(ProjectRepositoryPort.class);
+        ProjectMemberRepositoryPort members = mock(ProjectMemberRepositoryPort.class);
+        ProjectContributionRepositoryPort contributions = mock(ProjectContributionRepositoryPort.class);
+        when(projects.findByIdAndDeletedAtIsNull(1L)).thenReturn(Optional.of(project));
+        when(members.findByProjectIdAndUserId(1L, 2L))
+                .thenReturn(Optional.of(new ProjectMember(project, sender, ProjectMemberRole.VIEWER)));
+        when(contributions.findByProjectIdAndUserIdAndApprovalStatusInOrderByIdDesc(any(), any(), any(), anyInt()))
+                .thenReturn(List.of());
+        new ProjectContributionGetListUseCase(projects, members, contributions,
+                mock(ProfileRepositoryPort.class), mock(MediaFileRepositoryPort.class))
+                .execute(new ProjectContributionGetListRequest(1L, 2L, "REJECTED", null, 20));
+        verify(contributions).findByProjectIdAndUserIdAndApprovalStatusInOrderByIdDesc(
+                org.mockito.ArgumentMatchers.eq(1L), org.mockito.ArgumentMatchers.eq(2L),
+                argThat(statuses -> statuses.equals(List.of(ContributionApprovalStatus.REJECTED))),
+                org.mockito.ArgumentMatchers.eq(21));
     }
 }

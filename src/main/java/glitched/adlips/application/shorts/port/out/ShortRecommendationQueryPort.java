@@ -1,6 +1,6 @@
 package glitched.adlips.application.shorts.port.out;
 
-import glitched.adlips.application.shorts.RecommendationReason;
+import glitched.adlips.application.shorts.ArtistAffinity;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -11,7 +11,7 @@ public interface ShortRecommendationQueryPort {
 
     record CatalogRange(long oldestId, long newestId) {}
 
-    Map<Long, RecommendationReason> findEngagedAuthors(Long userId);
+    Map<Long, ArtistAffinity> findEngagedAuthors(Long userId);
 
     List<Candidate> findForAuthors(Long userId, Set<Long> authorIds, int limit);
 

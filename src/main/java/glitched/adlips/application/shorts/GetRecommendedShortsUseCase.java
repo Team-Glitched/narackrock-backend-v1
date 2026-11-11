@@ -4,7 +4,6 @@ import glitched.adlips.application.shorts.port.out.ShortRecommendationQueryPort;
 import glitched.adlips.application.shorts.port.out.ShortRecommendationQueryPort.Candidate;
 import glitched.adlips.application.shorts.port.out.ShortRecommendationQueryPort.CatalogRange;
 import glitched.adlips.application.shorts.port.out.ShortRecommendationSnapshotPort;
-import glitched.adlips.application.shorts.port.out.ShortRecommendationSnapshotPort.Entry;
 import glitched.adlips.application.shorts.port.out.ShortsQueryItem;
 import glitched.adlips.application.shorts.port.out.ShortsQueryPort;
 import glitched.adlips.application.user.relation.port.out.CollaborationUserQueryPort;
@@ -56,7 +55,7 @@ public class GetRecommendedShortsUseCase {
 
     public ShortRecommendationPage execute(Long userId, int size, String continuation) {
         Cursor cursor = continuation == null ? null : Cursor.parse(continuation);
-        List<Entry> ranking = cursor == null ? rank(userId) : snapshots.find(userId, cursor.id())
+        List<Long> ranking = cursor == null ? rank(userId) : snapshots.find(userId, cursor.id())
                 .orElseThrow(() -> new CursorException(true));
         if (cursor != null && cursor.offset() >= ranking.size()) {
             throw new CursorException(false);
@@ -78,11 +77,11 @@ public class GetRecommendedShortsUseCase {
                 slice.items(), new ShortRecommendationPage.Page(nextCursor, nextCursor != null, size));
     }
 
-    private List<Entry> rank(Long userId) {
+    private List<Long> rank(Long userId) {
         CatalogRange catalog = candidates.findCatalogRange().orElse(null);
         if (catalog == null) return List.of();
 
-        Map<Long, RecommendationReason> affinity = artistAffinity(userId);
+        Map<Long, ArtistAffinity> affinity = artistAffinity(userId);
         List<Candidate> personalized = affinity.isEmpty() ? List.of()
                 : candidates.findForAuthors(userId, affinity.keySet(), PERSONALIZED_LIMIT);
         List<Candidate> recent = candidates.findForDiscovery(userId, affinity.keySet(), null, RECENT_DISCOVERY_LIMIT);
@@ -97,7 +96,7 @@ public class GetRecommendedShortsUseCase {
         ).toList());
         Set<Long> personalizedIds = personalPool.stream().map(Candidate::shortId).collect(Collectors.toSet());
         var discoveryPool = discoveryPool(recent, rotated, personalizedIds);
-        List<Entry> ranking = new ArrayList<>(personalPool.size() + discoveryPool.size());
+        List<Long> ranking = new ArrayList<>(personalPool.size() + discoveryPool.size());
         Set<Long> authors = new HashSet<>();
         Long previousAuthor = null;
         while (!personalPool.isEmpty() || !discoveryPool.isEmpty()) {
@@ -109,17 +108,17 @@ public class GetRecommendedShortsUseCase {
             Candidate next = take(preferred, alternate, authors, previousAuthor);
             authors.add(next.authorId());
             previousAuthor = next.authorId();
-            ranking.add(new Entry(next.shortId(), affinity.getOrDefault(next.authorId(), RecommendationReason.DISCOVERY)));
+            ranking.add(next.shortId());
         }
         return List.copyOf(ranking);
     }
 
-    private Map<Long, RecommendationReason> artistAffinity(Long userId) {
+    private Map<Long, ArtistAffinity> artistAffinity(Long userId) {
         if (userId == null) return Map.of();
-        Map<Long, RecommendationReason> affinity = new HashMap<>();
-        follows.findFollowingIds(userId).forEach(id -> affinity.put(id, RecommendationReason.FOLLOWED_ARTIST));
+        Map<Long, ArtistAffinity> affinity = new HashMap<>();
+        follows.findFollowingIds(userId).forEach(id -> affinity.put(id, ArtistAffinity.FOLLOWED));
         candidates.findEngagedAuthors(userId).forEach(affinity::putIfAbsent);
-        collaborations.findCollaboratorIds(userId).forEach(id -> affinity.putIfAbsent(id, RecommendationReason.COLLABORATOR));
+        collaborations.findCollaboratorIds(userId).forEach(id -> affinity.putIfAbsent(id, ArtistAffinity.COLLABORATOR));
         affinity.remove(userId);
         return affinity;
     }
@@ -161,23 +160,21 @@ public class GetRecommendedShortsUseCase {
         return null;
     }
 
-    private Slice slice(List<Entry> ranking, int offset, int size, Long userId) {
+    private Slice slice(List<Long> ranking, int offset, int size, Long userId) {
         List<ShortRecommendationPage.Item> items = new ArrayList<>(size);
         while (offset < ranking.size()) {
             int end = Math.min(ranking.size(), offset + size + 1 - items.size());
-            List<Long> ids = ranking.subList(offset, end).stream().map(Entry::shortId).toList();
+            List<Long> ids = ranking.subList(offset, end);
             Map<Long, ShortsQueryItem> visible = shorts.findByIds(ids, userId).stream()
                     .filter(item -> !item.authorId().equals(userId) && !item.liked() && !item.disliked() && !item.bookmarked())
                     .collect(Collectors.toMap(ShortsQueryItem::shortId, Function.identity()));
             for (; offset < end; offset++) {
-                Entry entry = ranking.get(offset);
-                ShortsQueryItem song = visible.get(entry.shortId());
+                ShortsQueryItem song = visible.get(ranking.get(offset));
                 if (song == null) continue;
                 if (items.size() == size) return new Slice(List.copyOf(items), offset);
                 items.add(new ShortRecommendationPage.Item(
                         song.shortId(), song.title(), song.albumImageUrl(),
-                        new AuthorSummary(song.authorId(), song.authorNickname(), song.authorProfileImageUrl()),
-                        entry.reason()));
+                        new AuthorSummary(song.authorId(), song.authorNickname(), song.authorProfileImageUrl())));
             }
         }
         return new Slice(List.copyOf(items), -1);

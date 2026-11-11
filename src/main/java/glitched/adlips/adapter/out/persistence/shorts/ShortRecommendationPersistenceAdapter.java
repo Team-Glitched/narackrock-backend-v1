@@ -2,7 +2,7 @@ package glitched.adlips.adapter.out.persistence.shorts;
 
 import static glitched.adlips.adapter.out.persistence.shorts.ShortsQueryPersistenceAdapter.VISIBLE_SHORT;
 
-import glitched.adlips.application.shorts.RecommendationReason;
+import glitched.adlips.application.shorts.ArtistAffinity;
 import glitched.adlips.application.shorts.port.out.ShortRecommendationQueryPort;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
@@ -48,7 +48,7 @@ public class ShortRecommendationPersistenceAdapter implements ShortRecommendatio
     }
 
     @Override
-    public Map<Long, RecommendationReason> findEngagedAuthors(Long userId) {
+    public Map<Long, ArtistAffinity> findEngagedAuthors(Long userId) {
         @SuppressWarnings("unchecked")
         List<Object[]> rows = entityManager.createNativeQuery("""
                 SELECT s.user_id, MAX(signal.strength)
@@ -67,10 +67,10 @@ public class ShortRecommendationPersistenceAdapter implements ShortRecommendatio
                 """.formatted(VISIBLE_SHORT))
                 .setParameter("viewer", userId)
                 .getResultList();
-        Map<Long, RecommendationReason> results = new HashMap<>();
+        Map<Long, ArtistAffinity> results = new HashMap<>();
         for (Object[] row : rows) {
             results.put(((Number) row[0]).longValue(), ((Number) row[1]).intValue() == 2
-                    ? RecommendationReason.SAVED_ARTIST : RecommendationReason.LIKED_ARTIST);
+                    ? ArtistAffinity.SAVED : ArtistAffinity.LIKED);
         }
         return results;
     }

@@ -7,8 +7,7 @@ public record ShortRecommendationPage(List<Item> items, Page page) {
             Long shortId,
             String title,
             String albumImageUrl,
-            AuthorSummary author,
-            RecommendationReason reason
+            AuthorSummary author
     ) {}
 
     public record Page(String nextCursor, boolean hasMore, int size) {}

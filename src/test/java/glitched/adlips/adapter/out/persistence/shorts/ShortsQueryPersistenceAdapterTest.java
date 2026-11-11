@@ -3,7 +3,7 @@ package glitched.adlips.adapter.out.persistence.shorts;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import glitched.adlips.application.shorts.port.out.ShortsQueryItem;
-import glitched.adlips.application.shorts.RecommendationReason;
+import glitched.adlips.application.shorts.ArtistAffinity;
 import glitched.adlips.application.shorts.ShortsSource;
 import glitched.adlips.application.shorts.port.out.ShortRecommendationQueryPort.Candidate;
 import glitched.adlips.application.shorts.port.out.ShortRecommendationQueryPort.CatalogRange;
@@ -105,7 +105,7 @@ class ShortsQueryPersistenceAdapterTest {
 
         assertThat(recommendations.findCatalogRange()).contains(new CatalogRange(11L, 18L));
         assertThat(recommendations.findEngagedAuthors(99L)).isEqualTo(Map.of(
-                123L, RecommendationReason.SAVED_ARTIST, 77L, RecommendationReason.LIKED_ARTIST));
+                123L, ArtistAffinity.SAVED, 77L, ArtistAffinity.LIKED));
         assertThat(recommendations.findForAuthors(99L, Set.of(77L, 99L, 123L), 10))
                 .extracting(Candidate::shortId).containsExactly(17L, 11L);
         assertThat(recommendations.findForDiscovery(99L, Set.of(123L), null, 10))

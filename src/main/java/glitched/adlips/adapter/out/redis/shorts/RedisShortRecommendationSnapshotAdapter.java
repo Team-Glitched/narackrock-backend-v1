@@ -1,6 +1,5 @@
 package glitched.adlips.adapter.out.redis.shorts;
 
-import glitched.adlips.application.shorts.RecommendationReason;
 import glitched.adlips.application.shorts.port.out.ShortRecommendationSnapshotPort;
 import java.time.Duration;
 import java.util.Arrays;
@@ -27,25 +26,19 @@ public class RedisShortRecommendationSnapshotAdapter implements ShortRecommendat
     }
 
     @Override
-    public void save(Long userId, UUID id, List<Entry> entries) {
-        String value = entries.stream().map(entry -> entry.shortId() + ":" + entry.reason().name())
+    public void save(Long userId, UUID id, List<Long> shortIds) {
+        String value = shortIds.stream().map(String::valueOf)
                 .collect(Collectors.joining(","));
         redis.opsForValue().set(key(userId, id), value, TTL);
     }
 
     @Override
-    public Optional<List<Entry>> find(Long userId, UUID id) {
+    public Optional<List<Long>> find(Long userId, UUID id) {
         return Optional.ofNullable(redis.opsForValue().get(key(userId, id))).map(value ->
-                Arrays.stream(value.split(",")).map(RedisShortRecommendationSnapshotAdapter::parse).toList());
+                Arrays.stream(value.split(",")).map(Long::valueOf).toList());
     }
 
     private String key(Long userId, UUID id) {
         return prefix + ":shorts:recommendations:" + (userId == null ? "guest" : userId) + ":" + id;
-    }
-
-    private static Entry parse(String value) {
-        int separator = value.indexOf(':');
-        return new Entry(Long.valueOf(value.substring(0, separator)),
-                RecommendationReason.valueOf(value.substring(separator + 1)));
     }
 }

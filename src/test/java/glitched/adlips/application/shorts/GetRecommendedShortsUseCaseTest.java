@@ -46,12 +46,12 @@ class GetRecommendedShortsUseCaseTest {
     private final Set<Long> interacted = new HashSet<>();
 
     @Test
-    void mixesSixPersonalizedAndFourDiscoverySongsAndExplainsWhy() {
+    void mixesSixPersonalizedAndFourDiscoverySongsInAffinityOrder() {
         configureCatalog();
         when(follows.findFollowingIds(1L)).thenReturn(List.of(11L, 12L, 13L, 14L));
         when(candidates.findEngagedAuthors(1L)).thenReturn(Map.of(
-                11L, RecommendationReason.SAVED_ARTIST, 15L, RecommendationReason.SAVED_ARTIST,
-                16L, RecommendationReason.LIKED_ARTIST));
+                11L, ArtistAffinity.SAVED, 15L, ArtistAffinity.SAVED,
+                16L, ArtistAffinity.LIKED));
         when(collaborations.findCollaboratorIds(1L)).thenReturn(List.of(17L));
         when(candidates.findForAuthors(eq(1L), anySet(), anyInt())).thenAnswer(call -> {
             Set<Long> authors = call.getArgument(1);
@@ -62,16 +62,14 @@ class GetRecommendedShortsUseCaseTest {
 
         assertThat(page.items()).hasSize(10)
                 .extracting(item -> item.author().userId()).doesNotHaveDuplicates();
-        assertThat(page.items()).filteredOn(item -> item.reason() == RecommendationReason.DISCOVERY).hasSize(4);
-        assertThat(page.items()).filteredOn(item -> item.author().userId().equals(11L))
-                .extracting(ShortRecommendationPage.Item::reason).containsExactly(RecommendationReason.FOLLOWED_ARTIST);
-        assertThat(page.items()).extracting(ShortRecommendationPage.Item::reason)
-                .contains(RecommendationReason.SAVED_ARTIST, RecommendationReason.LIKED_ARTIST);
-        assertThat(page.items()).anyMatch(item -> item.reason() == RecommendationReason.DISCOVERY
+        Set<Long> affiliatedArtists = Set.of(11L, 12L, 13L, 14L, 15L, 16L, 17L);
+        assertThat(page.items()).filteredOn(item -> affiliatedArtists.contains(item.author().userId()))
+                .extracting(item -> item.author().userId()).containsExactly(14L, 13L, 12L, 11L, 15L, 16L);
+        assertThat(page.items()).anyMatch(item -> !affiliatedArtists.contains(item.author().userId())
                 && item.shortId() <= 30L);
         assertThat(page.page().nextCursor()).isNotBlank();
         assertThat(service("2026-11-11").execute(1L, 20, null).items())
-                .extracting(ShortRecommendationPage.Item::reason).contains(RecommendationReason.COLLABORATOR);
+                .extracting(item -> item.author().userId()).contains(17L);
     }
 
     @Test
@@ -98,8 +96,7 @@ class GetRecommendedShortsUseCaseTest {
         configureCatalog();
         var guest = service("2026-11-11").execute(null, 10, null);
         verifyNoInteractions(follows, collaborations);
-        assertThat(guest.items()).hasSize(10)
-                .allMatch(item -> item.reason() == RecommendationReason.DISCOVERY);
+        assertThat(guest.items()).hasSize(10);
         assertThat(guest.items()).extracting(item -> item.author().userId()).doesNotHaveDuplicates();
         assertThat(service("2026-11-12").execute(null, 10, null).items()).isNotEqualTo(guest.items());
         assertThat(service("2026-11-11").execute(2L, 10, null).items()).isNotEqualTo(guest.items());
@@ -151,7 +148,7 @@ class GetRecommendedShortsUseCaseTest {
             List<Long> ids = call.getArgument(0);
             return ids.stream().filter(visible::containsKey).map(this::song).toList();
         });
-        Map<List<Object>, List<ShortRecommendationSnapshotPort.Entry>> stored = new HashMap<>();
+        Map<List<Object>, List<Long>> stored = new HashMap<>();
         org.mockito.Mockito.doAnswer(call -> {
             stored.put(java.util.Arrays.asList(call.getArgument(0), call.getArgument(1)), call.getArgument(2));
             return null;

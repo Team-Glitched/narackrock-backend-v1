@@ -3,10 +3,15 @@ package glitched.adlips.adapter.out.persistence.shorts;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import glitched.adlips.application.shorts.port.out.ShortsQueryItem;
+import glitched.adlips.application.shorts.RecommendationReason;
 import glitched.adlips.application.shorts.ShortsSource;
+import glitched.adlips.application.shorts.port.out.ShortRecommendationQueryPort.Candidate;
+import glitched.adlips.application.shorts.port.out.ShortRecommendationQueryPort.CatalogRange;
 import glitched.adlips.domain.shorts.ShortStatus;
 import jakarta.persistence.EntityManager;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,6 +90,36 @@ class ShortsQueryPersistenceAdapterTest {
         assertThat(adapter.searchByCursor("%", null, 20, null)).isEmpty();
         assertThat(adapter.searchByCursor("비공개", null, 20, null)).isEmpty();
         assertThat(adapter.searchByCursor("삭제됨", null, 20, null)).isEmpty();
+    }
+
+    @Test
+    void recommendsOtherSongsFromEngagedAuthorsAndRotatesPublicDiscovery() {
+        jdbcTemplate.update("INSERT INTO users (id, email, role, created_at) VALUES (77, 'new@test.com', 'USER', CURRENT_TIMESTAMP)");
+        jdbcTemplate.update("INSERT INTO profiles (user_id, nickname, is_private, follower_count, following_count) VALUES (77, 'new_artist', false, 0, 0), (99, 'viewer', false, 0, 0)");
+        insertRecommendationShort(15L, 77L);
+        insertRecommendationShort(16L, 77L);
+        insertRecommendationShort(17L, 77L);
+        insertRecommendationShort(18L, 99L);
+        jdbcTemplate.update("INSERT INTO reactions (user_id, target_type, target_id, reaction_type, created_at) VALUES (99, 'SHORT', 15, 'LIKE', CURRENT_TIMESTAMP), (99, 'SHORT', 16, 'DISLIKE', CURRENT_TIMESTAMP)");
+        var recommendations = new ShortRecommendationPersistenceAdapter(entityManager);
+
+        assertThat(recommendations.findCatalogRange()).contains(new CatalogRange(11L, 18L));
+        assertThat(recommendations.findEngagedAuthors(99L)).isEqualTo(Map.of(
+                123L, RecommendationReason.SAVED_ARTIST, 77L, RecommendationReason.LIKED_ARTIST));
+        assertThat(recommendations.findForAuthors(99L, Set.of(77L, 99L, 123L), 10))
+                .extracting(Candidate::shortId).containsExactly(17L, 11L);
+        assertThat(recommendations.findForDiscovery(99L, Set.of(123L), null, 10))
+                .extracting(Candidate::shortId).containsExactly(17L);
+        assertThat(recommendations.findForDiscovery(null, Set.of(), 11L, 4))
+                .extracting(Candidate::shortId).containsExactly(11L, 18L, 17L, 12L);
+    }
+
+    private void insertRecommendationShort(long id, long authorId) {
+        jdbcTemplate.update("""
+                INSERT INTO shorts (id, user_id, title, media_file_id, status, view_count, like_count,
+                                    dislike_count, comment_count, contribution_count, created_at)
+                VALUES (?, ?, '발견 곡', 101, 'COMPLETED', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP)
+                """, id, authorId);
     }
 
     private void insertFixture() {

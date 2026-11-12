@@ -1,5 +1,8 @@
 package glitched.adlips.application.community;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.community.port.out.PostReactionPort;
 import glitched.adlips.application.community.port.out.PostPopularityRankingPort;
 import glitched.adlips.application.community.port.out.ReactionCounts;
@@ -12,6 +15,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 
 public class TogglePostReactionUseCase {
+    private final NotificationEvents notifications;
 
     private final PostReactionPort reactionPort;
     private final PostPopularityRankingPort popularityRanking;
@@ -48,12 +52,23 @@ public class TogglePostReactionUseCase {
             TransactionRunner transactionRunner,
             Clock clock
     ) {
+        this(reactionPort, popularityRanking, userBanQueryPort, galleryBanQueryPort, transactionRunner, clock, NotificationEvents.none());
+    }
+
+    public TogglePostReactionUseCase(PostReactionPort reactionPort,
+            PostPopularityRankingPort popularityRanking,
+            UserBanQueryPort userBanQueryPort,
+            GalleryBanQueryPort galleryBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock, NotificationEvents notifications) {
         this.reactionPort = reactionPort;
         this.popularityRanking = popularityRanking;
         this.userBanQueryPort = userBanQueryPort;
         this.galleryBanQueryPort = galleryBanQueryPort;
         this.transactionRunner = transactionRunner;
         this.clock = clock;
+    
+        this.notifications = notifications;
     }
 
     public PostReactionResult toggle(Long userId, Long postId, ReactionType requested) {
@@ -79,6 +94,7 @@ public class TogglePostReactionUseCase {
             }
             reactionPort.adjustReactionCounts(postId, toggle.likeDelta(), toggle.dislikeDelta());
             ReactionCounts counts = reactionPort.findReactionCounts(postId);
+            if(toggle.result()==ReactionType.LIKE)notifications.record(POST_LIKED,userId,postId);
             return new PostReactionResult(
                     postId,
                     toggle.result() == ReactionType.LIKE,

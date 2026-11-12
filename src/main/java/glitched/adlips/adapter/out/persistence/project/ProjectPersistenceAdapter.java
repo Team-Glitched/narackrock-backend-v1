@@ -179,6 +179,11 @@ public class ProjectPersistenceAdapter implements
     }
 
     @Override
+    public List<ProjectContribution> findSentByUserId(Long userId, Long cursor, int pageSize) {
+        return contributions.findSentByUserId(userId, cursor, pageSize);
+    }
+
+    @Override
     public ProjectContribution save(ProjectContribution contribution) {
         return contributions.save(contribution);
     }

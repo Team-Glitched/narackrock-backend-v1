@@ -1,5 +1,8 @@
 package glitched.adlips.application.opensource;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.domain.reaction.ReactionToggle;
@@ -11,6 +14,7 @@ import static glitched.adlips.application.opensource.OpenSourceException.Code.*;
 import static glitched.adlips.application.opensource.OpenSourceInteractionPort.*;
 
 public class OpenSourceInteractionUseCase {
+    private final NotificationEvents notifications;
     public record Created(Long openSourceId, long commentCount, Comment comment) {}
     public record Comments(Long openSourceId, Long parentCommentId, int page, int size,
                            long totalCount, boolean hasNext, List<Comment> comments) {}
@@ -19,7 +23,13 @@ public class OpenSourceInteractionUseCase {
     private final UserBanQueryPort bans;
     private final Clock clock;
     public OpenSourceInteractionUseCase(OpenSourceInteractionPort port, TransactionRunner transactions, UserBanQueryPort bans, Clock clock) {
+        this(port, transactions, bans, clock, NotificationEvents.none());
+    }
+
+    public OpenSourceInteractionUseCase(OpenSourceInteractionPort port, TransactionRunner transactions, UserBanQueryPort bans, Clock clock, NotificationEvents notifications) {
         this.port=port; this.transactions=transactions; this.bans=bans; this.clock=clock;
+    
+        this.notifications = notifications;
     }
     public ReactionState react(Long userId, Long targetId, Target target, ReactionType requested) {
         writeAllowed(userId); validId(targetId);
@@ -30,6 +40,7 @@ public class OpenSourceInteractionUseCase {
             if(target==Target.COMMENT) findComment(targetId);
             var change=ReactionToggle.of(port.reaction(userId,target,targetId).orElse(null),requested);
             port.setReaction(userId,target,targetId,change.result(),clock.instant());
+            if(change.result()==ReactionType.LIKE)notifications.record(target==Target.SOURCE?SOURCE_LIKED:SOURCE_COMMENT_LIKED,userId,targetId);
             return port.reactions(userId,target,targetId);
         });
     }
@@ -41,6 +52,7 @@ public class OpenSourceInteractionUseCase {
             available(sourceId); parent(sourceId,parentId);
             if (parentId != null && port.isCommentHidden(userId, parentId)) throw commentMissing();
             Long id=port.insertComment(sourceId,userId,parentId,normalized,clock.instant());
+            notifications.record(parentId==null?SOURCE_COMMENT:SOURCE_REPLY,userId,id);
             return new Created(sourceId,port.visibleCommentCount(sourceId,null,userId,true),port.comment(id,userId));
         });
     }

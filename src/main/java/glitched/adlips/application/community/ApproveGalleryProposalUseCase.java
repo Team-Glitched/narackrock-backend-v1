@@ -1,5 +1,8 @@
 package glitched.adlips.application.community;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.community.port.out.GalleryManagementPort;
 import glitched.adlips.application.community.port.out.GalleryProposalPort;
 import glitched.adlips.application.port.TransactionRunner;
@@ -11,6 +14,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 
 public class ApproveGalleryProposalUseCase {
+    private final NotificationEvents notifications;
 
     private final GalleryProposalPort proposalPort;
     private final GalleryManagementPort managementPort;
@@ -25,11 +29,21 @@ public class ApproveGalleryProposalUseCase {
             TransactionRunner transactionRunner,
             Clock clock
     ) {
+        this(proposalPort, managementPort, userRepository, transactionRunner, clock, NotificationEvents.none());
+    }
+
+    public ApproveGalleryProposalUseCase(GalleryProposalPort proposalPort,
+            GalleryManagementPort managementPort,
+            UserRepositoryPort userRepository,
+            TransactionRunner transactionRunner,
+            Clock clock, NotificationEvents notifications) {
         this.proposalPort = proposalPort;
         this.managementPort = managementPort;
         this.userRepository = userRepository;
         this.transactionRunner = transactionRunner;
         this.clock = clock;
+    
+        this.notifications = notifications;
     }
 
     public GalleryProposalReviewResult execute(Long proposalId, Long adminUserId) {
@@ -51,6 +65,7 @@ public class ApproveGalleryProposalUseCase {
             managementPort.addManager(galleryId, proposal.getProposerId(), GalleryRole.MANAGER);
             proposal.approve(admin, LocalDateTime.now(clock));
             proposalPort.update(proposal);
+            notifications.record(GALLERY_APPROVED,adminUserId,proposal.getId(),galleryId,null);
             return new GalleryProposalReviewResult(
                     proposal.getId(), proposal.getStatus(), galleryId, proposal.getReviewedAt());
         });

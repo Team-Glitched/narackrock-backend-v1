@@ -1,5 +1,8 @@
 package glitched.adlips.application.community;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.community.port.out.PostPort;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.community.port.out.GalleryBanQueryPort;
@@ -12,6 +15,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 
 public class CreatePostUseCase {
+    private final NotificationEvents notifications;
 
     private final PostPort port;
     private final UserBanQueryPort userBanQueryPort;
@@ -38,12 +42,23 @@ public class CreatePostUseCase {
             TransactionRunner transactionRunner,
             Clock clock
     ) {
+        this(port, userBanQueryPort, galleryBanQueryPort, mediaFileRepository, transactionRunner, clock, NotificationEvents.none());
+    }
+
+    public CreatePostUseCase(PostPort port,
+            UserBanQueryPort userBanQueryPort,
+            GalleryBanQueryPort galleryBanQueryPort,
+            MediaFileRepositoryPort mediaFileRepository,
+            TransactionRunner transactionRunner,
+            Clock clock, NotificationEvents notifications) {
         this.port = port;
         this.userBanQueryPort = userBanQueryPort;
         this.galleryBanQueryPort = galleryBanQueryPort;
         this.mediaFileRepository = mediaFileRepository;
         this.transactionRunner = transactionRunner;
         this.clock = clock;
+    
+        this.notifications = notifications;
     }
 
     public CreatePostUseCase(
@@ -78,6 +93,7 @@ public class CreatePostUseCase {
             }
             validateImage(imageFileId, userId);
             Long postId = port.save(galleryId, userId, title.trim(), content.trim(), imageFileId);
+            notifications.record(GALLERY_POST_PUBLISHED,userId,postId);
             return new PostResult(postId, galleryId);
         });
     }

@@ -1,5 +1,8 @@
 package glitched.adlips.application.community;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.community.port.out.GalleryAuthorityPort;
 import glitched.adlips.application.community.port.out.GalleryModerationLogPort;
 import glitched.adlips.application.community.port.out.PostCommentPort;
@@ -12,6 +15,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 
 public class ModeratePostCommentDeletionUseCase {
+    private final NotificationEvents notifications;
 
     private final GalleryAuthorityPort authorityPort;
     private final PostPort postPort;
@@ -28,12 +32,23 @@ public class ModeratePostCommentDeletionUseCase {
             TransactionRunner transactionRunner,
             Clock clock
     ) {
+        this(authorityPort, postPort, commentPort, logPort, transactionRunner, clock, NotificationEvents.none());
+    }
+
+    public ModeratePostCommentDeletionUseCase(GalleryAuthorityPort authorityPort,
+            PostPort postPort,
+            PostCommentPort commentPort,
+            GalleryModerationLogPort logPort,
+            TransactionRunner transactionRunner,
+            Clock clock, NotificationEvents notifications) {
         this.authorityPort = authorityPort;
         this.postPort = postPort;
         this.commentPort = commentPort;
         this.logPort = logPort;
         this.transactionRunner = transactionRunner;
         this.clock = clock;
+    
+        this.notifications = notifications;
     }
 
     public void execute(Long actorId, Long galleryId, Long commentId, String reason) {
@@ -51,6 +66,7 @@ public class ModeratePostCommentDeletionUseCase {
             PostCommentDeletion.delete(commentPort, commentId, comment, now);
             logPort.save(galleryId, actorId, GalleryModerationActionType.DELETE_COMMENT,
                     comment.getUserId(), commentId, reason.trim());
+            notifications.record(POST_COMMENT_MODERATED,actorId,commentId,null,reason);
             return null;
         });
     }

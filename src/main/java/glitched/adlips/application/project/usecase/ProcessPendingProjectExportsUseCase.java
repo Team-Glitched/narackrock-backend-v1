@@ -1,5 +1,8 @@
 package glitched.adlips.application.project.usecase;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.media.port.out.MediaContentStoragePort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.project.ProjectExportProcessingResult;
@@ -30,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 public class ProcessPendingProjectExportsUseCase {
+    private final NotificationEvents notifications;
 
     private static final String MIXED_AUDIO_MIME_TYPE = "audio/wav";
     private static final String ARCHIVE_MIME_TYPE = "application/zip";
@@ -78,6 +82,21 @@ public class ProcessPendingProjectExportsUseCase {
             int batchSize,
             TransactionRunner transactionRunner
     ) {
+        this(exports, tracks, clips, mediaFiles, storage, mixer, midiRenderer, archiver, publishedShorts, clock, batchSize, transactionRunner, NotificationEvents.none());
+    }
+
+    public ProcessPendingProjectExportsUseCase(ProjectExportRepositoryPort exports,
+            ProjectTrackRepositoryPort tracks,
+            ProjectClipRepositoryPort clips,
+            MediaFileRepositoryPort mediaFiles,
+            MediaContentStoragePort storage,
+            ProjectAudioMixerPort mixer,
+            MidiAudioRendererPort midiRenderer,
+            ProjectLayerArchivePort archiver,
+            PublishedShortPort publishedShorts,
+            Clock clock,
+            int batchSize,
+            TransactionRunner transactionRunner, NotificationEvents notifications) {
         if (batchSize <= 0) {
             throw new IllegalArgumentException("batchSize must be positive");
         }
@@ -93,6 +112,8 @@ public class ProcessPendingProjectExportsUseCase {
         this.clock = clock;
         this.batchSize = batchSize;
         this.transactionRunner = transactionRunner;
+    
+        this.notifications = notifications;
     }
 
     public ProjectExportProcessingResult execute() {
@@ -263,9 +284,13 @@ public class ProcessPendingProjectExportsUseCase {
                     .orElseThrow(() -> new IllegalStateException("처리 중인 Export를 찾을 수 없습니다."));
             Long shortId = publishedShorts.publish(
                     export.getProject(), export.getId(), mixedAudio.getId());
+            boolean firstPublication = !export.getProject().isPublic();
             export.complete(
                     mixedAudio.getId(), layerArchive.getId(), shortId, mixed.durationMs(), now());
             exports.save(export);
+            notifications.record(firstPublication ? PROJECT_PUBLISHED : PROJECT_REFRESHED,null,shortId,export.getId(),null);
+            if (firstPublication) notifications.record(FOLLOWING_SHORT_PUBLISHED,export.getProject().getOwner().getId(),shortId);
+            notifications.record(SOURCE_USED_IN_SHORT,export.getProject().getOwner().getId(),shortId);
             return null;
         });
     }
@@ -276,6 +301,7 @@ public class ProcessPendingProjectExportsUseCase {
                     .filter(export -> export.getStatus() == ExportStatus.PROCESSING)
                     .ifPresent(export -> {
                         export.fail(failureMessage(exception), now());
+                        notifications.record(EXPORT_FAILED,null,export.getProject().getId(),exportId,null);
                         exports.save(export);
                     });
             return null;

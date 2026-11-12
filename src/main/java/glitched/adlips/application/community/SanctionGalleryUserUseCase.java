@@ -1,5 +1,8 @@
 package glitched.adlips.application.community;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.community.port.out.GalleryAuthorityPort;
 import glitched.adlips.application.community.port.out.GalleryBanPort;
 import glitched.adlips.application.community.port.out.GalleryManagementPort;
@@ -18,6 +21,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 
 public class SanctionGalleryUserUseCase {
+    private final NotificationEvents notifications;
 
     private final GalleryAuthorityPort authorityPort;
     private final GalleryManagementPort managementPort;
@@ -38,6 +42,17 @@ public class SanctionGalleryUserUseCase {
             TransactionRunner transactionRunner,
             Clock clock
     ) {
+        this(authorityPort, managementPort, banPort, subscriptionPort, userRepository, logPort, transactionRunner, clock, NotificationEvents.none());
+    }
+
+    public SanctionGalleryUserUseCase(GalleryAuthorityPort authorityPort,
+            GalleryManagementPort managementPort,
+            GalleryBanPort banPort,
+            GallerySubscriptionPort subscriptionPort,
+            UserRepositoryPort userRepository,
+            GalleryModerationLogPort logPort,
+            TransactionRunner transactionRunner,
+            Clock clock, NotificationEvents notifications) {
         this.authorityPort = authorityPort;
         this.managementPort = managementPort;
         this.banPort = banPort;
@@ -46,6 +61,8 @@ public class SanctionGalleryUserUseCase {
         this.logPort = logPort;
         this.transactionRunner = transactionRunner;
         this.clock = clock;
+    
+        this.notifications = notifications;
     }
 
     /** 갤러리 행을 잠가 같은 갤러리의 제재를 직렬화한다(활성 제재 1건 보장). */
@@ -82,6 +99,7 @@ public class SanctionGalleryUserUseCase {
                 subscriptionPort.deleteSubscription(targetUserId, galleryId);
             }
             logPort.save(galleryId, actorId, actionType(type), targetUserId, banId, ban.getReason());
+            notifications.record(type==GalleryBanType.SUSPEND?GALLERY_SUSPENDED:GALLERY_EXPELLED,actorId,banId);
             return banId;
         });
     }

@@ -128,7 +128,7 @@ public class ProjectContributionGetListUseCase {
 
     private List<ContributionApprovalStatus> parseStatuses(String value) {
         if (value == null || value.isBlank()) {
-            return List.of(ContributionApprovalStatus.PENDING, ContributionApprovalStatus.APPROVED);
+            return List.of(ContributionApprovalStatus.values());
         }
         try {
             List<ContributionApprovalStatus> statuses = Arrays.stream(value.split(","))
@@ -137,13 +137,13 @@ public class ProjectContributionGetListUseCase {
                     .map(it -> ContributionApprovalStatus.valueOf(it.toUpperCase(Locale.ROOT)))
                     .distinct()
                     .toList();
-            if (statuses.isEmpty() || statuses.contains(ContributionApprovalStatus.REJECTED)) {
+            if (statuses.isEmpty()) {
                 throw new IllegalArgumentException();
             }
             return statuses;
         } catch (IllegalArgumentException exception) {
             throw error(ProjectErrorCode.VALIDATION_ERROR,
-                    "status는 PENDING 또는 APPROVED만 조회할 수 있습니다.");
+                    "status는 PENDING, APPROVED 또는 REJECTED로 조회할 수 있습니다.");
         }
     }
 

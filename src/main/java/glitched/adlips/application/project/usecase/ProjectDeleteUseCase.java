@@ -1,5 +1,8 @@
 package glitched.adlips.application.project.usecase;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.project.ProjectApplicationException;
 import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.ProjectDeleteRequest;
@@ -9,6 +12,7 @@ import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import java.time.Clock;
 import java.time.LocalDateTime;
 public class ProjectDeleteUseCase {
+    private final NotificationEvents notifications;
     private final ProjectRepositoryPort projects;
     private final Clock clock;
     private final TransactionRunner transactionRunner;
@@ -18,8 +22,14 @@ public class ProjectDeleteUseCase {
     }
 
     public ProjectDeleteUseCase(ProjectRepositoryPort projects, Clock clock, TransactionRunner transactionRunner) {
+        this(projects, clock, transactionRunner, NotificationEvents.none());
+    }
+
+    public ProjectDeleteUseCase(ProjectRepositoryPort projects, Clock clock, TransactionRunner transactionRunner, NotificationEvents notifications) {
         this.projects = projects; this.clock = clock;
         this.transactionRunner = transactionRunner;
+    
+        this.notifications = notifications;
     }
 
     public ProjectDeleteResponse execute(ProjectDeleteRequest request) {
@@ -33,6 +43,7 @@ public class ProjectDeleteUseCase {
             throw error(ProjectErrorCode.PROJECT_ACCESS_DENIED, "곡을 삭제할 권한이 없습니다.");
         }
         project.delete(LocalDateTime.now(clock));
+        notifications.record(PROJECT_DELETED,request.userId(),project.getId());
         return new ProjectDeleteResponse(project.getId());
     }
     private ProjectApplicationException error(ProjectErrorCode code, String message) {

@@ -1,5 +1,8 @@
 package glitched.adlips.application.community;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import static glitched.adlips.domain.notification.NotificationType.*;
+
 import glitched.adlips.application.community.port.out.PostCommentPort;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.community.port.out.GalleryBanQueryPort;
@@ -8,6 +11,7 @@ import java.time.Clock;
 import java.time.LocalDateTime;
 
 public class CreatePostCommentUseCase {
+    private final NotificationEvents notifications;
 
     private final PostCommentPort port;
     private final UserBanQueryPort userBanQueryPort;
@@ -31,11 +35,21 @@ public class CreatePostCommentUseCase {
             TransactionRunner transactionRunner,
             Clock clock
     ) {
+        this(port, userBanQueryPort, galleryBanQueryPort, transactionRunner, clock, NotificationEvents.none());
+    }
+
+    public CreatePostCommentUseCase(PostCommentPort port,
+            UserBanQueryPort userBanQueryPort,
+            GalleryBanQueryPort galleryBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock, NotificationEvents notifications) {
         this.port = port;
         this.userBanQueryPort = userBanQueryPort;
         this.galleryBanQueryPort = galleryBanQueryPort;
         this.transactionRunner = transactionRunner;
         this.clock = clock;
+    
+        this.notifications = notifications;
     }
 
     public PostCommentResult execute(Long postId, Long userId, String content, Long parentCommentId) {
@@ -71,6 +85,7 @@ public class CreatePostCommentUseCase {
             if (isReply) {
                 port.adjustParentReplyCount(parentCommentId, 1);
             }
+            notifications.record(isReply?POST_REPLY:POST_COMMENT,userId,commentId);
             return new PostCommentResult(postId, commentId, parentCommentId);
         });
     }

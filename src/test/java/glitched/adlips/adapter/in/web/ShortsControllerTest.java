@@ -1,7 +1,10 @@
 package glitched.adlips.adapter.in.web;
 
+import glitched.adlips.adapter.in.web.shorts.ShortRecommendationController;
 import glitched.adlips.adapter.in.web.shorts.ShortsController;
 import glitched.adlips.application.shorts.AuthorSummary;
+import glitched.adlips.application.shorts.GetRecommendedShortsUseCase;
+import glitched.adlips.application.shorts.ShortRecommendationPage;
 import glitched.adlips.application.shorts.GetShortsUseCase;
 import glitched.adlips.application.shorts.GetHomeShortsUseCase;
 import glitched.adlips.application.shorts.ShortSummary;
@@ -32,13 +35,14 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(ShortsController.class)
+@WebMvcTest({ShortsController.class, ShortRecommendationController.class})
 @Import(SecurityConfig.class)
 class ShortsControllerTest {
 
     @Autowired MockMvc mockMvc;
     @MockitoBean GetShortsUseCase getShortsUseCase;
     @MockitoBean GetHomeShortsUseCase getHomeShortsUseCase;
+    @MockitoBean GetRecommendedShortsUseCase getRecommendedShortsUseCase;
     @MockitoBean AuthenticatedUserResolver authenticatedUserResolver;
     @MockitoBean AccessTokenPort accessTokenPort;
 
@@ -52,6 +56,21 @@ class ShortsControllerTest {
                 anyInt(),
                 nullable(Long.class)
         )).thenReturn(emptyShortsPage(20));
+    }
+
+    @Test
+    void recommendationsReturnCardsAndCursorWithoutReasons() throws Exception {
+        var item = new ShortRecommendationPage.Item(
+                12L, "추천 곡", null, new AuthorSummary(7L, "작곡가", null));
+        when(getRecommendedShortsUseCase.execute(null, 10, null)).thenReturn(
+                new ShortRecommendationPage(List.of(item), new ShortRecommendationPage.Page("cursor", true, 10)));
+
+        mockMvc.perform(get("/api/v1/shorts/recommended"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.items[0].shortId").value(12))
+                .andExpect(jsonPath("$.data.items[0].author.nickname").value("작곡가"))
+                .andExpect(jsonPath("$.data.items[0].reason").doesNotHaveJsonPath())
+                .andExpect(jsonPath("$.data.page.nextCursor").value("cursor"));
     }
 
     @Test

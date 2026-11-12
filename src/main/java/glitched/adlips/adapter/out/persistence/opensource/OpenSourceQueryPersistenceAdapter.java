@@ -23,7 +23,7 @@ public class OpenSourceQueryPersistenceAdapter implements OpenSourceQueryPort {
     private static final String SELECT = "SELECT "
             +count("SOURCE","s.id","LIKE")+" AS like_count, "+count("SOURCE","s.id","DISLIKE")+" AS dislike_count, "
             +reacted("SOURCE","s.id","LIKE")+" AS is_liked, "+reacted("SOURCE","s.id","DISLIKE")+" AS is_disliked, "
-            +"(SELECT COUNT(*) FROM open_source_comments c WHERE c.open_source_id=s.id AND "+visibleComment("c")+") AS comment_count, "
+            +"(SELECT COUNT(*) FROM open_source_comments c WHERE c.open_source_id=s.id AND "+visibleComment("c")+notHidden("c")+") AS comment_count, "
             +"""
             s.id, s.title, s.description, s.owner_id, s.created_at,
                    thumb.file_url AS thumbnail_url, COALESCE(p.nickname, '사용자') AS nickname,

@@ -13,4 +13,8 @@ final class OpenSourceInteractionSql {
     static String reacted(String target,String id,String reaction) {
         return "EXISTS (SELECT 1 FROM open_source_reactions r WHERE r.target_type='"+target+"' AND r.target_id="+id+" AND r.reaction_type='"+reaction+"' AND r.user_id=:viewer)";
     }
+    static String notHidden(String alias) {
+        return " AND NOT EXISTS (SELECT 1 FROM open_source_comment_hides h WHERE h.user_id=:viewer"
+                + " AND h.comment_id IN (" + alias + ".id," + alias + ".parent_comment_id))";
+    }
 }

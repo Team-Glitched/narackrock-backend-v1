@@ -4,7 +4,11 @@ import glitched.adlips.global.entity.BaseCreatedEntity;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "direct_chat_messages", indexes = {@Index(columnList = "sender_id,recipient_id,id"), @Index(columnList = "recipient_id,sender_id,id")})
+@Table(name = "direct_chat_messages", indexes = {
+        @Index(columnList = "sender_id,recipient_id,id"),
+        @Index(columnList = "recipient_id,sender_id,id"),
+        @Index(name = "idx_direct_chat_recipient_unread", columnList = "recipient_id,is_unread,sender_id")
+})
 public class DirectChatMessage extends BaseCreatedEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -14,8 +18,17 @@ public class DirectChatMessage extends BaseCreatedEntity {
     private Long recipientId;
     @Column(nullable = false, length = 2000)
     private String content;
+    @Column(name = "is_unread", nullable = false, columnDefinition = "boolean default false")
+    private boolean unread;
+
     protected DirectChatMessage() {}
-    public DirectChatMessage(Long senderId, Long recipientId, String content) { this.senderId = senderId; this.recipientId = recipientId; this.content = content; }
+
+    public DirectChatMessage(Long senderId, Long recipientId, String content) {
+        this.senderId = senderId;
+        this.recipientId = recipientId;
+        this.content = content;
+        this.unread = true;
+    }
     public Long getId() { return id; }
     public Long getSenderId() { return senderId; }
     public Long getRecipientId() { return recipientId; }

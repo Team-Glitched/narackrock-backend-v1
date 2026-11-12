@@ -19,5 +19,7 @@ public interface OpenSourceInteractionPort {
     Long insertComment(Long sourceId, Long userId, Long parentId, String content, Instant now);
     Comment comment(Long id, Long viewerId);
     List<Comment> comments(Long sourceId, Long parentId, Long viewerId, int offset, int limit);
-    long commentCount(Long sourceId, Long parentId, boolean all);
+    boolean isCommentHidden(Long userId, Long commentId);
+    void hideComment(Long userId, Long commentId);
+    long visibleCommentCount(Long sourceId, Long parentId, Long viewerId, boolean all);
 }

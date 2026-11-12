@@ -9,13 +9,14 @@ import glitched.adlips.application.user.relation.port.out.ChatMessagePort;
 import glitched.adlips.application.user.relation.usecase.DirectChatUseCase;
 import glitched.adlips.domain.user.Profile;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class DirectChatControllerTest {
     @Test
-    void recentThreadsExposeThePartnerAndLastMessage() {
+    void recentThreadsExposeThePartnerLastMessageAndUnreadCount() {
         DirectChatUseCase chat = mock(DirectChatUseCase.class);
         AuthenticatedUserResolver users = mock(AuthenticatedUserResolver.class);
         ProfileRepositoryPort profiles = mock(ProfileRepositoryPort.class);
@@ -23,7 +24,8 @@ class DirectChatControllerTest {
         LocalDateTime sentAt = LocalDateTime.of(2026, 10, 19, 9, 0);
         when(users.requireUserId("Bearer test")).thenReturn(1L);
         when(chat.latestConversations(1L)).thenReturn(List.of(
-                new ChatMessagePort.Message(5L, 2L, 1L, "hello", sentAt)));
+                new DirectChatUseCase.ThreadSummary(
+                        2L, new ChatMessagePort.Message(5L, 2L, 1L, "hello", sentAt), 2L)));
         when(profiles.findByUserId(2L)).thenReturn(Optional.of(Profile.create(2L, "friend")));
 
         var response = new DirectChatController(chat, users, mock(ChatRealtimePublisher.class), profiles, mediaFiles)
@@ -34,7 +36,8 @@ class DirectChatControllerTest {
             assertThat(thread.nickname()).isEqualTo("friend");
             assertThat(thread.lastMessageId()).isEqualTo(5L);
             assertThat(thread.lastMessage()).isEqualTo("hello");
-            assertThat(thread.lastMessageAt()).isEqualTo(sentAt);
+            assertThat(thread.lastMessageAt()).isEqualTo(sentAt.atZone(ZoneId.systemDefault()).toInstant());
+            assertThat(thread.unreadCount()).isEqualTo(2);
             assertThat(thread.outgoing()).isFalse();
         });
     }

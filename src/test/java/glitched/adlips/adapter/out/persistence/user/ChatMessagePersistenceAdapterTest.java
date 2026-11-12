@@ -2,6 +2,8 @@ package glitched.adlips.adapter.out.persistence.user;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import glitched.adlips.application.user.relation.port.out.ChatMessagePort.UnreadBySender;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -25,5 +27,27 @@ class ChatMessagePersistenceAdapterTest {
 
         assertThat(messages).extracting(message -> message.id()).containsExactly(5L, 3L);
         assertThat(messages).extracting(message -> message.content()).containsExactly("latest", "new");
+    }
+
+    @Test
+    void countsIncomingMessagesAndMarksOnlyTheSelectedConversationThroughTheReadMessage() {
+        jdbc.update("INSERT INTO direct_chat_messages (id,sender_id,recipient_id,content,created_at) "
+                + "VALUES (100,2,1,'before unread tracking',CURRENT_TIMESTAMP)");
+        var adapter = new ChatMessagePersistenceAdapter(repository);
+        assertThat(adapter.unreadBySender(1L)).isEmpty();
+
+        var first = adapter.save(2L, 1L, "first incoming");
+        adapter.save(3L, 1L, "another conversation");
+        adapter.save(1L, 2L, "outgoing");
+        adapter.save(2L, 1L, "newer incoming");
+
+        assertThat(adapter.unreadBySender(1L)).containsExactlyInAnyOrder(
+                new UnreadBySender(2L, 2), new UnreadBySender(3L, 1));
+        adapter.markRead(1L, 2L, first.id());
+        adapter.markRead(1L, 2L, first.id());
+
+        assertThat(adapter.unreadBySender(1L)).containsExactlyInAnyOrder(
+                new UnreadBySender(2L, 1), new UnreadBySender(3L, 1));
+        assertThat(adapter.unreadBySender(2L)).containsExactly(new UnreadBySender(1L, 1));
     }
 }

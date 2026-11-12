@@ -43,6 +43,7 @@ class OpenSourceInteractionIntegrationTest {
     @AfterEach void cleanup() {
         // Tables are introduced by this feature; clean only this fixture's rows.
         jdbc.update("DELETE FROM open_source_reactions");
+        jdbc.update("DELETE FROM open_source_comment_hides");
         jdbc.update("DELETE FROM open_source_comments");
         jdbc.update("DELETE FROM open_source_saves WHERE user_id IN (96001,96002)");
         jdbc.update("DELETE FROM open_sources WHERE id BETWEEN 96201 AND 96299");
@@ -83,6 +84,30 @@ class OpenSourceInteractionIntegrationTest {
         assertThat(replies.body().at("/data/comments/0/commentId").asLong()).isEqualTo(reply);
         assertThat(call("GET","/api/v1/open-sources/96201",null,96002L).body().at("/data/commentCount").asLong()).isEqualTo(3);
         assertThat(call("GET","/api/v1/open-sources/96201/comments?page=1&size=1",null,96002L).body().at("/data/comments/0/commentId").asLong()).isEqualTo(second);
+    }
+    @Test void hiddenCommentsAreAccountScopedAndFilteredBeforePagination() throws Exception {
+        long root = comment(96201, "root", null);
+        long hidden = comment(96201, "hidden", root);
+        long visible = comment(96201, "visible", root);
+        comment(96201, "third", root);
+        String comments = "/api/v1/open-sources/96201/comments";
+        String hide = "/api/v1/open-sources/comments/" + hidden + "/hidden";
+        assertThat(call("PUT", hide, null, 96002L).status()).isEqualTo(204);
+        assertThat(call("PUT", hide, null, 96002L).status()).isEqualTo(204);
+
+        var replies = call("GET", comments + "?parentCommentId=" + root + "&size=1", null, 96002L);
+        assertThat(replies.body().at("/data/totalCount").asLong()).isEqualTo(2);
+        assertThat(replies.body().at("/data/comments/0/commentId").asLong()).isEqualTo(visible);
+        assertThat(call("GET", comments, null, 96002L).body().at("/data/comments/0/replyCount").asLong()).isEqualTo(2);
+        assertThat(call("GET", comments, null, 96001L).body().at("/data/comments/0/replyCount").asLong()).isEqualTo(3);
+        assertThat(call("GET", "/api/v1/open-sources/96201", null, 96002L).body().at("/data/commentCount").asLong()).isEqualTo(3);
+        assertThat(call("GET", "/api/v1/open-sources/96201", null, 96001L).body().at("/data/commentCount").asLong()).isEqualTo(4);
+
+        assertThat(call("PUT", "/api/v1/open-sources/comments/" + root + "/hidden", null, 96002L).status()).isEqualTo(204);
+        assertThat(postComment(96201, "reply to hidden root", root).status()).isEqualTo(404);
+        assertThat(call("GET", comments, null, 96002L).body().at("/data/totalCount").asLong()).isZero();
+        assertThat(call("GET", comments + "?parentCommentId=" + root, null, 96002L).body().at("/data/totalCount").asLong()).isZero();
+        assertThat(call("GET", comments + "?parentCommentId=" + root, null, 96001L).body().at("/data/totalCount").asLong()).isEqualTo(3);
     }
     @Test void invalidCommentParentsAndContentAreRejected() throws Exception {
         long root=comment(96201,"root",null), reply=comment(96201,"reply",root);

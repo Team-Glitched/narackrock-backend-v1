@@ -66,6 +66,12 @@ public class OpenSourceInteractionController {
         var result=useCase.create(user,id,content,parent==null?null:((Number)parent).longValue());
         return ResponseEntity.status(201).body(ApiResponse.success("오픈소스 댓글이 등록되었습니다.",new Created(result.openSourceId(),result.commentCount(),CommentResponse.from(result.comment()))));
     }
+    @PutMapping("/comments/{id}/hidden")
+    public ResponseEntity<Void> hideComment(@PathVariable Long id, @RequestHeader("Authorization") String auth) {
+        useCase.hideComment(users.requireUserId(auth), id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{id}/comments")
     public ApiResponse<CommentPage> comments(@PathVariable Long id,@RequestHeader("Authorization") String auth,
             @RequestParam(required=false) Long parentCommentId,@RequestParam(defaultValue="0") int page,@RequestParam(required=false) Integer size) {

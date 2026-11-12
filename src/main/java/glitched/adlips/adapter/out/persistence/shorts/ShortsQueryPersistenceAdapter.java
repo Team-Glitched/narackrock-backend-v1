@@ -15,6 +15,12 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public class ShortsQueryPersistenceAdapter implements ShortsQueryPort {
+    static final String VISIBLE_SHORT = """
+            s.deleted_at IS NULL
+              AND (s.status = 'COMPLETED'
+                   OR (s.status = 'IN_PROGRESS' AND source_project.is_public = true))
+            """;
+
     private final EntityManager entityManager;
 
     public ShortsQueryPersistenceAdapter(EntityManager entityManager) {
@@ -59,10 +65,8 @@ public class ShortsQueryPersistenceAdapter implements ShortsQueryPort {
                 SELECT s.id, s.view_count, s.like_count
                   FROM shorts s
              LEFT JOIN projects source_project ON source_project.id = s.project_id
-                 WHERE s.deleted_at IS NULL
-                   AND (s.status = 'COMPLETED'
-                        OR (s.status = 'IN_PROGRESS' AND source_project.is_public = true))
-                """).getResultList();
+                 WHERE %s
+                """.formatted(VISIBLE_SHORT)).getResultList();
         return rows.stream().map(row -> new ShortPopularityScore(
                 longValue(row[0]), intValue(row[1]), intValue(row[2]))).toList();
     }
@@ -108,11 +112,9 @@ public class ShortsQueryPersistenceAdapter implements ShortsQueryPort {
              LEFT JOIN projects source_project ON source_project.id = s.project_id
              LEFT JOIN media_files album ON album.id = s.album_image_file_id
              LEFT JOIN media_files profile_image ON profile_image.id = p.profile_image_file_id
-                 WHERE s.deleted_at IS NULL
-                   AND (s.status = 'COMPLETED'
-                        OR (s.status = 'IN_PROGRESS' AND source_project.is_public = true))
+                 WHERE %s
                 """.formatted(likedExpression, dislikedExpression, bookmarkedExpression,
-                        pendingContributionExpression, approvedContributionExpression)
+                        pendingContributionExpression, approvedContributionExpression, VISIBLE_SHORT)
                 + statusCondition
                 + cursorCondition
                 + " ORDER BY s.id DESC";
@@ -183,15 +185,14 @@ public class ShortsQueryPersistenceAdapter implements ShortsQueryPort {
              LEFT JOIN projects source_project ON source_project.id = s.project_id
              LEFT JOIN media_files album ON album.id = s.album_image_file_id
              LEFT JOIN media_files profile_image ON profile_image.id = p.profile_image_file_id
-                 WHERE s.deleted_at IS NULL
-                   AND (s.status = 'COMPLETED'
-                        OR (s.status = 'IN_PROGRESS' AND source_project.is_public = true))
+                 WHERE %s
                 """.formatted(
                 reactionExpression(currentUserId, "LIKE"),
                 reactionExpression(currentUserId, "DISLIKE"),
                 currentUserId == null ? "FALSE" : "EXISTS (SELECT 1 FROM shorts_bookmarks b WHERE b.user_id = :currentUserId AND b.shorts_id = s.id)",
                 currentUserId == null ? "FALSE" : "EXISTS (SELECT 1 FROM project_contributions pc WHERE pc.project_id = s.project_id AND pc.user_id = :currentUserId AND pc.approval_status = 'PENDING')",
-                currentUserId == null ? "FALSE" : "EXISTS (SELECT 1 FROM project_contributions pc WHERE pc.project_id = s.project_id AND pc.user_id = :currentUserId AND pc.approval_status = 'APPROVED')");
+                currentUserId == null ? "FALSE" : "EXISTS (SELECT 1 FROM project_contributions pc WHERE pc.project_id = s.project_id AND pc.user_id = :currentUserId AND pc.approval_status = 'APPROVED')",
+                VISIBLE_SHORT);
     }
 
     private void setCurrentUser(Query query, Long currentUserId) {

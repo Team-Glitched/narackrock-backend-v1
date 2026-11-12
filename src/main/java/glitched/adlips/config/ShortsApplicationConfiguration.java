@@ -14,6 +14,7 @@ import glitched.adlips.application.shorts.GetShortsCompositionDetailUseCase;
 import glitched.adlips.application.shorts.GetShortsShareUseCase;
 import glitched.adlips.application.shorts.GetShortsUseCase;
 import glitched.adlips.application.shorts.GetHomeShortsUseCase;
+import glitched.adlips.application.shorts.GetRecommendedShortsUseCase;
 import glitched.adlips.application.shorts.DeleteShortCommentUseCase;
 import glitched.adlips.application.shorts.GetShortCommentsUseCase;
 import glitched.adlips.application.shorts.ShortsCompositionEntryUseCase;
@@ -41,7 +42,11 @@ import glitched.adlips.application.shorts.port.out.UserBanQueryPort;
 import glitched.adlips.application.shorts.port.out.ShortsComposersQueryPort;
 import glitched.adlips.application.shorts.port.out.ShortsCompositionDetailQueryPort;
 import glitched.adlips.application.shorts.port.out.ShortsCompositionQueryPort;
+import glitched.adlips.application.shorts.port.out.ShortRecommendationQueryPort;
+import glitched.adlips.application.shorts.port.out.ShortRecommendationSnapshotPort;
 import glitched.adlips.application.shorts.port.out.ShortsQueryPort;
+import glitched.adlips.application.user.relation.port.out.CollaborationUserQueryPort;
+import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
 import glitched.adlips.application.shorts.port.out.ShortsShareLinkPort;
 import glitched.adlips.application.shorts.port.out.ShortsSharePort;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
@@ -76,6 +81,18 @@ public class ShortsApplicationConfiguration {
     ) {
         return new GetHomeShortsUseCase(
                 shortsQueryPort, shortReactionCountCachePort, shortPopularityRankingPort);
+    }
+
+    @Bean
+    GetRecommendedShortsUseCase getRecommendedShortsUseCase(
+            ShortRecommendationQueryPort candidates,
+            ShortsQueryPort shorts,
+            FollowRepositoryPort follows,
+            CollaborationUserQueryPort collaborations,
+            ShortRecommendationSnapshotPort snapshots,
+            Clock clock
+    ) {
+        return new GetRecommendedShortsUseCase(candidates, shorts, follows, collaborations, snapshots, clock);
     }
 
     @Bean

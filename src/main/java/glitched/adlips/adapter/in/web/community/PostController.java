@@ -88,9 +88,9 @@ public class PostController {
     @GetMapping("/posts/{postId}")
     public ResponseEntity<ApiResponse<PostDetailResponse>> getPost(
             @PathVariable Long postId,
-            @RequestHeader("Authorization") String authorization
+            @RequestHeader(value = "Authorization", required = false) String authorization
     ) {
-        Long userId = authenticatedUserResolver.requireUserId(authorization);
+        Long userId = authorization == null ? null : authenticatedUserResolver.requireUserId(authorization);
         PostQueryItem item = getPostUseCase.execute(postId, userId);
         return ResponseEntity.ok(ApiResponse.success(
                 "게시글 상세 조회가 완료되었습니다.", PostDetailResponse.from(item)));

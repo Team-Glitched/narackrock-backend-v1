@@ -22,6 +22,8 @@ import glitched.adlips.application.community.PostResult;
 import glitched.adlips.application.community.UpdatePostUseCase;
 import glitched.adlips.application.community.port.out.PostQueryItem;
 import glitched.adlips.application.user.account.port.out.AccessTokenPort;
+import glitched.adlips.application.user.common.UserApplicationException;
+import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.global.config.SecurityConfig;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -216,8 +218,36 @@ class PostControllerTest {
     }
 
     @Test
-    void 게시글_상세_조회시_인증없는_요청은_401을_반환한다() throws Exception {
+    void 비로그인_게시글_상세_조회는_본문과_중립_반응_상태를_반환한다() throws Exception {
+        PostQueryItem item = new PostQueryItem(
+                501L, 10L, "자유", 1L, "writer", null, "제목", "전체 본문", null,
+                3, 2, 0, 1, false, false, false, LocalDateTime.of(2026, 8, 23, 10, 0), null);
+        when(getPostUseCase.execute(501L, null)).thenReturn(item);
+
         mockMvc.perform(get("/api/v1/posts/501"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.content").value("전체 본문"))
+                .andExpect(jsonPath("$.data.isLiked").value(false))
+                .andExpect(jsonPath("$.data.isDisliked").value(false))
+                .andExpect(jsonPath("$.data.isBookmarked").value(false));
+    }
+
+    @Test
+    void 비로그인_사용자에게도_없는_게시글은_404를_반환한다() throws Exception {
+        when(getPostUseCase.execute(999L, null)).thenThrow(
+                new PostApplicationException(PostErrorCode.POST_NOT_FOUND, "존재하지 않거나 이미 삭제된 게시글입니다."));
+
+        mockMvc.perform(get("/api/v1/posts/999"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("POST_NOT_FOUND"));
+    }
+
+    @Test
+    void 게시글_상세_조회시_잘못된_인증은_401을_반환한다() throws Exception {
+        when(authenticatedUserResolver.requireUserId("Bearer invalid")).thenThrow(
+                new UserApplicationException(UserErrorCode.UNAUTHORIZED_ACCESS, "인증 정보가 만료되었습니다."));
+
+        mockMvc.perform(get("/api/v1/posts/501").header("Authorization", "Bearer invalid"))
                 .andExpect(status().isUnauthorized());
     }
 

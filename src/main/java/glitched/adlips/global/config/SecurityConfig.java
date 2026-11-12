@@ -75,6 +75,7 @@ public class SecurityConfig {
                                 "/api/v1/galleries",
                                 "/api/v1/galleries/*/posts",
                                 "/api/v1/posts/popular",
+                                "/api/v1/posts/{postId:[0-9]+}",
                                 "/files/**"
                         ).permitAll()
                         .anyRequest().authenticated()

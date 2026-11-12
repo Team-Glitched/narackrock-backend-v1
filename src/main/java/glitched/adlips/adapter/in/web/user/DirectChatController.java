@@ -6,16 +6,21 @@ import glitched.adlips.application.user.relation.usecase.DirectChatUseCase;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.domain.media.MediaFile;
+import java.time.Instant;
+import java.time.ZoneId;
 import java.util.List;
-import java.time.LocalDateTime;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/v1/chats")
 public class DirectChatController {
     public record SendMessageRequest(String content) {}
+    public record ReadMessagesRequest(Long throughId) {}
+    public record UnreadCount(long count) {}
     public record ChatThreadCard(Long userId, String nickname, String profileImageUrl, String primaryInstrument,
-                                 Long lastMessageId, String lastMessage, LocalDateTime lastMessageAt, boolean outgoing) {}
+                                 Long lastMessageId, String lastMessage, Instant lastMessageAt, boolean outgoing,
+                                 long unreadCount) {}
     private final DirectChatUseCase chat;
     private final AuthenticatedUserResolver users;
     private final ChatRealtimePublisher realtime;
@@ -28,14 +33,16 @@ public class DirectChatController {
     @GetMapping
     public ApiResponse<List<ChatThreadCard>> threads(@RequestHeader("Authorization") String authorization) {
         Long viewerId = users.requireUserId(authorization);
-        return ApiResponse.success("최근 대화 목록", chat.latestConversations(viewerId).stream().map(message -> {
-            Long partnerId = viewerId.equals(message.senderId()) ? message.recipientId() : message.senderId();
+        return ApiResponse.success("최근 대화 목록", chat.latestConversations(viewerId).stream().map(thread -> {
+            Long partnerId = thread.partnerId();
+            var message = thread.lastMessage();
             var profile = profiles.findByUserId(partnerId).orElse(null);
             String imageUrl = profile == null || profile.getProfileImageFileId() == null ? null
                     : mediaFiles.findById(profile.getProfileImageFileId()).map(MediaFile::getFileUrl).orElse(null);
             return new ChatThreadCard(partnerId, profile == null ? "알 수 없는 사용자" : profile.getNickname(), imageUrl,
                     profile == null ? null : profile.getPrimaryInstrument(), message.id(), message.content(),
-                    message.createdAt(), viewerId.equals(message.senderId()));
+                    message.createdAt().atZone(ZoneId.systemDefault()).toInstant(),
+                    viewerId.equals(message.senderId()), thread.unreadCount());
         }).toList());
     }
     @GetMapping("/{friendId}/messages")
@@ -43,6 +50,18 @@ public class DirectChatController {
             @PathVariable Long friendId, @RequestParam(required = false) Long beforeId,
             @RequestParam(defaultValue = "50") int size) {
         return ApiResponse.success("대화 조회", chat.conversation(users.requireUserId(authorization), friendId, beforeId, size));
+    }
+
+    @GetMapping("/unread-count")
+    public ApiResponse<UnreadCount> unread(@RequestHeader("Authorization") String authorization) {
+        return ApiResponse.success("읽지 않은 메시지 수", new UnreadCount(chat.unreadCount(users.requireUserId(authorization))));
+    }
+
+    @PatchMapping("/{friendId}/read")
+    public ResponseEntity<Void> markRead(@RequestHeader("Authorization") String authorization,
+            @PathVariable Long friendId, @RequestBody ReadMessagesRequest request) {
+        chat.markRead(users.requireUserId(authorization), friendId, request.throughId());
+        return ResponseEntity.noContent().build();
     }
     @PostMapping("/{friendId}/messages")
     public ApiResponse<ChatMessagePort.Message> send(@RequestHeader("Authorization") String authorization,

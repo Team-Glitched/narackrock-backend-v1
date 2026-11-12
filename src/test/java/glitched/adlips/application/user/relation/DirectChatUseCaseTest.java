@@ -108,7 +108,7 @@ class DirectChatUseCaseTest {
         var latest = new ChatMessagePort.Message(5L, 1L, 2L, "old message", LocalDateTime.now());
         when(messages.latestConversations(1L, 100)).thenReturn(List.of(latest));
 
-        assertEquals(List.of(latest), chat.latestConversations(1L));
+        assertEquals(List.of(new DirectChatUseCase.ThreadSummary(2L, latest, 0)), chat.latestConversations(1L));
     }
 
     @Test
@@ -119,6 +119,46 @@ class DirectChatUseCaseTest {
         var latest = new ChatMessagePort.Message(5L, 1L, 2L, "old message", LocalDateTime.now());
         when(messages.latestConversations(1L, 100)).thenReturn(List.of(latest));
 
-        assertEquals(List.of(latest), chat.latestConversations(1L));
+        assertEquals(List.of(new DirectChatUseCase.ThreadSummary(2L, latest, 0)), chat.latestConversations(1L));
+    }
+
+    @Test
+    void threadKeepsUnreadIncomingCountWhenItsLatestMessageIsOutgoing() {
+        privacy(false, false);
+        var latest = new ChatMessagePort.Message(5L, 1L, 2L, "outgoing", LocalDateTime.now());
+        when(messages.latestConversations(1L, 100)).thenReturn(List.of(latest));
+        when(messages.unreadBySender(1L)).thenReturn(List.of(new ChatMessagePort.UnreadBySender(2L, 3)));
+
+        assertEquals(List.of(new DirectChatUseCase.ThreadSummary(2L, latest, 3)), chat.latestConversations(1L));
+    }
+
+    @Test
+    void unreadCountIncludesOnlyReadableConversations() {
+        privacy(true, true);
+        Profile publicSender = mock(Profile.class);
+        when(profiles.findByUserId(3L)).thenReturn(Optional.of(publicSender));
+        when(messages.unreadBySender(1L)).thenReturn(List.of(
+                new ChatMessagePort.UnreadBySender(2L, 2), new ChatMessagePort.UnreadBySender(3L, 1)));
+
+        assertEquals(1L, chat.unreadCount(1L));
+
+        when(follows.exists(1L, 2L)).thenReturn(true);
+        when(follows.exists(2L, 1L)).thenReturn(true);
+        assertEquals(3L, chat.unreadCount(1L));
+    }
+
+    @Test
+    void onlyReadableConversationsCanBeMarkedRead() {
+        privacy(true, true);
+        UserApplicationException denied = assertThrows(UserApplicationException.class,
+                () -> chat.markRead(1L, 2L, 5L));
+        assertEquals(UserErrorCode.CHAT_FORBIDDEN, denied.getErrorCode());
+        verifyNoInteractions(messages);
+
+        when(follows.exists(1L, 2L)).thenReturn(true);
+        when(follows.exists(2L, 1L)).thenReturn(true);
+        chat.markRead(1L, 2L, 5L);
+
+        verify(messages).markRead(1L, 2L, 5L);
     }
 }

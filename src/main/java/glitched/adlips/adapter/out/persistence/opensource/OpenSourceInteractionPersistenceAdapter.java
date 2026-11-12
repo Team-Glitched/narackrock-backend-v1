@@ -25,7 +25,7 @@ public class OpenSourceInteractionPersistenceAdapter implements OpenSourceIntera
                    COALESCE(p.nickname,'사용자') AS nickname, avatar.file_url AS profile_image_url,
             """+count("COMMENT","c.id","LIKE")+" AS like_count, "+count("COMMENT","c.id","DISLIKE")+" AS dislike_count, "
             +reacted("COMMENT","c.id","LIKE")+" AS is_liked, "+reacted("COMMENT","c.id","DISLIKE")+" AS is_disliked, "
-            +"(SELECT COUNT(*) FROM open_source_comments child WHERE child.parent_comment_id=c.id AND "+visibleComment("child")+") AS reply_count "
+            +"(SELECT COUNT(*) FROM open_source_comments child WHERE child.parent_comment_id=c.id AND "+visibleComment("child")+notHidden("child")+") AS reply_count "
             +"FROM open_source_comments c LEFT JOIN profiles p ON p.user_id=c.user_id LEFT JOIN media_files avatar ON avatar.id=p.profile_image_file_id "
             +"AND avatar.owner_id=c.user_id AND avatar.status='READY' AND avatar.file_type='IMAGE' WHERE "+visibleComment("c");
     public OpenSourceInteractionPersistenceAdapter(EntityManager em,NamedParameterJdbcTemplate jdbc) { this.em=em;this.jdbc=jdbc; }
@@ -64,15 +64,30 @@ public class OpenSourceInteractionPersistenceAdapter implements OpenSourceIntera
     @Override public Comment comment(Long id,Long viewer) {
         return jdbc.queryForObject(COMMENT_SELECT+" AND c.id=:id",Map.of("id",id,"viewer",viewer),(rs,row)->mapComment(rs));
     }
+    @Override public boolean isCommentHidden(Long userId, Long commentId) {
+        return Boolean.TRUE.equals(jdbc.queryForObject("""
+                SELECT EXISTS (SELECT 1 FROM open_source_comment_hides WHERE user_id=:viewer AND comment_id=:comment)
+                """, Map.of("viewer", userId, "comment", commentId), Boolean.class));
+    }
+    @Override public void hideComment(Long userId, Long commentId) {
+        jdbc.update("""
+                INSERT INTO open_source_comment_hides (user_id, comment_id)
+                SELECT :viewer, :comment WHERE NOT EXISTS (
+                    SELECT 1 FROM open_source_comment_hides WHERE user_id=:viewer AND comment_id=:comment
+                )
+                """, Map.of("viewer", userId, "comment", commentId));
+    }
+    @Override public long visibleCommentCount(Long source, Long parent, Long viewer, boolean all) {
+        String parentClause = all ? "" : parent == null ? " AND c.parent_comment_id IS NULL" : " AND c.parent_comment_id=:parent";
+        return jdbc.queryForObject("SELECT COUNT(*) FROM open_source_comments c WHERE c.open_source_id=:source AND "
+                        + visibleComment("c") + notHidden("c") + parentClause,
+                new MapSqlParameterSource("source", source).addValue("parent", parent).addValue("viewer", viewer),
+                Long.class);
+    }
     @Override public List<Comment> comments(Long source,Long parent,Long viewer,int offset,int limit) {
         var params=new MapSqlParameterSource("source",source).addValue("parent",parent).addValue("viewer",viewer).addValue("offset",offset).addValue("limit",limit);
-        return jdbc.query(COMMENT_SELECT+" AND c.open_source_id=:source AND "+(parent==null?"c.parent_comment_id IS NULL":"c.parent_comment_id=:parent")
+        return jdbc.query(COMMENT_SELECT+notHidden("c")+" AND c.open_source_id=:source AND "+(parent==null?"c.parent_comment_id IS NULL":"c.parent_comment_id=:parent")
                 +" ORDER BY c.created_at ASC,c.id ASC LIMIT :limit OFFSET :offset",params,(rs,row)->mapComment(rs));
-    }
-    @Override public long commentCount(Long source,Long parent,boolean all) {
-        String parentClause=all?"":" AND "+(parent==null?"c.parent_comment_id IS NULL":"c.parent_comment_id=:parent");
-        return jdbc.queryForObject("SELECT COUNT(*) FROM open_source_comments c WHERE c.open_source_id=:source AND "+visibleComment("c")+parentClause,
-                new MapSqlParameterSource("source",source).addValue("parent",parent),Long.class);
     }
     private Comment mapComment(ResultSet rs) throws SQLException {
         return new Comment(rs.getLong("id"),rs.getObject("parent_comment_id",Long.class),

@@ -39,8 +39,20 @@ public class OpenSourceInteractionUseCase {
         String normalized=content.strip();
         return transactions.required(() -> {
             available(sourceId); parent(sourceId,parentId);
+            if (parentId != null && port.isCommentHidden(userId, parentId)) throw commentMissing();
             Long id=port.insertComment(sourceId,userId,parentId,normalized,clock.instant());
-            return new Created(sourceId,port.commentCount(sourceId,null,true),port.comment(id,userId));
+            return new Created(sourceId,port.visibleCommentCount(sourceId,null,userId,true),port.comment(id,userId));
+        });
+    }
+    public void hideComment(Long userId, Long commentId) {
+        validId(userId);
+        validId(commentId);
+        transactions.required(() -> {
+            var comment = findComment(commentId);
+            available(comment.openSourceId());
+            findComment(commentId);
+            port.hideComment(userId, commentId);
+            return null;
         });
     }
     public Comments comments(Long userId, Long sourceId, Long parentId, int page, int size) {
@@ -50,7 +62,7 @@ public class OpenSourceInteractionUseCase {
         return transactions.required(() -> {
             available(sourceId); parent(sourceId,parentId);
             var rows=port.comments(sourceId,parentId,userId,page*size,size+1);
-            return new Comments(sourceId,parentId,page,size,port.commentCount(sourceId,parentId,false),rows.size()>size,rows.stream().limit(size).toList());
+            return new Comments(sourceId,parentId,page,size,port.visibleCommentCount(sourceId,parentId,userId,false),rows.size()>size,rows.stream().limit(size).toList());
         });
     }
     private void parent(Long sourceId, Long parentId) {

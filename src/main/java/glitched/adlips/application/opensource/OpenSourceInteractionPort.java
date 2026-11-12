@@ -12,6 +12,7 @@ public interface OpenSourceInteractionPort {
     record Comment(Long commentId, Long parentCommentId, OpenSourceQueryPort.Writer writer, String content,
                    long replyCount, boolean isLiked, boolean isDisliked, long likeCount, long dislikeCount, Instant createdAt) {}
     boolean lockAvailableSource(Long sourceId);
+    boolean recordView(Long sourceId, Long viewerId, Instant now, Instant cutoff);
     Optional<ReactionType> reaction(Long userId, Target target, Long targetId);
     void setReaction(Long userId, Target target, Long targetId, ReactionType reaction, Instant now);
     ReactionState reactions(Long userId, Target target, Long targetId);

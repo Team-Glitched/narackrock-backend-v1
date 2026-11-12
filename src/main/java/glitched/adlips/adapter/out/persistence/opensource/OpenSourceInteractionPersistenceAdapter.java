@@ -36,6 +36,26 @@ public class OpenSourceInteractionPersistenceAdapter implements OpenSourceIntera
                 AND EXISTS (SELECT u.id FROM User u WHERE u.id=s.ownerId AND u.deletedAt IS NULL)
                 """,OpenSourceEntity.class).setParameter("id",id).setLockMode(LockModeType.PESSIMISTIC_WRITE).getResultList().isEmpty();
     }
+    @Override
+    public boolean recordView(Long sourceId, Long viewerId, Instant now, Instant cutoff) {
+        // The publication is locked before checking or inserting a view.
+        var view = em.createQuery("""
+                SELECT v FROM OpenSourceViewEntity v
+                WHERE v.openSourceId = :sourceId AND v.viewerId = :viewerId
+                """, OpenSourceViewEntity.class)
+                .setParameter("sourceId", sourceId)
+                .setParameter("viewerId", viewerId)
+                .getSingleResultOrNull();
+        if (view == null) {
+            em.persist(new OpenSourceViewEntity(sourceId, viewerId, now));
+            return true;
+        }
+        if (view.lastViewedAt.isAfter(cutoff)) return false;
+        view.lastViewedAt = now;
+        view.viewCount++;
+        return true;
+    }
+
     private Optional<OpenSourceReactionEntity> entity(Long user,Target target,Long id) {
         return em.createQuery("SELECT r FROM OpenSourceReactionEntity r WHERE r.userId=:user AND r.target=:target AND r.targetId=:id",OpenSourceReactionEntity.class)
                 .setParameter("user",user).setParameter("target",target).setParameter("id",id).getResultStream().findFirst();

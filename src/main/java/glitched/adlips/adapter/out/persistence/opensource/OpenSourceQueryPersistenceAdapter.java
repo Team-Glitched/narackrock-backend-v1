@@ -3,6 +3,7 @@ package glitched.adlips.adapter.out.persistence.opensource;
 import glitched.adlips.application.opensource.OpenSourceQueryPort;
 import glitched.adlips.domain.opensource.OpenSourcePublication;
 import static glitched.adlips.adapter.out.persistence.opensource.OpenSourceInteractionSql.*;
+import static glitched.adlips.domain.discovery.Popularity.LIKE_WEIGHT;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.time.Instant;
@@ -20,8 +21,9 @@ public class OpenSourceQueryPersistenceAdapter implements OpenSourceQueryPort {
             AND s.created_at IS NOT NULL AND s.updated_at IS NOT NULL AND s.deleted_at IS NULL
             """;
     private static final String PUBLIC = COMPLETE + " AND s.is_public = true AND u.deleted_at IS NULL";
+    private static final String LIKE_COUNT = count("SOURCE", "s.id", "LIKE");
     private static final String SELECT = "SELECT "
-            +count("SOURCE","s.id","LIKE")+" AS like_count, "+count("SOURCE","s.id","DISLIKE")+" AS dislike_count, "
+            +LIKE_COUNT+" AS like_count, "+count("SOURCE","s.id","DISLIKE")+" AS dislike_count, "
             +reacted("SOURCE","s.id","LIKE")+" AS is_liked, "+reacted("SOURCE","s.id","DISLIKE")+" AS is_disliked, "
             +"(SELECT COUNT(*) FROM open_source_comments c WHERE c.open_source_id=s.id AND "+visibleComment("c")+notHidden("c")+") AS comment_count, "
             +"""
@@ -59,6 +61,16 @@ public class OpenSourceQueryPersistenceAdapter implements OpenSourceQueryPort {
         return jdbc.query(SELECT + " WHERE " + PUBLIC + search
                         + " ORDER BY s.created_at DESC, s.id DESC LIMIT :limit OFFSET :offset",
                 parameters, (rs, row) -> item(rs));
+    }
+
+    @Override
+    public List<Item> popular(Long viewerId, int limit) {
+        String score = "COALESCE((SELECT SUM(v.view_count) FROM open_source_views v "
+                + "WHERE v.open_source_id = s.id), 0) + :likeWeight * " + LIKE_COUNT;
+        return jdbc.query(SELECT + " WHERE " + PUBLIC
+                        + " ORDER BY (" + score + ") DESC, s.id DESC LIMIT :limit",
+                Map.of("viewer", viewerId, "limit", limit, "likeWeight", LIKE_WEIGHT),
+                (rs, row) -> item(rs));
     }
 
     @Override

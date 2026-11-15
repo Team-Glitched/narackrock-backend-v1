@@ -1,5 +1,7 @@
 package glitched.adlips.adapter.out.redis.shorts;
 
+import static glitched.adlips.domain.discovery.Popularity.LIKE_WEIGHT;
+
 import glitched.adlips.application.shorts.port.out.ShortPopularityRankingPort;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +20,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class RedisShortPopularityRankingAdapter implements ShortPopularityRankingPort {
     private static final Logger log = LoggerFactory.getLogger(RedisShortPopularityRankingAdapter.class);
-    private static final double LIKE_WEIGHT = 5.0;
     private static final DefaultRedisScript<Long> SEED_SCRIPT = new DefaultRedisScript<>("""
             if redis.call('SADD', KEYS[3], ARGV[1]) == 1 then
                 redis.call('ZINCRBY', KEYS[1], ARGV[2], ARGV[1])

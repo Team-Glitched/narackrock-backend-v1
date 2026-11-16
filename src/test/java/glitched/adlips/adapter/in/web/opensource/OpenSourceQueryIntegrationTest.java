@@ -41,6 +41,8 @@ class OpenSourceQueryIntegrationTest {
         }
     }
     @AfterEach void cleanup() {
+        jdbc.update("DELETE FROM open_source_views WHERE open_source_id BETWEEN 96201 AND 96299");
+        jdbc.update("DELETE FROM open_source_reactions WHERE target_type='SOURCE' AND target_id BETWEEN 96201 AND 96299");
         jdbc.update("DELETE FROM open_source_saves WHERE user_id IN (96001,96002)");
         jdbc.update("DELETE FROM open_sources WHERE id BETWEEN 96201 AND 96299");
         jdbc.update("DELETE FROM media_files WHERE id IN (96101,96102)");
@@ -57,9 +59,45 @@ class OpenSourceQueryIntegrationTest {
         assertThat(ids(last.get("items"))).containsExactly(96201L);
         assertThat(last.get("hasNext").asBoolean()).isFalse();
         assertThat(last.at("/items/0/isSaved").asBoolean()).isTrue();
+        assertThat(last.at("/items/0/canPreview").asBoolean()).isTrue();
         assertThat(last.at("/items/0/writer/nickname").asText()).isEqualTo("작곡가");
         assertThat(get("/api/v1/open-sources?page=2&size=2",96002L).body().at("/data/items").size()).isZero();
     }
+    @Test void popularSourcesUseTheSongScoreAndKeepVisibilityAndViewerState() throws Exception {
+        jdbc.update("INSERT INTO open_source_reactions(user_id,target_type,target_id,reaction_type,created_at) "
+                + "VALUES (96002,'SOURCE',96201,'LIKE',CURRENT_TIMESTAMP)");
+        jdbc.update("INSERT INTO open_source_views(open_source_id,viewer_id,last_viewed_at,view_count) "
+                + "VALUES (96202,96002,CURRENT_TIMESTAMP,5),(96204,96002,CURRENT_TIMESTAMP,100)");
+
+        var response = get("/api/v1/open-sources/popular?size=2", 96002L);
+        assertThat(response.status()).isEqualTo(200);
+        var data = response.body().get("data");
+        assertThat(ids(data.get("items"))).containsExactly(96202L, 96201L);
+        assertThat(data.at("/items/1/isSaved").asBoolean()).isTrue();
+        assertThat(data.at("/items/1/isLiked").asBoolean()).isTrue();
+        assertThat(data.get("hasNext").asBoolean()).isFalse();
+        assertThat(get("/api/v1/open-sources/popular?size=0", 96002L).status()).isEqualTo(400);
+        assertThat(get("/api/v1/open-sources/popular", null).status()).isEqualTo(401);
+    }
+
+    @Test void sourcePlaybackCountsOnlyOncePerViewerWithinTheViewWindow() throws Exception {
+        assertThat(postView(96201L, null).status()).isEqualTo(401);
+        assertThat(postView(96204L, 96002L).status()).isEqualTo(404);
+        var first = postView(96201L, 96002L);
+        assertThat(first.status()).isEqualTo(202);
+        assertThat(first.body().at("/data/counted").asBoolean()).isTrue();
+        assertThat(postView(96201L, 96002L).body().at("/data/counted").asBoolean()).isFalse();
+        assertThat(postView(96201L, 96001L).body().at("/data/counted").asBoolean()).isTrue();
+
+        jdbc.update("UPDATE open_source_views SET last_viewed_at=TIMESTAMP '2000-01-01 00:00:00' "
+                + "WHERE open_source_id=96201 AND viewer_id=96002");
+        assertThat(postView(96201L, 96002L).body().at("/data/counted").asBoolean()).isTrue();
+        assertThat(jdbc.queryForObject("SELECT SUM(view_count) FROM open_source_views WHERE open_source_id=96201",
+                Long.class)).isEqualTo(3L);
+        assertThat(ids(get("/api/v1/open-sources/popular?size=1", 96002L).body().at("/data/items")))
+                .containsExactly(96201L);
+    }
+
     @Test void searchIsCaseInsensitiveLiteralSubstringIncludingWildcards() throws Exception {
         for(String term:List.of("gUiTaR"," 기타 ","%","_","!")) {
             var result=get("/api/v1/open-sources?keyword="+URLEncoder.encode(term,StandardCharsets.UTF_8),96002L);
@@ -140,9 +178,15 @@ class OpenSourceQueryIntegrationTest {
         List<Long> result=new ArrayList<>(); items.forEach(item -> result.add(item.get("openSourceId").asLong())); return result;
     }
     Response get(String path,Long user) throws Exception {
+        return request(path, user, "GET");
+    }
+    Response postView(Long id, Long user) throws Exception {
+        return request("/api/v1/open-sources/" + id + "/views", user, "POST");
+    }
+    Response request(String path, Long user, String method) throws Exception {
         var request=HttpRequest.newBuilder(URI.create("http://127.0.0.1:"+port+path));
         if(user!=null) request.header("Authorization","Bearer "+tokens.issue(user));
-        var response=http.send(request.GET().build(),HttpResponse.BodyHandlers.ofString());
+        var response=http.send(request.method(method, HttpRequest.BodyPublishers.noBody()).build(),HttpResponse.BodyHandlers.ofString());
         return new Response(response.statusCode(),json.readTree(response.body().isBlank()?"{}":response.body()));
     }
 }

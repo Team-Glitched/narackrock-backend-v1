@@ -12,6 +12,7 @@ public interface OpenSourceQueryPort {
     record SavedItem(Long openSourceId, Instant savedAt, Item source) {}
 
     List<Item> list(Long viewerId, String keyword, int offset, int limit);
+    List<Item> popular(Long viewerId, int limit);
     Optional<Item> detail(Long viewerId, Long openSourceId);
     List<SavedItem> saved(Long viewerId, int offset, int limit);
     List<OpenSourcePublication> publications(Long ownerId, int offset, int limit);

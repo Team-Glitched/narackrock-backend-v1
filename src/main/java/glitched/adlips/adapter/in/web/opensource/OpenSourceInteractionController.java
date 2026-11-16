@@ -3,6 +3,7 @@ package glitched.adlips.adapter.in.web.opensource;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
+import glitched.adlips.adapter.in.web.view.ContentViewResponse;
 import glitched.adlips.application.opensource.*;
 import glitched.adlips.domain.reaction.ReactionType;
 import io.swagger.v3.oas.annotations.Operation;
@@ -40,6 +41,14 @@ public class OpenSourceInteractionController {
     private final OpenSourceInteractionUseCase useCase;
     private final AuthenticatedUserResolver users;
     public OpenSourceInteractionController(OpenSourceInteractionUseCase useCase,AuthenticatedUserResolver users) { this.useCase=useCase;this.users=users; }
+    @PostMapping("/{id}/views")
+    public ResponseEntity<ApiResponse<ContentViewResponse>> view(
+            @PathVariable Long id, @RequestHeader("Authorization") String authorization) {
+        boolean counted = useCase.recordView(users.requireUserId(authorization), id);
+        return ResponseEntity.accepted().body(ApiResponse.success("오픈소스 조회수 기록 요청이 처리되었습니다.",
+                new ContentViewResponse(id, counted)));
+    }
+
     @PostMapping("/{id}/likes")
     public ApiResponse<SourceReaction> like(@PathVariable Long id,@RequestHeader("Authorization") String auth) { return sourceReaction(id,auth,ReactionType.LIKE); }
     @PostMapping("/{id}/dislikes")

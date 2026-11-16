@@ -8,6 +8,7 @@ import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.domain.reaction.ReactionToggle;
 import glitched.adlips.domain.reaction.ReactionType;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
 import static glitched.adlips.application.opensource.OpenSourceException.Code.*;
@@ -22,14 +23,29 @@ public class OpenSourceInteractionUseCase {
     private final TransactionRunner transactions;
     private final UserBanQueryPort bans;
     private final Clock clock;
+    private final Duration viewWindow;
     public OpenSourceInteractionUseCase(OpenSourceInteractionPort port, TransactionRunner transactions, UserBanQueryPort bans, Clock clock) {
-        this(port, transactions, bans, clock, NotificationEvents.none());
+        this(port, transactions, bans, clock, NotificationEvents.none(), Duration.ofMinutes(30));
     }
 
-    public OpenSourceInteractionUseCase(OpenSourceInteractionPort port, TransactionRunner transactions, UserBanQueryPort bans, Clock clock, NotificationEvents notifications) {
+    public OpenSourceInteractionUseCase(OpenSourceInteractionPort port, TransactionRunner transactions,
+            UserBanQueryPort bans, Clock clock, NotificationEvents notifications, Duration viewWindow) {
         this.port=port; this.transactions=transactions; this.bans=bans; this.clock=clock;
-    
         this.notifications = notifications;
+        if (viewWindow.isZero() || viewWindow.isNegative()) {
+            throw new IllegalArgumentException("viewWindow must be positive");
+        }
+        this.viewWindow = viewWindow;
+    }
+
+    public boolean recordView(Long userId, Long sourceId) {
+        validId(userId);
+        validId(sourceId);
+        return transactions.required(() -> {
+            available(sourceId);
+            var now = clock.instant();
+            return port.recordView(sourceId, userId, now, now.minus(viewWindow));
+        });
     }
     public ReactionState react(Long userId, Long targetId, Target target, ReactionType requested) {
         writeAllowed(userId); validId(targetId);

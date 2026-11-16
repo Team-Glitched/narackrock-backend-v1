@@ -10,6 +10,7 @@ import glitched.adlips.application.opensource.OpenSourcePublicationPort;
 import glitched.adlips.application.opensource.OpenSourcePublicationUseCase;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import java.time.Clock;
+import java.time.Duration;
 import glitched.adlips.application.opensource.OpenSourceMediaUseCase;
 import glitched.adlips.application.opensource.OpenSourceMediaPort;
 import glitched.adlips.application.opensource.OpenSourceMediaLinkPort;
@@ -41,8 +42,9 @@ public class OpenSourceApplicationConfiguration {
     @Bean
     OpenSourceInteractionUseCase openSourceInteractionUseCase(
             OpenSourceInteractionPort port, TransactionRunner transactions,
-            UserBanQueryPort bans, Clock clock, glitched.adlips.application.notification.NotificationEvents notificationEvents) {
-        return new OpenSourceInteractionUseCase(port, transactions, bans, clock, notificationEvents);
+            UserBanQueryPort bans, Clock clock, glitched.adlips.application.notification.NotificationEvents notificationEvents,
+            @Value("${app.redis.view-deduplication-window:PT30M}") Duration viewWindow) {
+        return new OpenSourceInteractionUseCase(port, transactions, bans, clock, notificationEvents, viewWindow);
     }
 
     @Bean

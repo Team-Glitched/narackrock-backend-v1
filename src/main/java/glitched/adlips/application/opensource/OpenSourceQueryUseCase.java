@@ -20,6 +20,11 @@ public class OpenSourceQueryUseCase {
         String search = normalized == null || normalized.isEmpty() ? null : normalized;
         return transactions.readOnly(() -> page(page, size, query.list(userId, search, offset, size + 1)));
     }
+    public Page<OpenSourceQueryPort.Item> popular(Long userId, int size) {
+        offset(userId, 0, size);
+        return transactions.readOnly(() -> new Page<>(0, size, false, query.popular(userId, size)));
+    }
+
     public OpenSourceQueryPort.Item detail(Long userId, Long id) {
         validId(userId);
         validId(id);

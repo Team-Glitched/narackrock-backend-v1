@@ -20,18 +20,18 @@ public class OpenSourceQueryController {
     public record Writer(Long userId, String nickname, String profileImageUrl) {}
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public record Summary(Long openSourceId, String title, String description, String thumbnailUrl, Writer writer,
-            Long usageCount, boolean isSaved, boolean isLiked, boolean isDisliked,
+            Long usageCount, boolean canPreview, boolean isSaved, boolean isLiked, boolean isDisliked,
             long likeCount, long dislikeCount, long commentCount, Instant createdAt) {
         static Summary from(OpenSourceQueryPort.Item item) {
             var writer = item.writer();
             // Usage is unavailable until project insertion can be tracked.
             return new Summary(item.openSourceId(), item.title(), item.description(), item.thumbnailUrl(),
                     new Writer(writer.userId(), writer.nickname(), writer.profileImageUrl()),
-                    null, item.isSaved(), item.isLiked(), item.isDisliked(), item.likeCount(), item.dislikeCount(), item.commentCount(), item.createdAt());
+                    null, item.canPreview(), item.isSaved(), item.isLiked(), item.isDisliked(), item.likeCount(), item.dislikeCount(), item.commentCount(), item.createdAt());
         }
     }
     @JsonInclude(JsonInclude.Include.ALWAYS)
-    public record Detail(@JsonUnwrapped Summary source, boolean canPreview, Long durationMs) {}
+    public record Detail(@JsonUnwrapped Summary source, Long durationMs) {}
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public record Saved(Long openSourceId, Instant savedAt, String availability, Summary source) {
         static Saved from(OpenSourceQueryPort.SavedItem item) {
@@ -56,10 +56,18 @@ public class OpenSourceQueryController {
                 new Page<>(result.page(), result.size(), result.hasNext(), result.items().stream().map(Summary::from).toList()));
     }
 
+    @GetMapping("/api/v1/open-sources/popular")
+    public ApiResponse<Page<Summary>> popular(@RequestHeader("Authorization") String authorization,
+            @RequestParam(defaultValue = "10") int size) {
+        var result = useCase.popular(users.requireUserId(authorization), size);
+        return ApiResponse.success("인기 오픈소스 목록을 조회했습니다.",
+                new Page<>(result.page(), result.size(), result.hasNext(), result.items().stream().map(Summary::from).toList()));
+    }
+
     @GetMapping("/api/v1/open-sources/{id}")
     public ApiResponse<Detail> detail(@PathVariable Long id, @RequestHeader("Authorization") String authorization) {
         var item = useCase.detail(users.requireUserId(authorization), id);
-        return ApiResponse.success("오픈소스 상세 조회가 완료되었습니다.", new Detail(Summary.from(item), item.canPreview(), null));
+        return ApiResponse.success("오픈소스 상세 조회가 완료되었습니다.", new Detail(Summary.from(item), null));
     }
 
     @GetMapping("/api/v1/users/me/open-sources")

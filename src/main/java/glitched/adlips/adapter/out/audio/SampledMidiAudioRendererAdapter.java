@@ -50,12 +50,12 @@ public class SampledMidiAudioRendererAdapter implements MidiAudioRendererPort {
     }
 
     @Override
-    public byte[] render(String instrumentId, List<MidiNote> notes, int bpm, int ppq, int durationMs) {
+    public byte[] render(String instrumentId, List<MidiNote> notes, int bpm, int ppq, long durationMs) {
         if (notes == null || bpm <= 0 || ppq <= 0 || durationMs <= 0 || durationMs > 60_000) {
             throw new IllegalArgumentException("MIDI 렌더링 범위가 올바르지 않습니다.");
         }
         Instrument instrument = instruments.getOrDefault(normalize(instrumentId), instruments.get("piano"));
-        int frames = Math.max(1, Math.round(durationMs * OUTPUT_RATE / 1_000f));
+        int frames = Math.toIntExact((durationMs * OUTPUT_RATE + 500) / 1_000);
         float[] mix = new float[frames];
         for (MidiNote note : notes) {
             if (instrument.drums() && (note.pitch() < 35 || note.pitch() > 81)) {

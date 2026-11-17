@@ -7,7 +7,7 @@ public record MidiClipCreateRequest(
         Long trackId,
         Long userId,
         int startTick,
-        int durationTick,
+        long durationTick,
         List<MidiNoteRequest> midiNotes
 ) {
 }

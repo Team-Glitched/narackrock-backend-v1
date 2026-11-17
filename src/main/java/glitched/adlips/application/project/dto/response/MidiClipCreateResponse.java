@@ -14,9 +14,9 @@ public record MidiClipCreateResponse(
         ClipSourceType sourceType,
         String instrument,
         int startTick,
-        int durationTick,
+        long durationTick,
         int startTimeMs,
-        int durationMs,
+        long durationMs,
         List<MidiNote> midiNotes,
         ApprovalStatus approvalStatus,
         Long trackMediaFileId

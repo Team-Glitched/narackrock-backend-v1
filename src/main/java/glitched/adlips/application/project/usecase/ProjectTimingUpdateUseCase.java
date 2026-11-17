@@ -48,11 +48,11 @@ public class ProjectTimingUpdateUseCase {
                         .stream().flatMap(track -> clips.findByTrackIdAndIsDeletedFalseOrderByStartTickAscIdAsc(track.getId()).stream()).toList();
                 for (var clip:allClips) {
                     long durationTick=clip.getClipType()==ClipType.MIDI ? clip.getDurationTick()
-                            : ((long)clip.getDurationMs()*bpm*project.getPpq()+59_999)/60_000;
-                    if ((long)clip.getStartTick()+durationTick>maxTick) throw outsideTimeline();
+                            : (clip.getDurationMs()*bpm*project.getPpq()+59_999)/60_000;
+                    if (durationTick>maxTick-clip.getStartTick()) throw outsideTimeline();
                 }
                 for (var draft:drafts.findActiveByProject(projectId)) {
-                    if ((long)draft.content().startTick()+draft.content().durationTick()>maxTick) throw outsideTimeline();
+                    if (draft.content().durationTick()>maxTick-draft.content().startTick()) throw outsideTimeline();
                 }
                 project.updateTiming(bpm,numerator,denominator);
                 allClips.forEach(ProjectClip::refreshProjectTiming);

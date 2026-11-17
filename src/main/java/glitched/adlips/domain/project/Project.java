@@ -141,16 +141,14 @@ public class Project extends BaseTimeEntity {
         return true;
     }
 
-    public int tickToMilliseconds(int tick) {
+    public long tickToMilliseconds(long tick) {
         if (tick < 0) {
             throw new IllegalArgumentException(
                     "tick must not be negative"
             );
         }
 
-        return Math.toIntExact(
-                (long) tick * 60_000 / (bpm * ppq)
-        );
+        return Math.multiplyExact(tick, 60_000L) / ((long) bpm * ppq);
     }
 
     public void increaseMajorVersion() {

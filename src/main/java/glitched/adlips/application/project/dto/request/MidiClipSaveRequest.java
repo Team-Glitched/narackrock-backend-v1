@@ -6,7 +6,7 @@ public record MidiClipSaveRequest(
         Long clipId,
         Long userId,
         int startTick,
-        int durationTick,
+        long durationTick,
         List<MidiNoteRequest> midiNotes
 ) {
 }

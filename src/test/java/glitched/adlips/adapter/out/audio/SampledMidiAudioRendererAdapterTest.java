@@ -1,7 +1,9 @@
 package glitched.adlips.adapter.out.audio;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import glitched.adlips.application.project.port.out.ProjectAudioMixerPort.AudioLayer;
 import glitched.adlips.domain.project.MidiNote;
 import java.io.ByteArrayInputStream;
 import java.io.FilterInputStream;
@@ -13,6 +15,30 @@ import javax.sound.sampled.AudioSystem;
 import org.junit.jupiter.api.Test;
 
 class SampledMidiAudioRendererAdapterTest {
+    @Test
+    void rendersAndMixesAFullMinute() throws Exception {
+        var renderer = new SampledMidiAudioRendererAdapter();
+        List<MidiNote> notes = List.of(new MidiNote(60, 57_120, 480, 100, null, Map.of()));
+
+        byte[] wave = renderer.render("piano", notes, 120, 480, 60_000);
+
+        try (var stream = AudioSystem.getAudioInputStream(new ByteArrayInputStream(wave))) {
+            assertThat(stream.getFrameLength()).isEqualTo(2_646_000L);
+            stream.skipNBytes(59L * 44_100 * stream.getFormat().getFrameSize());
+            assertThat(stream.readAllBytes()).containsAnyOf((byte) 1, (byte) 2, (byte) 3, (byte) -1);
+        }
+        var layer = new AudioLayer(wave, 0, 0, 60_000, 100, 0);
+        assertThat(new WaveProjectAudioMixerAdapter().mix(List.of(layer)).durationMs()).isEqualTo(60_000);
+    }
+
+    @Test
+    void rejectsRenderingMoreThanOneMinute() {
+        var renderer = new SampledMidiAudioRendererAdapter();
+
+        assertThatThrownBy(() -> renderer.render("piano", List.of(), 120, 480, 60_001))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
     @Test
     void createsPlayableWaveWithAudibleMidiNote() throws Exception {
         byte[] wave = new SampledMidiAudioRendererAdapter().render("piano",

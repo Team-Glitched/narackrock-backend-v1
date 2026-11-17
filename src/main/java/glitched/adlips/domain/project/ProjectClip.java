@@ -76,7 +76,7 @@ public class ProjectClip extends BaseTimeEntity {
     private int startTick;
 
     @Column(name = "duration_tick")
-    private Integer durationTick;
+    private Long durationTick;
 
     @Column(name = "start_time_ms", nullable = false)
     private int startTimeMs;
@@ -85,7 +85,7 @@ public class ProjectClip extends BaseTimeEntity {
     private int clipOffsetMs;
 
     @Column(name = "duration_ms")
-    private Integer durationMs;
+    private Long durationMs;
 
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
@@ -99,7 +99,7 @@ public class ProjectClip extends BaseTimeEntity {
 
     private ProjectClip(Project project, ProjectTrack track, User owner,
                         ClipType clipType, ClipSourceType sourceType,
-                        int startTick, int durationTick, int sortOrder) {
+                        int startTick, long durationTick, int sortOrder) {
         validateProjectAndTimeline(project, track, startTick, durationTick);
         this.project = Objects.requireNonNull(project, "project must not be null");
         this.track = Objects.requireNonNull(track, "track must not be null");
@@ -108,19 +108,20 @@ public class ProjectClip extends BaseTimeEntity {
         this.sourceType = Objects.requireNonNull(sourceType, "sourceType must not be null");
         this.startTick = startTick;
         this.durationTick = durationTick;
-        this.startTimeMs = project.tickToMilliseconds(startTick);
+        this.startTimeMs = Math.toIntExact(project.tickToMilliseconds(startTick));
         this.durationMs = project.tickToMilliseconds(durationTick);
         this.sortOrder = sortOrder;
     }
 
     public static ProjectClip createAudio(
             Project project, ProjectTrack track, User owner, ClipSourceType sourceType,
-            Long mediaFileId, Long waveformFileId, int startTick, int durationTick,
-            int clipOffsetMs, int durationMs, int sortOrder) {
-        validateAudioData(sourceType, mediaFileId, clipOffsetMs, durationMs);
+            Long mediaFileId, Long waveformFileId, int startTick, long durationTick,
+            int clipOffsetMs, long durationMs, int sortOrder) {
         ProjectClip clip = new ProjectClip(
                 project, track, owner, ClipType.AUDIO, sourceType,
                 startTick, durationTick, sortOrder);
+        validateAudioData(sourceType, mediaFileId, clipOffsetMs, durationMs,
+                project.getMaxDurationMs() - clip.startTimeMs);
         clip.mediaFileId = mediaFileId;
         clip.waveformFileId = waveformFileId;
         clip.clipOffsetMs = clipOffsetMs;
@@ -132,7 +133,7 @@ public class ProjectClip extends BaseTimeEntity {
 
     public static ProjectClip createMidi(
             Project project, ProjectTrack track, User owner,
-            int startTick, int durationTick, List<MidiNote> midiNotes, int sortOrder) {
+            int startTick, long durationTick, List<MidiNote> midiNotes, int sortOrder) {
         Objects.requireNonNull(track, "track must not be null");
         if (track.getInstrument() == null || track.getInstrument().isBlank()) {
             throw new IllegalStateException("track instrument must be set for a MIDI clip");
@@ -149,12 +150,14 @@ public class ProjectClip extends BaseTimeEntity {
 
     public void updateAudio(
             ClipSourceType sourceType, Long mediaFileId, Long waveformFileId,
-            int startTick, int durationTick, int clipOffsetMs, int durationMs) {
+            int startTick, long durationTick, int clipOffsetMs, long durationMs) {
         if (clipType != ClipType.AUDIO) {
             throw new IllegalStateException("only AUDIO clips can update audio data");
         }
-        validateAudioData(sourceType, mediaFileId, clipOffsetMs, durationMs);
         validateProjectAndTimeline(project, track, startTick, durationTick);
+        int startTimeMs = Math.toIntExact(project.tickToMilliseconds(startTick));
+        validateAudioData(sourceType, mediaFileId, clipOffsetMs, durationMs,
+                project.getMaxDurationMs() - startTimeMs);
         if (!Objects.equals(this.mediaFileId, mediaFileId) || this.sourceType != sourceType) {
             this.originOpenSourceId = null;
         }
@@ -163,14 +166,14 @@ public class ProjectClip extends BaseTimeEntity {
         this.waveformFileId = waveformFileId;
         this.startTick = startTick;
         this.durationTick = durationTick;
-        this.startTimeMs = project.tickToMilliseconds(startTick);
+        this.startTimeMs = startTimeMs;
         this.durationMs = durationMs;
         this.clipOffsetMs = clipOffsetMs;
         this.midiNotes = List.of();
         track.invalidateRenderedMedia();
     }
 
-    public void updateMidi(int startTick, int durationTick, List<MidiNote> midiNotes) {
+    public void updateMidi(int startTick, long durationTick, List<MidiNote> midiNotes) {
         if (clipType != ClipType.MIDI) {
             throw new IllegalStateException("only MIDI clips can update MIDI notes");
         }
@@ -182,7 +185,7 @@ public class ProjectClip extends BaseTimeEntity {
         }
         this.startTick = startTick;
         this.durationTick = durationTick;
-        this.startTimeMs = project.tickToMilliseconds(startTick);
+        this.startTimeMs = Math.toIntExact(project.tickToMilliseconds(startTick));
         this.durationMs = project.tickToMilliseconds(durationTick);
         this.midiNotes = notes;
         track.invalidateRenderedMedia();
@@ -190,11 +193,11 @@ public class ProjectClip extends BaseTimeEntity {
 
     /** MIDI keeps its beat positions; an audio recording keeps its original duration in seconds. */
     public void refreshProjectTiming() {
-        startTimeMs = project.tickToMilliseconds(startTick);
+        startTimeMs = Math.toIntExact(project.tickToMilliseconds(startTick));
         if (clipType == ClipType.MIDI) {
             durationMs = project.tickToMilliseconds(durationTick);
         } else {
-            durationTick = Math.toIntExact(((long) durationMs * project.getBpm() * project.getPpq() + 59_999) / 60_000);
+            durationTick = (durationMs * project.getBpm() * project.getPpq() + 59_999) / 60_000;
         }
         track.invalidateRenderedMedia();
     }
@@ -220,19 +223,19 @@ public class ProjectClip extends BaseTimeEntity {
     }
 
     private static void validateProjectAndTimeline(
-            Project project, ProjectTrack track, int startTick, int durationTick) {
+            Project project, ProjectTrack track, int startTick, long durationTick) {
         Objects.requireNonNull(project, "project must not be null");
         Objects.requireNonNull(track, "track must not be null");
         if (!track.belongsTo(project)) {
             throw new IllegalArgumentException("track and clip must belong to the same project");
         }
         if (startTick < 0 || durationTick <= 0
-                || (long) startTick + durationTick > project.getMaxTick()) {
+                || durationTick > project.getMaxTick() - startTick) {
             throw new IllegalArgumentException("clip range exceeds the project timeline");
         }
     }
 
-    private static void validateMidiNotes(List<MidiNote> notes, int clipDurationTick) {
+    private static void validateMidiNotes(List<MidiNote> notes, long clipDurationTick) {
         boolean outsideClip = notes.stream()
                 .anyMatch(note -> (long) note.startTick() + note.durationTick() > clipDurationTick);
         if (outsideClip) {
@@ -241,7 +244,7 @@ public class ProjectClip extends BaseTimeEntity {
     }
 
     private static void validateAudioData(
-            ClipSourceType sourceType, Long mediaFileId, int clipOffsetMs, int durationMs) {
+            ClipSourceType sourceType, Long mediaFileId, int clipOffsetMs, long durationMs, int remainingMs) {
         Objects.requireNonNull(sourceType, "sourceType must not be null");
         Objects.requireNonNull(mediaFileId, "mediaFileId must not be null");
         if (sourceType == ClipSourceType.MIDI_INPUT) {
@@ -249,6 +252,9 @@ public class ProjectClip extends BaseTimeEntity {
         }
         if (clipOffsetMs < 0 || durationMs <= 0) {
             throw new IllegalArgumentException("audio offset and duration are invalid");
+        }
+        if (durationMs > remainingMs) {
+            throw new IllegalArgumentException("clip range exceeds the project timeline");
         }
     }
 }

@@ -14,9 +14,9 @@ public record AudioClipCreateResponse(
         String mediaUrl,
         String waveformUrl,
         int startTick,
-        int durationTick,
+        long durationTick,
         int startTimeMs,
-        int durationMs,
+        long durationMs,
         int clipOffsetMs,
         ApprovalStatus approvalStatus,
         Long trackMediaFileId

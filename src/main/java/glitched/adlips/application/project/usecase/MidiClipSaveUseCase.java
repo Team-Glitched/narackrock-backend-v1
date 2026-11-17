@@ -80,11 +80,11 @@ public class MidiClipSaveUseCase {
                 note.effectType(), note.effectParams());
     }
 
-    private void validateRange(int startTick, int durationTick, long maxTick) {
+    private void validateRange(int startTick, long durationTick, long maxTick) {
         if (startTick < 0 || durationTick <= 0) {
             throw error(ProjectErrorCode.INVALID_MIDI_NOTE_DATA, "올바르지 않은 MIDI 노트 데이터입니다.");
         }
-        if ((long) startTick + durationTick > maxTick) {
+        if (durationTick > maxTick - startTick) {
             throw error(ProjectErrorCode.PROJECT_DURATION_LIMIT_EXCEEDED, "곡 길이는 1분을 초과할 수 없습니다.");
         }
     }

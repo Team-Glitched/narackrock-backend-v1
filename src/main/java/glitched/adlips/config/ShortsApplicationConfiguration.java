@@ -89,10 +89,9 @@ public class ShortsApplicationConfiguration {
             ShortsQueryPort shorts,
             FollowRepositoryPort follows,
             CollaborationUserQueryPort collaborations,
-            ShortRecommendationSnapshotPort snapshots,
-            Clock clock
+            ShortRecommendationSnapshotPort snapshots
     ) {
-        return new GetRecommendedShortsUseCase(candidates, shorts, follows, collaborations, snapshots, clock);
+        return new GetRecommendedShortsUseCase(candidates, shorts, follows, collaborations, snapshots);
     }
 
     @Bean

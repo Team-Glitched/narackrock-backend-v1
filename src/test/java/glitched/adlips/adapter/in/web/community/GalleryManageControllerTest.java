@@ -19,9 +19,12 @@ import glitched.adlips.application.community.GetGalleryModerationLogsUseCase;
 import glitched.adlips.application.community.GetMyGalleryRoleUseCase;
 import glitched.adlips.application.community.GalleryBanPage;
 import glitched.adlips.application.community.GetGalleryBansUseCase;
+import glitched.adlips.application.community.GetGalleryManagersUseCase;
+import glitched.adlips.application.community.GrantGalleryManagerUseCase;
 import glitched.adlips.application.community.LiftGalleryBanUseCase;
 import glitched.adlips.application.community.ModeratePostCommentDeletionUseCase;
 import glitched.adlips.application.community.ModeratePostDeletionUseCase;
+import glitched.adlips.application.community.RevokeGalleryManagerUseCase;
 import glitched.adlips.application.community.SanctionGalleryUserUseCase;
 import glitched.adlips.application.community.port.out.GalleryBanItem;
 import glitched.adlips.domain.community.GalleryBanType;
@@ -57,6 +60,9 @@ class GalleryManageControllerTest {
     @MockitoBean GetGalleryBansUseCase getGalleryBansUseCase;
     @MockitoBean ModeratePostDeletionUseCase moderatePostDeletionUseCase;
     @MockitoBean ModeratePostCommentDeletionUseCase moderatePostCommentDeletionUseCase;
+    @MockitoBean GetGalleryManagersUseCase getGalleryManagersUseCase;
+    @MockitoBean GrantGalleryManagerUseCase grantGalleryManagerUseCase;
+    @MockitoBean RevokeGalleryManagerUseCase revokeGalleryManagerUseCase;
     @MockitoBean AuthenticatedUserResolver authenticatedUserResolver;
     @MockitoBean AccessTokenPort accessTokenPort;
 

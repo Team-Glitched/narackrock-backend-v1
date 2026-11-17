@@ -6,5 +6,7 @@ public enum GalleryModerationActionType {
     EXPEL_USER,
     LIFT_BAN,
     DELETE_POST,
-    DELETE_COMMENT
+    DELETE_COMMENT,
+    GRANT_MANAGER,
+    REVOKE_MANAGER
 }

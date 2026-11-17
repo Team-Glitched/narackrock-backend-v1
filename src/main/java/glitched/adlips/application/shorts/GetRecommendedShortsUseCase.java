@@ -8,18 +8,15 @@ import glitched.adlips.application.shorts.port.out.ShortsQueryItem;
 import glitched.adlips.application.shorts.port.out.ShortsQueryPort;
 import glitched.adlips.application.user.relation.port.out.CollaborationUserQueryPort;
 import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
-import java.time.Clock;
-import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
+import java.util.Collections;
 import java.util.HashSet;
-import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.SplittableRandom;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -35,27 +32,24 @@ public class GetRecommendedShortsUseCase {
     private final FollowRepositoryPort follows;
     private final CollaborationUserQueryPort collaborations;
     private final ShortRecommendationSnapshotPort snapshots;
-    private final Clock clock;
 
     public GetRecommendedShortsUseCase(
             ShortRecommendationQueryPort candidates,
             ShortsQueryPort shorts,
             FollowRepositoryPort follows,
             CollaborationUserQueryPort collaborations,
-            ShortRecommendationSnapshotPort snapshots,
-            Clock clock
+            ShortRecommendationSnapshotPort snapshots
     ) {
         this.candidates = candidates;
         this.shorts = shorts;
         this.follows = follows;
         this.collaborations = collaborations;
         this.snapshots = snapshots;
-        this.clock = clock;
     }
 
     public ShortRecommendationPage execute(Long userId, int size, String continuation) {
         Cursor cursor = continuation == null ? null : Cursor.parse(continuation);
-        List<Long> ranking = cursor == null ? rank(userId) : snapshots.find(userId, cursor.id())
+        List<Long> ranking = cursor == null ? shuffleCategories(userId) : snapshots.find(userId, cursor.id())
                 .orElseThrow(() -> new CursorException(true));
         if (cursor != null && cursor.offset() >= ranking.size()) {
             throw new CursorException(false);
@@ -77,87 +71,48 @@ public class GetRecommendedShortsUseCase {
                 slice.items(), new ShortRecommendationPage.Page(nextCursor, nextCursor != null, size));
     }
 
-    private List<Long> rank(Long userId) {
+    private List<Long> shuffleCategories(Long userId) {
         CatalogRange catalog = candidates.findCatalogRange().orElse(null);
         if (catalog == null) return List.of();
 
-        Map<Long, ArtistAffinity> affinity = artistAffinity(userId);
-        List<Candidate> personalized = affinity.isEmpty() ? List.of()
-                : candidates.findForAuthors(userId, affinity.keySet(), PERSONALIZED_LIMIT);
-        List<Candidate> recent = candidates.findForDiscovery(userId, affinity.keySet(), null, RECENT_DISCOVERY_LIMIT);
-        long seed = LocalDate.now(clock).toEpochDay() ^ Long.rotateLeft(userId == null ? 0 : userId, 32);
-        long pivot = catalog.oldestId() + new SplittableRandom(seed)
+        Set<Long> relatedAuthors = relatedAuthors(userId);
+        var related = new ArrayList<Long>();
+        if (!relatedAuthors.isEmpty()) {
+            candidates.findForAuthors(userId, relatedAuthors, PERSONALIZED_LIMIT)
+                    .stream().map(Candidate::shortId).distinct().forEach(related::add);
+        }
+
+        long pivot = catalog.oldestId() + ThreadLocalRandom.current()
                 .nextLong(catalog.newestId() - catalog.oldestId() + 1);
-        List<Candidate> rotated = candidates.findForDiscovery(userId, affinity.keySet(), pivot, ROTATING_DISCOVERY_LIMIT);
+        Set<Long> discoveryIds = new LinkedHashSet<>();
+        candidates.findForDiscovery(userId, relatedAuthors, null, RECENT_DISCOVERY_LIMIT)
+                .forEach(song -> discoveryIds.add(song.shortId()));
+        candidates.findForDiscovery(userId, relatedAuthors, pivot, ROTATING_DISCOVERY_LIMIT)
+                .forEach(song -> discoveryIds.add(song.shortId()));
+        discoveryIds.removeAll(related);
+        var discovery = new ArrayList<>(discoveryIds);
 
-        var personalPool = new ArrayList<>(personalized.stream().sorted(
-                Comparator.comparing((Candidate candidate) -> affinity.get(candidate.authorId()))
-                        .thenComparing(Candidate::shortId, Comparator.reverseOrder())
-        ).toList());
-        Set<Long> personalizedIds = personalPool.stream().map(Candidate::shortId).collect(Collectors.toSet());
-        var discoveryPool = discoveryPool(recent, rotated, personalizedIds);
-        List<Long> ranking = new ArrayList<>(personalPool.size() + discoveryPool.size());
-        Set<Long> authors = new HashSet<>();
-        Long previousAuthor = null;
-        while (!personalPool.isEmpty() || !discoveryPool.isEmpty()) {
-            int slot = ranking.size() % GROUP_SIZE;
-            if (slot == 0) authors.clear();
-            boolean discover = DISCOVERY_SLOTS.contains(slot);
-            List<Candidate> preferred = discover ? discoveryPool : personalPool;
-            List<Candidate> alternate = discover ? personalPool : discoveryPool;
-            Candidate next = take(preferred, alternate, authors, previousAuthor);
-            authors.add(next.authorId());
-            previousAuthor = next.authorId();
-            ranking.add(next.shortId());
+        Collections.shuffle(related);
+        Collections.shuffle(discovery);
+        var relatedSongs = related.iterator();
+        var discoverySongs = discovery.iterator();
+        var shuffled = new ArrayList<Long>(related.size() + discovery.size());
+        while (relatedSongs.hasNext() || discoverySongs.hasNext()) {
+            boolean discoverySlot = DISCOVERY_SLOTS.contains(shuffled.size() % GROUP_SIZE);
+            var preferred = discoverySlot ? discoverySongs : relatedSongs;
+            var fallback = discoverySlot ? relatedSongs : discoverySongs;
+            shuffled.add((preferred.hasNext() ? preferred : fallback).next());
         }
-        return List.copyOf(ranking);
+        return List.copyOf(shuffled);
     }
 
-    private Map<Long, ArtistAffinity> artistAffinity(Long userId) {
-        if (userId == null) return Map.of();
-        Map<Long, ArtistAffinity> affinity = new HashMap<>();
-        follows.findFollowingIds(userId).forEach(id -> affinity.put(id, ArtistAffinity.FOLLOWED));
-        candidates.findEngagedAuthors(userId).forEach(affinity::putIfAbsent);
-        collaborations.findCollaboratorIds(userId).forEach(id -> affinity.putIfAbsent(id, ArtistAffinity.COLLABORATOR));
-        affinity.remove(userId);
-        return affinity;
-    }
-
-    private static List<Candidate> discoveryPool(
-            List<Candidate> recent, List<Candidate> rotated, Set<Long> personalizedIds
-    ) {
-        Map<Long, Candidate> merged = new LinkedHashMap<>();
-        for (int index = 0; index < Math.max(rotated.size(), recent.size()); index++) {
-            if (index < rotated.size()) {
-                Candidate item = rotated.get(index);
-                merged.putIfAbsent(item.shortId(), item);
-            }
-            if (index < recent.size()) {
-                Candidate item = recent.get(index);
-                merged.putIfAbsent(item.shortId(), item);
-            }
-        }
-        merged.keySet().removeAll(personalizedIds);
-        return new ArrayList<>(merged.values());
-    }
-
-    private static Candidate take(
-            List<Candidate> preferred, List<Candidate> alternate, Set<Long> authors, Long previousAuthor
-    ) {
-        Candidate next = takeDifferentAuthor(preferred, authors, previousAuthor);
-        if (next == null) next = takeDifferentAuthor(alternate, authors, previousAuthor);
-        if (next == null) next = takeDifferentAuthor(preferred, Set.of(), previousAuthor);
-        if (next == null) next = takeDifferentAuthor(alternate, Set.of(), previousAuthor);
-        if (next != null) return next;
-        return (preferred.isEmpty() ? alternate : preferred).removeFirst();
-    }
-
-    private static Candidate takeDifferentAuthor(List<Candidate> pool, Set<Long> authors, Long previousAuthor) {
-        for (int index = 0; index < pool.size(); index++) {
-            Long author = pool.get(index).authorId();
-            if (!author.equals(previousAuthor) && !authors.contains(author)) return pool.remove(index);
-        }
-        return null;
+    private Set<Long> relatedAuthors(Long userId) {
+        if (userId == null) return Set.of();
+        Set<Long> authors = new HashSet<>(follows.findFollowingIds(userId));
+        authors.addAll(candidates.findEngagedAuthors(userId).keySet());
+        authors.addAll(collaborations.findCollaboratorIds(userId));
+        authors.remove(userId);
+        return authors;
     }
 
     private Slice slice(List<Long> ranking, int offset, int size, Long userId) {

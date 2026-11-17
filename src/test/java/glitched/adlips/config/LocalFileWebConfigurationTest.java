@@ -52,6 +52,35 @@ class LocalFileWebConfigurationTest {
     }
 
     @Test
+    void profileImagesAreCacheable() throws Exception {
+        Path file = root.resolve("profiles/1/avatar.png");
+        Files.createDirectories(file.getParent());
+        Files.write(file, new byte[] {1});
+
+        mvc.perform(get("/files/profiles/1/avatar.png"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Cache-Control", "max-age=31536000, public, immutable"));
+    }
+
+    @Test
+    void uploadsAreNotCachedWhenTheirContentsChange() throws Exception {
+        Path file = root.resolve("audio/1/upload.wav");
+        Files.createDirectories(file.getParent());
+        Files.write(file, new byte[] {1});
+
+        mvc.perform(get("/files/audio/1/upload.wav"))
+                .andExpect(status().isOk())
+                .andExpect(content().bytes(new byte[] {1}))
+                .andExpect(header().string("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate"));
+
+        Files.write(file, new byte[] {2});
+        mvc.perform(get("/files/audio/1/upload.wav"))
+                .andExpect(status().isOk())
+                .andExpect(content().bytes(new byte[] {2}))
+                .andExpect(header().string("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate"));
+    }
+
+    @Test
     void missingFilesAreNotCached() throws Exception {
         mvc.perform(get("/files/exports/8/21/mix.wav"))
                 .andExpect(status().isNotFound())

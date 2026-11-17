@@ -11,12 +11,8 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 @Configuration
 @ConditionalOnBean(LocalFileStorageAdapter.class)
 public class LocalFileWebConfiguration implements WebMvcConfigurer {
-    /**
-     * Every stored file gets a fresh key (an upload UUID or an export ID) and is not rewritten once
-     * published, so clients may keep a copy for a year without revalidating. This replaces Spring
-     * Security's default no-store, which made images and audio download again on every view.
-     */
-    static final CacheControl FILE_CACHE = CacheControl.maxAge(Duration.ofDays(365)).cachePublic().immutable();
+    private static final CacheControl IMMUTABLE_FILE_CACHE =
+            CacheControl.maxAge(Duration.ofDays(365)).cachePublic().immutable();
 
     private final LocalFileStorageAdapter storageAdapter;
 
@@ -30,6 +26,13 @@ public class LocalFileWebConfiguration implements WebMvcConfigurer {
         if (!location.endsWith("/")) {
             location += "/";
         }
-        registry.addResourceHandler("/files/**").addResourceLocations(location).setCacheControl(FILE_CACHE);
+        // Profile images and exports use keys that are not overwritten by upload retries.
+        registry.addResourceHandler("/files/profiles/**")
+                .addResourceLocations(location + "profiles/")
+                .setCacheControl(IMMUTABLE_FILE_CACHE);
+        registry.addResourceHandler("/files/exports/**")
+                .addResourceLocations(location + "exports/")
+                .setCacheControl(IMMUTABLE_FILE_CACHE);
+        registry.addResourceHandler("/files/**").addResourceLocations(location);
     }
 }

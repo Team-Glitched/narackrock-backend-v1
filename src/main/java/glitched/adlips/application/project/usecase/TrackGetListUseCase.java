@@ -65,7 +65,7 @@ public class TrackGetListUseCase {
                                 clip.getClipType(), clip.getSourceType(), clip.getMediaFileId(), url(clip.getMediaFileId()),
                                 url(clip.getWaveformFileId()), clip.getStartTick(), clip.getDurationTick(),
                                 clip.getStartTimeMs(), clip.getDurationMs(), clip.getClipOffsetMs(),
-                                clip.getApprovalStatus(), clip.getMidiNotes()))
+                                clip.getApprovalStatus(), clip.getMidiNotes(), clip.getAudioAnalysis()))
                         .toList())).toList();
         return new TrackGetListResponse(permission, projectSummary, summaries);
     }

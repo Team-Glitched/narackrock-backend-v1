@@ -9,6 +9,8 @@ public interface ProjectClipRepositoryPort {
 
     Optional<ProjectClip> findClipByIdAndIsDeletedFalse(Long id);
 
+    Optional<ProjectClip> findClipForUpdate(Long id);
+
     List<ProjectClip> findByTrackIdAndIsDeletedFalseOrderByStartTickAscIdAsc(Long trackId);
 
     long countByTrackIdInAndApprovalStatusAndIsDeletedFalse(

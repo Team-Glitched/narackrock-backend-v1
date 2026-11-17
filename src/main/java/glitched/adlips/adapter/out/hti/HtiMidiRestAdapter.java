@@ -19,17 +19,7 @@ public class HtiMidiRestAdapter implements HtiMidiTransformPort {
 
     @Override
     public Result transform(Command command) {
-        var multipart = new MultipartBodyBuilder();
-        var audio = new ByteArrayResource(command.content()) {
-            @Override
-            public String getFilename() {
-                return command.filename();
-            }
-        };
-        multipart.part("audio", audio)
-                .contentType(mediaType(command.contentType()));
-        multipart.part("bpm", String.valueOf(command.bpm()));
-        multipart.part("ppq", String.valueOf(command.ppq()));
+        var multipart = multipart(command.filename(), command.content(), command.contentType(), command.bpm(), command.ppq());
 
         try {
             Response response = client.post()
@@ -41,16 +31,52 @@ public class HtiMidiRestAdapter implements HtiMidiTransformPort {
             if (response == null || response.midiNotes() == null) {
                 throw new HtiServiceException("HTI service returned an empty response", null);
             }
-            List<Note> notes = response.midiNotes().stream()
-                    .map(note -> new Note(
-                            note.pitch(), note.startTick(), note.durationTick(), note.velocity(),
-                            note.effectType(), note.effectParams() == null ? Map.of() : note.effectParams()))
-                    .toList();
-            return new Result(response.durationTick(), notes);
+            return new Result(response.durationTick(), mapNotes(response.midiNotes()));
         } catch (RestClientException exception) {
             throw new HtiServiceException("HTI service request failed", exception);
         }
     }
+
+    @Override
+    public AudioResult analyze(AudioCommand command) {
+        var body = multipart(command.filename(), command.content(), command.contentType(), command.bpm(), command.ppq());
+        body.part("soundKind", command.soundKind().name());
+        body.part("offsetMs", String.valueOf(command.offsetMs()));
+        body.part("durationMs", String.valueOf(command.durationMs()));
+        try {
+            var response = client.post().uri("/api/v1/audio-analysis")
+                    .contentType(MediaType.MULTIPART_FORM_DATA)
+                    .body(body.build()).retrieve().body(AnalysisResponse.class);
+            if (response == null || response.midiNotes() == null) {
+                throw new HtiServiceException("Audio analysis returned an empty response", null);
+            }
+            return new AudioResult(response.engineVersion(), mapNotes(response.midiNotes()));
+        } catch (RestClientException exception) {
+            throw new HtiServiceException("Audio analysis request failed", exception);
+        }
+    }
+
+    private List<Note> mapNotes(List<ResponseNote> notes) {
+        return notes.stream().map(note -> new Note(note.pitch(), note.startTick(), note.durationTick(),
+                note.velocity(), note.effectType(), note.effectParams() == null ? Map.of() : note.effectParams())).toList();
+    }
+
+    private MultipartBodyBuilder multipart(String filename, byte[] content, String type, int bpm, int ppq) {
+        var body = new MultipartBodyBuilder();
+        var audio = new ByteArrayResource(content) {
+            @Override
+            public String getFilename() {
+                return filename == null || filename.isBlank() ? "audio.wav" : filename;
+            }
+        };
+        body.part("audio", audio).contentType(mediaType(type));
+        body.part("bpm", String.valueOf(bpm));
+        body.part("ppq", String.valueOf(ppq));
+        return body;
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record AnalysisResponse(String engineVersion, List<ResponseNote> midiNotes) {}
 
     private MediaType mediaType(String contentType) {
         if (contentType == null || contentType.isBlank()) {

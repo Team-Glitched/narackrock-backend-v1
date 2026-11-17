@@ -1,6 +1,7 @@
 package glitched.adlips.application.project.dto.response;
 
 import glitched.adlips.domain.project.ApprovalStatus;
+import glitched.adlips.domain.project.AudioAnalysis;
 import glitched.adlips.domain.project.ClipSourceType;
 import glitched.adlips.domain.project.ClipType;
 import glitched.adlips.domain.project.MidiNote;
@@ -25,5 +26,13 @@ public record TrackGetListResponse(ViewerPermission viewerPermission, ProjectSum
                               Long mediaFileId, String mediaUrl, String waveformUrl, int startTick,
                               Long durationTick, int startTimeMs, Long durationMs,
                               int clipOffsetMs, ApprovalStatus approvalStatus,
-                              List<MidiNote> midiNotes) {}
+                              List<MidiNote> midiNotes, AudioAnalysis audioAnalysis) {
+        public ClipSummary(Long clipId, Long ownerId, ClipType clipType, ClipSourceType sourceType,
+                           Long mediaFileId, String mediaUrl, String waveformUrl, int startTick,
+                           Long durationTick, int startTimeMs, Long durationMs, int clipOffsetMs,
+                           ApprovalStatus approvalStatus, List<MidiNote> midiNotes) {
+            this(clipId, ownerId, clipType, sourceType, mediaFileId, mediaUrl, waveformUrl, startTick,
+                    durationTick, startTimeMs, durationMs, clipOffsetMs, approvalStatus, midiNotes, null);
+        }
+    }
 }

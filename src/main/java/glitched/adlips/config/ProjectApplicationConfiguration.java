@@ -19,6 +19,7 @@ import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.project.port.out.PublishedShortPort;
 import glitched.adlips.application.project.usecase.AudioClipCreateUseCase;
+import glitched.adlips.application.project.usecase.AnalyzeAudioClipUseCase;
 import glitched.adlips.application.project.usecase.HtiMidiTransformUseCase;
 import glitched.adlips.application.project.usecase.MidiClipCreateUseCase;
 import glitched.adlips.application.project.usecase.MidiClipSaveUseCase;
@@ -45,8 +46,11 @@ import glitched.adlips.application.project.usecase.TrackVolumeUpdateUseCase;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
+import java.net.http.HttpClient;
 import java.time.Clock;
+import java.time.Duration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -78,7 +82,14 @@ public class ProjectApplicationConfiguration {
     HtiMidiTransformPort htiMidiTransformPort(
             @Value("${app.hti.base-url:http://localhost:8000}") String baseUrl
     ) {
-        return new HtiMidiRestAdapter(RestClient.builder().baseUrl(baseUrl).build());
+        // Uvicorn serves HTTP/1.1. The JDK default h2c upgrade can drop multipart bodies.
+        var http = HttpClient.newBuilder()
+                .version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(Duration.ofSeconds(5))
+                .build();
+        var factory = new JdkClientHttpRequestFactory(http);
+        factory.setReadTimeout(Duration.ofSeconds(130));
+        return new HtiMidiRestAdapter(RestClient.builder().baseUrl(baseUrl).requestFactory(factory).build());
     }
 
     @Bean
@@ -88,6 +99,13 @@ public class ProjectApplicationConfiguration {
             HtiMidiTransformPort transformer
     ) {
         return new HtiMidiTransformUseCase(projects, members, transformer);
+    }
+
+    @Bean
+    AnalyzeAudioClipUseCase analyzeAudioClipUseCase(ProjectClipRepositoryPort clips, ProjectMemberRepositoryPort members,
+            MediaFileRepositoryPort media, MediaContentStoragePort storage, HtiMidiTransformPort hti,
+            TransactionRunner transactions, @Value("${app.hti.analysis-version:1}") String version) {
+        return new AnalyzeAudioClipUseCase(clips, members, media, storage, hti, transactions, version);
     }
 
     @Bean

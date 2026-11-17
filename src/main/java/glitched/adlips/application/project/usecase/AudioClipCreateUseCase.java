@@ -78,7 +78,7 @@ public class AudioClipCreateUseCase {
         }
         var user = users.findById(request.userId()).filter(it -> it.isActive())
                 .orElseThrow(() -> error(ProjectErrorCode.PROJECT_ACCESS_DENIED, "해당 프로젝트에 접근할 권한이 없습니다."));
-        int durationMs = project.tickToMilliseconds(request.durationTick());
+        long durationMs = project.tickToMilliseconds(request.durationTick());
         int sortOrder = clips.findByTrackIdAndIsDeletedFalseOrderByStartTickAscIdAsc(request.trackId()).size();
         ProjectClip clip = clips.save(ProjectClip.createAudio(
                 project, track, user, request.sourceType(), request.mediaFileId(), null,
@@ -101,11 +101,11 @@ public class AudioClipCreateUseCase {
         }
     }
 
-    private void validateRange(int startTick, int durationTick, long maxTick) {
+    private void validateRange(int startTick, long durationTick, long maxTick) {
         if (startTick < 0 || durationTick <= 0) {
             throw error(ProjectErrorCode.INVALID_CLIP_RANGE, "클립의 시작 위치 또는 길이가 올바르지 않습니다.");
         }
-        if ((long) startTick + durationTick > maxTick) {
+        if (durationTick > maxTick - startTick) {
             throw error(ProjectErrorCode.PROJECT_DURATION_LIMIT_EXCEEDED, "곡은 최대 1분을 초과할 수 없습니다.");
         }
     }

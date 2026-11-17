@@ -19,14 +19,14 @@ class ProjectClipPersistenceTest {
     private EntityManager entityManager;
 
     @Test
-    void persistsAndRestoresStructuredMidiNotesAsJson() {
+    void persistsAndRestoresFullMinuteClipAndStructuredMidiNotes() {
         User owner = User.create("midi-owner@example.com");
         Project project = new Project(owner, "MIDI 곡", "설명", 701L);
         ProjectTrack track = new ProjectTrack(project, owner, "피아노", "PIANO", 0);
         MidiNote note = new MidiNote(
                 60, 0, 480, 100, "DELAY", Map.of("delayMs", 250));
         ProjectClip clip = ProjectClip.createMidi(
-                project, track, owner, 0, 1_920, List.of(note), 0);
+                project, track, owner, 0, 57_600, List.of(note), 0);
 
         entityManager.persist(owner);
         entityManager.persist(project);
@@ -38,6 +38,8 @@ class ProjectClipPersistenceTest {
 
         ProjectClip restored = entityManager.find(ProjectClip.class, clipId);
 
+        assertThat(restored.getDurationTick()).isEqualTo(57_600L);
+        assertThat(restored.getDurationMs()).isEqualTo(60_000L);
         assertThat(restored.getMidiNotes()).containsExactly(note);
     }
 }

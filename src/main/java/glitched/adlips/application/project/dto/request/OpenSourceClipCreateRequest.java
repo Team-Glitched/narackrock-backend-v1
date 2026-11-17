@@ -6,6 +6,6 @@ public record OpenSourceClipCreateRequest(
         Long userId,
         Long openSourceId,
         int startTick,
-        int durationTick
+        long durationTick
 ) {
 }

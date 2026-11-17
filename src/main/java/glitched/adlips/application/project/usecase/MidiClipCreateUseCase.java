@@ -87,11 +87,11 @@ public class MidiClipCreateUseCase {
                 note.effectType(), note.effectParams());
     }
 
-    private void validateRange(int startTick, int durationTick, long maxTick) {
+    private void validateRange(int startTick, long durationTick, long maxTick) {
         if (startTick < 0 || durationTick <= 0) {
             throw error(ProjectErrorCode.INVALID_CLIP_RANGE, "클립의 시작 위치 또는 길이가 올바르지 않습니다.");
         }
-        if ((long) startTick + durationTick > maxTick) {
+        if (durationTick > maxTick - startTick) {
             throw error(ProjectErrorCode.PROJECT_DURATION_LIMIT_EXCEEDED, "곡 길이는 1분을 초과할 수 없습니다.");
         }
     }

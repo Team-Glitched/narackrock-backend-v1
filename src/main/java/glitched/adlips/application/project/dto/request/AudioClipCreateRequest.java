@@ -9,7 +9,7 @@ public record AudioClipCreateRequest(
         Long mediaFileId,
         ClipSourceType sourceType,
         int startTick,
-        int durationTick,
+        long durationTick,
         int clipOffsetMs
 ) {
 }

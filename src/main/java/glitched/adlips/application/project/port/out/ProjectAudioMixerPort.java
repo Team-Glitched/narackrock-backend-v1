@@ -10,7 +10,7 @@ public interface ProjectAudioMixerPort {
             byte[] content,
             int timelineStartMs,
             int sourceOffsetMs,
-            int durationMs,
+            long durationMs,
             int volume,
             int pan
     ) {

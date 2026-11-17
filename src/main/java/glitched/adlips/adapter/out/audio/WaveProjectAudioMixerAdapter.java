@@ -113,8 +113,8 @@ public class WaveProjectAudioMixerAdapter implements ProjectAudioMixerPort {
         return (short) ((bytes[offset] & 0xff) | (bytes[offset + 1] << 8));
     }
 
-    private int millisecondsToFrames(int milliseconds) {
-        return Math.round(milliseconds * SAMPLE_RATE / 1_000f);
+    private int millisecondsToFrames(long milliseconds) {
+        return Math.toIntExact(Math.round(milliseconds * (double) SAMPLE_RATE / 1_000));
     }
 
     private int framesToMilliseconds(int frames) {

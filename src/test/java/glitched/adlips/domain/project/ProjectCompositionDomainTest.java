@@ -50,6 +50,22 @@ class ProjectCompositionDomainTest {
     }
 
     @Test
+    void acceptsExactlyOneMinuteAndRejectsLongerClips() {
+        Project project = project("곡");
+        ProjectTrack track = new ProjectTrack(project, owner, "피아노", "PIANO", 0);
+        ProjectClip audio = ProjectClip.createAudio(project, track, owner, ClipSourceType.RECORDING,
+                501L, null, 0, 57_600, 0, 60_000, 0);
+
+        assertThat(audio.getDurationMs()).isEqualTo(60_000);
+        assertThatThrownBy(() -> audio.updateAudio(
+                ClipSourceType.RECORDING, 501L, null, 0, 57_600, 0, 60_001))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> ProjectClip.createMidi(
+                project, track, owner, 0, 57_601, List.of(), 0))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
     void updatesAnAudioClipWithMediaTimelineAndOffset() {
         Project project = project("곡");
         ProjectTrack track = new ProjectTrack(project, owner, "기타", "GUITAR", 0);

@@ -23,7 +23,7 @@ public record TrackGetListResponse(ViewerPermission viewerPermission, ProjectSum
                                List<ClipSummary> clips) {}
     public record ClipSummary(Long clipId, Long ownerId, ClipType clipType, ClipSourceType sourceType,
                               Long mediaFileId, String mediaUrl, String waveformUrl, int startTick,
-                              Integer durationTick, int startTimeMs, Integer durationMs,
+                              Long durationTick, int startTimeMs, Long durationMs,
                               int clipOffsetMs, ApprovalStatus approvalStatus,
                               List<MidiNote> midiNotes) {}
 }

@@ -44,6 +44,11 @@ class TokenRefreshUseCaseTest {
             }
 
             @Override
+            public Optional<User> findByEmailIgnoreCase(String email) {
+                return Optional.empty();
+            }
+
+            @Override
             public User save(User user) {
                 return user;
             }

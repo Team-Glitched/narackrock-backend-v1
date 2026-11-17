@@ -62,6 +62,10 @@ public class User extends BaseTimeEntity {
         return this;
     }
 
+    public void grantOperatorAdmin() {
+        role = UserRole.ADMIN;
+    }
+
     public boolean isActive() {
         return deletedAt == null;
     }

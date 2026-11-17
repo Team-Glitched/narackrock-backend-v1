@@ -48,6 +48,11 @@ public class UserPersistenceAdapter implements
     }
 
     @Override
+    public Optional<User> findByEmailIgnoreCase(String email) {
+        return userRepository.findByEmailIgnoreCase(email);
+    }
+
+    @Override
     public User save(User user) {
         return userRepository.save(user);
     }

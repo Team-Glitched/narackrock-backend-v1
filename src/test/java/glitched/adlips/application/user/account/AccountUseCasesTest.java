@@ -203,6 +203,11 @@ class AccountUseCasesTest {
         }
 
         @Override
+        public Optional<User> findByEmailIgnoreCase(String email) {
+            return values.values().stream().filter(user -> user.getEmail().equalsIgnoreCase(email)).findFirst();
+        }
+
+        @Override
         public User save(User user) {
             User saved = user.getId() == null ? user.withId(sequence++) : user;
             values.put(saved.getId(), saved);

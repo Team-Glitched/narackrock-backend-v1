@@ -13,15 +13,35 @@ import glitched.adlips.application.report.usecase.GetReportsUseCase;
 import glitched.adlips.application.report.usecase.ResolveReportUseCase;
 import glitched.adlips.application.report.usecase.RejectReportUseCase;
 import glitched.adlips.application.user.admin.port.out.UserBanRepositoryPort;
+import glitched.adlips.application.user.admin.usecase.GetOperatorAdminStatusUseCase;
+import glitched.adlips.application.user.admin.usecase.ProvisionOperatorAdminsUseCase;
 import glitched.adlips.application.user.admin.usecase.UserBanCancelUseCase;
 import glitched.adlips.application.user.admin.usecase.UserBanCreateUseCase;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import java.time.Clock;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class AdminApplicationConfiguration {
+
+    @Bean
+    ProvisionOperatorAdminsUseCase provisionOperatorAdminsUseCase(
+            UserRepositoryPort userRepositoryPort,
+            TransactionRunner transactionRunner,
+            @Value("${app.admin.operator-emails:}") String operatorEmails
+    ) {
+        return new ProvisionOperatorAdminsUseCase(userRepositoryPort, transactionRunner, operatorEmails);
+    }
+
+    @Bean
+    GetOperatorAdminStatusUseCase getOperatorAdminStatusUseCase(
+            UserRepositoryPort userRepositoryPort,
+            TransactionRunner transactionRunner
+    ) {
+        return new GetOperatorAdminStatusUseCase(userRepositoryPort, transactionRunner);
+    }
 
     @Bean
     GetReportsUseCase getReportsUseCase(

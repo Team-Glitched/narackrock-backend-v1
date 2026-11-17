@@ -21,6 +21,8 @@ import org.springframework.data.domain.Pageable;
 
 interface SpringDataUserRepository extends JpaRepository<User, Long> {
     Optional<User> findByEmail(String email);
+
+    Optional<User> findByEmailIgnoreCase(String email);
 }
 
 interface SpringDataProfileRepository extends JpaRepository<Profile, Long> {

@@ -20,7 +20,8 @@ class ModerationAuthorizationCoverageTest {
     private static final Path TEST = Path.of("src/test/java/glitched/adlips/application/community");
     private static final Pattern MODERATION_USE_CASE = Pattern.compile(
             "(Approve\\w*|Reject\\w*Proposal\\w*|GetGalleryProposals|Sanction\\w*|Lift\\w*Ban\\w*"
-                    + "|Moderate\\w*|UpdateGallery|GetGalleryBans|GetGalleryModerationLogs)UseCase\\.java");
+                    + "|Moderate\\w*|UpdateGallery|GetGalleryBans|GetGalleryModerationLogs"
+                    + "|Grant\\w*Manager|Revoke\\w*Manager|GetGalleryManagers)UseCase\\.java");
 
     @Test
     void 관리_유스케이스마다_권한_거부_테스트가_있다() throws IOException {

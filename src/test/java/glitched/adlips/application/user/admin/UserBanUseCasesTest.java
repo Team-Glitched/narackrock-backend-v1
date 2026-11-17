@@ -125,6 +125,13 @@ class UserBanUseCasesTest {
         }
 
         @Override
+        public Optional<User> findByEmailIgnoreCase(String email) {
+            return values.values().stream()
+                    .filter(user -> user.getEmail().equalsIgnoreCase(email))
+                    .findFirst();
+        }
+
+        @Override
         public User save(User user) {
             values.put(user.getId(), user);
             return user;

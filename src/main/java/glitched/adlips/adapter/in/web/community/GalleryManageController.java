@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import glitched.adlips.adapter.in.web.dto.ApiResponse;
 import glitched.adlips.adapter.in.web.dto.GalleryBanPageResponse;
 import glitched.adlips.adapter.in.web.dto.GalleryContentDeleteRequest;
+import glitched.adlips.adapter.in.web.dto.GalleryManagerGrantRequest;
+import glitched.adlips.adapter.in.web.dto.GalleryManagerResponse;
 import glitched.adlips.adapter.in.web.dto.GalleryModerationLogPageResponse;
 import glitched.adlips.adapter.in.web.dto.GalleryRoleResponse;
 import glitched.adlips.adapter.in.web.dto.GallerySanctionRequest;
@@ -13,15 +15,20 @@ import glitched.adlips.adapter.in.web.dto.GallerySanctionResponse;
 import glitched.adlips.adapter.in.web.dto.GalleryUpdateRequest;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.application.community.GetGalleryBansUseCase;
+import glitched.adlips.application.community.GetGalleryManagersUseCase;
 import glitched.adlips.application.community.GetGalleryModerationLogsUseCase;
 import glitched.adlips.application.community.GetMyGalleryRoleUseCase;
+import glitched.adlips.application.community.GrantGalleryManagerUseCase;
 import glitched.adlips.application.community.LiftGalleryBanUseCase;
 import glitched.adlips.application.community.ModeratePostCommentDeletionUseCase;
 import glitched.adlips.application.community.ModeratePostDeletionUseCase;
+import glitched.adlips.application.community.RevokeGalleryManagerUseCase;
 import glitched.adlips.application.community.SanctionGalleryUserUseCase;
 import glitched.adlips.application.community.UpdateGalleryUseCase;
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -46,6 +53,9 @@ public class GalleryManageController {
     private final GetGalleryBansUseCase getGalleryBansUseCase;
     private final ModeratePostDeletionUseCase moderatePostDeletionUseCase;
     private final ModeratePostCommentDeletionUseCase moderatePostCommentDeletionUseCase;
+    private final GetGalleryManagersUseCase getGalleryManagersUseCase;
+    private final GrantGalleryManagerUseCase grantGalleryManagerUseCase;
+    private final RevokeGalleryManagerUseCase revokeGalleryManagerUseCase;
     private final AuthenticatedUserResolver authenticatedUserResolver;
 
     public GalleryManageController(
@@ -57,6 +67,9 @@ public class GalleryManageController {
             GetGalleryBansUseCase getGalleryBansUseCase,
             ModeratePostDeletionUseCase moderatePostDeletionUseCase,
             ModeratePostCommentDeletionUseCase moderatePostCommentDeletionUseCase,
+            GetGalleryManagersUseCase getGalleryManagersUseCase,
+            GrantGalleryManagerUseCase grantGalleryManagerUseCase,
+            RevokeGalleryManagerUseCase revokeGalleryManagerUseCase,
             AuthenticatedUserResolver authenticatedUserResolver
     ) {
         this.getMyGalleryRoleUseCase = getMyGalleryRoleUseCase;
@@ -67,6 +80,9 @@ public class GalleryManageController {
         this.getGalleryBansUseCase = getGalleryBansUseCase;
         this.moderatePostDeletionUseCase = moderatePostDeletionUseCase;
         this.moderatePostCommentDeletionUseCase = moderatePostCommentDeletionUseCase;
+        this.getGalleryManagersUseCase = getGalleryManagersUseCase;
+        this.grantGalleryManagerUseCase = grantGalleryManagerUseCase;
+        this.revokeGalleryManagerUseCase = revokeGalleryManagerUseCase;
         this.authenticatedUserResolver = authenticatedUserResolver;
     }
 
@@ -167,5 +183,41 @@ public class GalleryManageController {
         Long userId = authenticatedUserResolver.requireUserId(authorization);
         moderatePostCommentDeletionUseCase.execute(userId, galleryId, commentId, request.reason());
         return ResponseEntity.ok(ApiResponse.success("댓글을 삭제하였습니다.", null));
+    }
+
+    @GetMapping("/managers")
+    public ResponseEntity<ApiResponse<List<GalleryManagerResponse>>> getManagers(
+            @PathVariable Long galleryId,
+            @RequestHeader("Authorization") String authorization
+    ) {
+        Long userId = authenticatedUserResolver.requireUserId(authorization);
+        return ResponseEntity.ok(ApiResponse.success(
+                "커뮤니티 어드민 목록 조회가 완료되었습니다.",
+                getGalleryManagersUseCase.execute(userId, galleryId).stream()
+                        .map(GalleryManagerResponse::from)
+                        .toList()));
+    }
+
+    @PostMapping("/managers")
+    public ResponseEntity<ApiResponse<Void>> grantManager(
+            @PathVariable Long galleryId,
+            @RequestHeader("Authorization") String authorization,
+            @RequestBody GalleryManagerGrantRequest request
+    ) {
+        Long userId = authenticatedUserResolver.requireUserId(authorization);
+        grantGalleryManagerUseCase.execute(userId, galleryId, request.userId());
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success(
+                "커뮤니티 어드민으로 지정하였습니다.", null));
+    }
+
+    @DeleteMapping("/managers/{targetUserId}")
+    public ResponseEntity<ApiResponse<Void>> revokeManager(
+            @PathVariable Long galleryId,
+            @PathVariable Long targetUserId,
+            @RequestHeader("Authorization") String authorization
+    ) {
+        Long userId = authenticatedUserResolver.requireUserId(authorization);
+        revokeGalleryManagerUseCase.execute(userId, galleryId, targetUserId);
+        return ResponseEntity.ok(ApiResponse.success("커뮤니티 어드민에서 해임하였습니다.", null));
     }
 }

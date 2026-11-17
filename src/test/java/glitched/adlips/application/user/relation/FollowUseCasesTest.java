@@ -145,6 +145,11 @@ class FollowUseCasesTest {
         }
 
         @Override
+        public Optional<User> findByEmailIgnoreCase(String email) {
+            return users.values().stream().filter(user -> user.getEmail().equalsIgnoreCase(email)).findFirst();
+        }
+
+        @Override
         public User save(User user) {
             users.put(user.getId(), user);
             return user;

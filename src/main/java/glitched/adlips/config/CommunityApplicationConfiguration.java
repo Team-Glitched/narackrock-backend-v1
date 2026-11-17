@@ -7,6 +7,7 @@ import glitched.adlips.application.community.DeletePostUseCase;
 import glitched.adlips.application.community.GetGalleriesUseCase;
 import glitched.adlips.application.community.GetManageableGalleriesUseCase;
 import glitched.adlips.application.community.GetGalleryBansUseCase;
+import glitched.adlips.application.community.GetGalleryManagersUseCase;
 import glitched.adlips.application.community.GetGalleryModerationLogsUseCase;
 import glitched.adlips.application.community.GetMyGalleryProposalsUseCase;
 import glitched.adlips.application.community.GetMyGalleryRoleUseCase;
@@ -16,9 +17,11 @@ import glitched.adlips.application.community.GetPostShareUseCase;
 import glitched.adlips.application.community.GetPostUseCase;
 import glitched.adlips.application.community.GetPostsUseCase;
 import glitched.adlips.application.community.GetSubscribedGalleriesUseCase;
+import glitched.adlips.application.community.GrantGalleryManagerUseCase;
 import glitched.adlips.application.community.LiftGalleryBanUseCase;
 import glitched.adlips.application.community.ModeratePostCommentDeletionUseCase;
 import glitched.adlips.application.community.ModeratePostDeletionUseCase;
+import glitched.adlips.application.community.RevokeGalleryManagerUseCase;
 import glitched.adlips.application.community.SanctionGalleryUserUseCase;
 import glitched.adlips.application.community.SubmitGalleryProposalUseCase;
 import glitched.adlips.application.community.SubscribeGalleryUseCase;
@@ -183,6 +186,51 @@ public class CommunityApplicationConfiguration {
                 galleryModerationLogPort,
                 transactionRunner,
                 clock, notificationEvents);
+    }
+
+    @Bean
+    GetGalleryManagersUseCase getGalleryManagersUseCase(
+            GalleryAuthorityPort galleryAuthorityPort,
+            GalleryManagementPort galleryManagementPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new GetGalleryManagersUseCase(
+                galleryAuthorityPort, galleryManagementPort, transactionRunner, clock);
+    }
+
+    @Bean
+    GrantGalleryManagerUseCase grantGalleryManagerUseCase(
+            GalleryAuthorityPort galleryAuthorityPort,
+            GalleryManagementPort galleryManagementPort,
+            GalleryBanPort galleryBanPort,
+            GalleryModerationLogPort galleryModerationLogPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new GrantGalleryManagerUseCase(
+                galleryAuthorityPort,
+                galleryManagementPort,
+                galleryBanPort,
+                galleryModerationLogPort,
+                transactionRunner,
+                clock);
+    }
+
+    @Bean
+    RevokeGalleryManagerUseCase revokeGalleryManagerUseCase(
+            GalleryAuthorityPort galleryAuthorityPort,
+            GalleryManagementPort galleryManagementPort,
+            GalleryModerationLogPort galleryModerationLogPort,
+            TransactionRunner transactionRunner,
+            Clock clock
+    ) {
+        return new RevokeGalleryManagerUseCase(
+                galleryAuthorityPort,
+                galleryManagementPort,
+                galleryModerationLogPort,
+                transactionRunner,
+                clock);
     }
 
     @Bean

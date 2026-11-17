@@ -57,7 +57,7 @@ final class GalleryModerationGuard {
 
     static GalleryModerationApplicationException forbidden() {
         return new GalleryModerationApplicationException(
-                GalleryModerationErrorCode.FORBIDDEN, "갤러리 매니저 또는 관리자만 할 수 있습니다.");
+                GalleryModerationErrorCode.FORBIDDEN, "커뮤니티 어드민 또는 운영자 어드민만 할 수 있습니다.");
     }
 
     static void validatePage(Long cursor, int size) {

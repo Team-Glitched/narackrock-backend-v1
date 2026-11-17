@@ -13,6 +13,6 @@ final class GalleryProposalAdminGuard {
         return userRepository.findById(userId)
                 .filter(user -> user.getRole() == UserRole.ADMIN)
                 .orElseThrow(() -> new GalleryProposalApplicationException(
-                        GalleryProposalErrorCode.FORBIDDEN, "관리자만 갤러리 개설 요청을 처리할 수 있습니다."));
+                        GalleryProposalErrorCode.FORBIDDEN, "운영자 어드민만 커뮤니티 개설 요청을 처리할 수 있습니다."));
     }
 }

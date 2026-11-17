@@ -93,4 +93,23 @@ class AdminRolesIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.logs[*].actionType").value(hasItems("GRANT_MANAGER", "REVOKE_MANAGER")));
     }
+
+    @Test
+    void DB에_혼합_대소문자로_저장된_이메일도_운영자_어드민으로_지정된다() throws Exception {
+        Long mixedId = transactions.required(() -> {
+            User saved = users.save(User.create("Mixed.Op@Test.Local"));
+            profiles.save(Profile.create(saved.getId(), "대소문자운영자"));
+            return saved.getId();
+        });
+        ProvisionOperatorAdminsUseCase mixedUseCase = new ProvisionOperatorAdminsUseCase(
+                users,
+                transactions,
+                "mixed.op@test.local"
+        );
+        mixedUseCase.execute();
+
+        mockMvc.perform(get("/api/v1/admin/me").header("Authorization", "Bearer " + tokens.issue(mixedId)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.operatorAdmin").value(true));
+    }
 }

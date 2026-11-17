@@ -43,7 +43,7 @@ public class ProvisionOperatorAdminsUseCase {
         return transactions.required(() -> {
             int granted = 0;
             for (String email : operatorEmails) {
-                User user = users.findByEmail(email)
+                User user = users.findByEmailIgnoreCase(email)
                         .filter(User::isActive)
                         .filter(found -> found.getRole() != UserRole.ADMIN)
                         .orElse(null);

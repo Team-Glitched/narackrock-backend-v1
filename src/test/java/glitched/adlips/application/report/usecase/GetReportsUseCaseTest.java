@@ -135,6 +135,11 @@ class GetReportsUseCaseTest {
         }
 
         @Override
+        public Optional<User> findByEmailIgnoreCase(String email) {
+            return Optional.empty();
+        }
+
+        @Override
         public User save(User user) {
             this.user = user;
             return user;

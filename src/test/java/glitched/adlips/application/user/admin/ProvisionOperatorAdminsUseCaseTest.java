@@ -24,6 +24,7 @@ class ProvisionOperatorAdminsUseCaseTest {
         users.save(User.restore(1L, "op@test.local", UserRole.USER, null));
         users.save(User.restore(2L, "member@test.local", UserRole.USER, null));
         users.save(User.restore(3L, "gone@test.local", UserRole.USER, LocalDateTime.of(2026, 1, 1, 0, 0)));
+        users.save(User.restore(4L, "MixedCase@Test.Local", UserRole.USER, null));
     }
 
     private ProvisionOperatorAdminsUseCase useCase(String emails) {
@@ -38,6 +39,12 @@ class ProvisionOperatorAdminsUseCaseTest {
         assertThat(users.findById(1L).orElseThrow().getRole()).isEqualTo(UserRole.ADMIN);
         assertThat(users.findById(2L).orElseThrow().getRole()).isEqualTo(UserRole.USER);
         assertThat(useCase.execute()).isZero();
+    }
+
+    @Test
+    void DB에_대소문자가_섞여_저장된_이메일도_운영자_어드민으로_지정된다() {
+        assertThat(useCase("mixedcase@test.local").execute()).isEqualTo(1);
+        assertThat(users.findById(4L).orElseThrow().getRole()).isEqualTo(UserRole.ADMIN);
     }
 
     @Test
@@ -65,6 +72,13 @@ class ProvisionOperatorAdminsUseCaseTest {
         public Optional<User> findByEmail(String email) {
             return values.values().stream()
                     .filter(user -> user.getEmail().equals(email))
+                    .findFirst();
+        }
+
+        @Override
+        public Optional<User> findByEmailIgnoreCase(String email) {
+            return values.values().stream()
+                    .filter(user -> user.getEmail().equalsIgnoreCase(email))
                     .findFirst();
         }
 

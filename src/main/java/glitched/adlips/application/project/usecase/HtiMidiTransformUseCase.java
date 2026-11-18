@@ -37,10 +37,13 @@ public class HtiMidiTransformUseCase {
         try {
             result = transformer.transform(new HtiMidiTransformPort.Command(
                     request.projectId(), request.filename(), request.contentType(), request.content(),
-                    project.getBpm(), project.getPpq()));
+                    project.getBpm(), project.getPpq(), request.soundKind() == null
+                            ? glitched.adlips.domain.project.AudioTranscriptionMode.AUTO : request.soundKind()));
+        } catch (HtiMidiTransformPort.InvalidAudioException exception) {
+            throw error(ProjectErrorCode.INVALID_HTI_AUDIO, "녹음에서 분석할 소리를 찾지 못했거나 파일을 읽을 수 없습니다. 음량과 파일을 확인해 주세요.");
         } catch (HtiMidiTransformPort.HtiServiceException exception) {
             throw error(ProjectErrorCode.HTI_TRANSFORM_FAILED,
-                    "HTI 변환 서버에서 녹음을 처리하지 못했습니다.");
+                    "오디오 변환 서버에서 녹음을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.");
         }
         if (result == null || result.durationTick() <= 0 || result.midiNotes() == null) {
             throw error(ProjectErrorCode.HTI_TRANSFORM_FAILED, "HTI 변환 결과가 올바르지 않습니다.");
@@ -54,7 +57,7 @@ public class HtiMidiTransformUseCase {
                         note.pitch(), note.startTick(), note.durationTick(), note.velocity(),
                         note.effectType(), note.effectParams()))
                 .toList();
-        return new HtiMidiTransformResponse(result.durationTick(), notes);
+        return new HtiMidiTransformResponse(result.durationTick(), notes, result.routing());
     }
 
     private void validateAudio(HtiMidiTransformRequest request) {

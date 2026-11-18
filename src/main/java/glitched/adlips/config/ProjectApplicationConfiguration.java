@@ -1,6 +1,9 @@
 package glitched.adlips.config;
 
 import glitched.adlips.adapter.out.hti.HtiMidiRestAdapter;
+import java.net.http.HttpClient;
+import java.time.Duration;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.media.port.out.MediaContentStoragePort;
 import glitched.adlips.application.opensource.OpenSourceMediaPort;
@@ -78,7 +81,12 @@ public class ProjectApplicationConfiguration {
     HtiMidiTransformPort htiMidiTransformPort(
             @Value("${app.hti.base-url:http://localhost:8000}") String baseUrl
     ) {
-        return new HtiMidiRestAdapter(RestClient.builder().baseUrl(baseUrl).build());
+        // Uvicorn uses HTTP/1.1; a h2c upgrade can discard the multipart body.
+        var http = HttpClient.newBuilder().version(HttpClient.Version.HTTP_1_1)
+                .connectTimeout(Duration.ofSeconds(5)).build();
+        var factory = new JdkClientHttpRequestFactory(http);
+        factory.setReadTimeout(Duration.ofSeconds(130));
+        return new HtiMidiRestAdapter(RestClient.builder().baseUrl(baseUrl).requestFactory(factory).build());
     }
 
     @Bean

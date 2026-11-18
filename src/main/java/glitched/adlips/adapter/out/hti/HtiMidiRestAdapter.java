@@ -9,6 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.client.MultipartBodyBuilder;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
+import org.springframework.web.client.RestClientResponseException;
 
 public class HtiMidiRestAdapter implements HtiMidiTransformPort {
     private final RestClient client;
@@ -30,6 +31,7 @@ public class HtiMidiRestAdapter implements HtiMidiTransformPort {
                 .contentType(mediaType(command.contentType()));
         multipart.part("bpm", String.valueOf(command.bpm()));
         multipart.part("ppq", String.valueOf(command.ppq()));
+        multipart.part("soundKind", command.soundKind().name());
 
         try {
             Response response = client.post()
@@ -46,7 +48,15 @@ public class HtiMidiRestAdapter implements HtiMidiTransformPort {
                             note.pitch(), note.startTick(), note.durationTick(), note.velocity(),
                             note.effectType(), note.effectParams() == null ? Map.of() : note.effectParams()))
                     .toList();
-            return new Result(response.durationTick(), notes);
+            var route = response.routing();
+            if (route == null && command.soundKind() != glitched.adlips.domain.project.AudioTranscriptionMode.HUMMING) {
+                throw new HtiServiceException("Python server does not support automatic audio routing", null);
+            }
+            return new Result(response.durationTick(), notes, route == null ? null
+                    : new Routing(route.engine(), route.kind(), route.reason(), route.version()));
+        } catch (RestClientResponseException exception) {
+            if (exception.getStatusCode().value() == 422) throw new InvalidAudioException(exception);
+            throw new HtiServiceException("HTI service request failed", exception);
         } catch (RestClientException exception) {
             throw new HtiServiceException("HTI service request failed", exception);
         }
@@ -64,8 +74,11 @@ public class HtiMidiRestAdapter implements HtiMidiTransformPort {
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)
-    private record Response(int durationTick, List<ResponseNote> midiNotes) {
+    private record Response(int durationTick, List<ResponseNote> midiNotes, ResponseRouting routing) {
     }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    private record ResponseRouting(String engine, String kind, String reason, String version) {}
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     private record ResponseNote(

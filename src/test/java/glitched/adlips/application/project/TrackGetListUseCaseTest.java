@@ -2,6 +2,7 @@ package glitched.adlips.application.project;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
@@ -100,9 +101,11 @@ class TrackGetListUseCaseTest {
         when(clip.getOwner()).thenReturn(owner);
         when(clips.findByTrackIdAndIsDeletedFalseOrderByStartTickAscIdAsc(22L)).thenReturn(List.of(clip));
 
+        ProfileRepositoryPort profiles = mock(ProfileRepositoryPort.class);
         var response = new TrackGetListUseCase(projects, members, tracks, clips,
-                mock(MediaFileRepositoryPort.class), mock(ProfileRepositoryPort.class)).execute(new TrackGetListRequest(10L, 2L));
+                mock(MediaFileRepositoryPort.class), profiles).execute(new TrackGetListRequest(10L, 2L));
 
+        verify(profiles).findByUserId(1L);
         assertThat(response.tracks()).extracting(t -> t.trackId()).containsExactly(20L, 22L);
     }
 

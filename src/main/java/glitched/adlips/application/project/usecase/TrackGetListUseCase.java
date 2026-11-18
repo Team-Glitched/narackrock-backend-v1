@@ -66,7 +66,9 @@ public class TrackGetListUseCase {
                                 url(clip.getWaveformFileId()), clip.getStartTick(), clip.getDurationTick(),
                                 clip.getStartTimeMs(), clip.getDurationMs(), clip.getClipOffsetMs(),
                                 clip.getApprovalStatus(), clip.getMidiNotes()))
-                        .toList())).toList();
+                        .toList()))
+                .filter(track -> !track.clips().isEmpty() || track.ownerId().equals(request.userId()))
+                .toList();
         return new TrackGetListResponse(permission, projectSummary, summaries);
     }
 

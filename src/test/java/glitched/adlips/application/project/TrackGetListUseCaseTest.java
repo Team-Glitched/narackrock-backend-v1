@@ -69,4 +69,37 @@ class TrackGetListUseCaseTest {
         assertThat(response.tracks().getFirst().clips().getFirst().midiNotes())
                 .containsExactly(note);
     }
+    @Test
+    void hidesOtherUsersEmptyTracksButKeepsOwnEmptyLayerEditable() {
+        User owner = User.create("owner@example.com").withId(1L);
+        User editor = User.create("editor@example.com").withId(2L);
+        Project project = new Project(owner, "곡", "설명", 701L);
+        ProjectTrack own = mock(ProjectTrack.class);
+        ProjectTrack emptyOther = mock(ProjectTrack.class);
+        ProjectTrack populated = mock(ProjectTrack.class);
+        ProjectClip clip = mock(ProjectClip.class);
+        ProjectRepositoryPort projects = mock(ProjectRepositoryPort.class);
+        ProjectMemberRepositoryPort members = mock(ProjectMemberRepositoryPort.class);
+        ProjectTrackRepositoryPort tracks = mock(ProjectTrackRepositoryPort.class);
+        ProjectClipRepositoryPort clips = mock(ProjectClipRepositoryPort.class);
+        when(projects.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(project));
+        when(members.findByProjectIdAndUserId(10L, 2L))
+                .thenReturn(Optional.of(new ProjectMember(project, editor, ProjectMemberRole.EDITOR)));
+        when(tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(10L))
+                .thenReturn(List.of(own, emptyOther, populated));
+        when(own.getId()).thenReturn(20L);
+        when(own.getOwner()).thenReturn(editor);
+        when(emptyOther.getId()).thenReturn(21L);
+        when(emptyOther.getOwner()).thenReturn(owner);
+        when(populated.getId()).thenReturn(22L);
+        when(populated.getOwner()).thenReturn(owner);
+        when(clip.getOwner()).thenReturn(owner);
+        when(clips.findByTrackIdAndIsDeletedFalseOrderByStartTickAscIdAsc(22L)).thenReturn(List.of(clip));
+
+        var response = new TrackGetListUseCase(projects, members, tracks, clips,
+                mock(MediaFileRepositoryPort.class)).execute(new TrackGetListRequest(10L, 2L));
+
+        assertThat(response.tracks()).extracting(t -> t.trackId()).containsExactly(20L, 22L);
+    }
+
 }

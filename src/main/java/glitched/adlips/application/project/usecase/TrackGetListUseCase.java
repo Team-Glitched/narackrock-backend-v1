@@ -11,6 +11,8 @@ import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
+import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
+import glitched.adlips.domain.user.Profile;
 import glitched.adlips.domain.project.ProjectMemberRole;
 import java.util.List;
 public class TrackGetListUseCase {
@@ -19,19 +21,20 @@ public class TrackGetListUseCase {
     private final ProjectTrackRepositoryPort tracks;
     private final ProjectClipRepositoryPort clips;
     private final MediaFileRepositoryPort mediaFiles;
+    private final ProfileRepositoryPort profiles;
     private final TransactionRunner transactionRunner;
 
     public TrackGetListUseCase(ProjectRepositoryPort projects, ProjectMemberRepositoryPort members,
                                ProjectTrackRepositoryPort tracks, ProjectClipRepositoryPort clips,
-                               MediaFileRepositoryPort mediaFiles) {
-        this(projects, members, tracks, clips, mediaFiles, TransactionRunner.direct());
+                               MediaFileRepositoryPort mediaFiles, ProfileRepositoryPort profiles) {
+        this(projects, members, tracks, clips, mediaFiles, profiles, TransactionRunner.direct());
     }
 
     public TrackGetListUseCase(ProjectRepositoryPort projects, ProjectMemberRepositoryPort members,
                                ProjectTrackRepositoryPort tracks, ProjectClipRepositoryPort clips,
-                               MediaFileRepositoryPort mediaFiles, TransactionRunner transactionRunner) {
+                               MediaFileRepositoryPort mediaFiles, ProfileRepositoryPort profiles, TransactionRunner transactionRunner) {
         this.projects = projects; this.members = members; this.tracks = tracks;
-        this.clips = clips; this.mediaFiles = mediaFiles;
+        this.clips = clips; this.mediaFiles = mediaFiles; this.profiles = profiles;
         this.transactionRunner = transactionRunner;
     }
 
@@ -66,10 +69,14 @@ public class TrackGetListUseCase {
                                 url(clip.getWaveformFileId()), clip.getStartTick(), clip.getDurationTick(),
                                 clip.getStartTimeMs(), clip.getDurationMs(), clip.getClipOffsetMs(),
                                 clip.getApprovalStatus(), clip.getMidiNotes()))
-                        .toList()))
+                        .toList(), ownerImageUrl(track.getOwner().getId())))
                 .filter(track -> !track.clips().isEmpty() || track.ownerId().equals(request.userId()))
                 .toList();
         return new TrackGetListResponse(permission, projectSummary, summaries);
+    }
+
+    private String ownerImageUrl(Long ownerId) {
+        return profiles.findByUserId(ownerId).map(Profile::getProfileImageFileId).map(this::url).orElse(null);
     }
 
     private String url(Long id) {

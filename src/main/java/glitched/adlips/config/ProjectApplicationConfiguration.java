@@ -208,9 +208,10 @@ public class ProjectApplicationConfiguration {
             ProjectTrackRepositoryPort tracks,
             ProjectClipRepositoryPort clips,
             MediaFileRepositoryPort mediaFiles,
+            ProfileRepositoryPort profiles,
             TransactionRunner transactionRunner
     ) {
-        return new TrackGetListUseCase(projects, members, tracks, clips, mediaFiles, transactionRunner);
+        return new TrackGetListUseCase(projects, members, tracks, clips, mediaFiles, profiles, transactionRunner);
     }
 
     @Bean

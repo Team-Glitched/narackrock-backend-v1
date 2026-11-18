@@ -11,27 +11,33 @@ import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
+import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
+import glitched.adlips.domain.user.Profile;
 import glitched.adlips.domain.project.ProjectMemberRole;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Optional;
 public class TrackGetListUseCase {
     private final ProjectRepositoryPort projects;
     private final ProjectMemberRepositoryPort members;
     private final ProjectTrackRepositoryPort tracks;
     private final ProjectClipRepositoryPort clips;
     private final MediaFileRepositoryPort mediaFiles;
+    private final ProfileRepositoryPort profiles;
     private final TransactionRunner transactionRunner;
 
     public TrackGetListUseCase(ProjectRepositoryPort projects, ProjectMemberRepositoryPort members,
                                ProjectTrackRepositoryPort tracks, ProjectClipRepositoryPort clips,
-                               MediaFileRepositoryPort mediaFiles) {
-        this(projects, members, tracks, clips, mediaFiles, TransactionRunner.direct());
+                               MediaFileRepositoryPort mediaFiles, ProfileRepositoryPort profiles) {
+        this(projects, members, tracks, clips, mediaFiles, profiles, TransactionRunner.direct());
     }
 
     public TrackGetListUseCase(ProjectRepositoryPort projects, ProjectMemberRepositoryPort members,
                                ProjectTrackRepositoryPort tracks, ProjectClipRepositoryPort clips,
-                               MediaFileRepositoryPort mediaFiles, TransactionRunner transactionRunner) {
+                               MediaFileRepositoryPort mediaFiles, ProfileRepositoryPort profiles, TransactionRunner transactionRunner) {
         this.projects = projects; this.members = members; this.tracks = tracks;
-        this.clips = clips; this.mediaFiles = mediaFiles;
+        this.clips = clips; this.mediaFiles = mediaFiles; this.profiles = profiles;
         this.transactionRunner = transactionRunner;
     }
 
@@ -55,19 +61,28 @@ public class TrackGetListUseCase {
                 project.getMaxDurationMs(), project.getMaxTick(),
                 new ProjectVersionResponse(project.getMajorVersion(), project.getMinorVersion(), project.getDisplayVersion()),
                 project.getStatus(), project.isPublic());
-        List<TrackGetListResponse.TrackSummary> summaries = tracks
-                .findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(request.projectId()).stream()
-                .map(track -> new TrackGetListResponse.TrackSummary(track.getId(), track.getOwner().getId(),
-                        track.getName(), track.getInstrument(), track.getMediaFileId(), url(track.getMediaFileId()),
-                        track.getVolume(), track.getPan(), track.getSortOrder(), track.isMuted(), track.isSolo(),
-                        track.getApprovalStatus(), clips.findByTrackIdAndIsDeletedFalseOrderByStartTickAscIdAsc(track.getId())
-                        .stream().map(clip -> new TrackGetListResponse.ClipSummary(clip.getId(), clip.getOwner().getId(),
-                                clip.getClipType(), clip.getSourceType(), clip.getMediaFileId(), url(clip.getMediaFileId()),
-                                url(clip.getWaveformFileId()), clip.getStartTick(), clip.getDurationTick(),
-                                clip.getStartTimeMs(), clip.getDurationMs(), clip.getClipOffsetMs(),
-                                clip.getApprovalStatus(), clip.getMidiNotes()))
-                        .toList())).toList();
-        return new TrackGetListResponse(permission, projectSummary, summaries);
+        var ownerImages = new HashMap<Long, Optional<String>>();
+        var summaries = new ArrayList<TrackGetListResponse.TrackSummary>();
+        for (var track : tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(request.projectId())) {
+            Long ownerId = track.getOwner().getId();
+            var trackClips = clips.findByTrackIdAndIsDeletedFalseOrderByStartTickAscIdAsc(track.getId());
+            if (trackClips.isEmpty() && !ownerId.equals(request.userId())) continue;
+
+            var clipSummaries = trackClips.stream()
+                    .map(clip -> new TrackGetListResponse.ClipSummary(clip.getId(), clip.getOwner().getId(),
+                            clip.getClipType(), clip.getSourceType(), clip.getMediaFileId(), url(clip.getMediaFileId()),
+                            url(clip.getWaveformFileId()), clip.getStartTick(), clip.getDurationTick(),
+                            clip.getStartTimeMs(), clip.getDurationMs(), clip.getClipOffsetMs(),
+                            clip.getApprovalStatus(), clip.getMidiNotes()))
+                    .toList();
+            var ownerImage = ownerImages.computeIfAbsent(ownerId, id ->
+                    profiles.findByUserId(id).map(Profile::getProfileImageFileId).map(this::url));
+            summaries.add(new TrackGetListResponse.TrackSummary(track.getId(), ownerId,
+                    track.getName(), track.getInstrument(), track.getMediaFileId(), url(track.getMediaFileId()),
+                    track.getVolume(), track.getPan(), track.getSortOrder(), track.isMuted(), track.isSolo(),
+                    track.getApprovalStatus(), clipSummaries, ownerImage.orElse(null)));
+        }
+        return new TrackGetListResponse(permission, projectSummary, List.copyOf(summaries));
     }
 
     private String url(Long id) {

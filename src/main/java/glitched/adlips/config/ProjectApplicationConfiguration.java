@@ -40,6 +40,7 @@ import glitched.adlips.application.project.usecase.ProjectPublishUseCase;
 import glitched.adlips.application.project.usecase.TrackCreateUseCase;
 import glitched.adlips.application.project.usecase.TrackInstrumentUpdateUseCase;
 import glitched.adlips.application.project.usecase.TrackDeleteUseCase;
+import glitched.adlips.application.project.usecase.EmptyTrackDeleteUseCase;
 import glitched.adlips.application.project.usecase.TrackGetListUseCase;
 import glitched.adlips.application.project.usecase.TrackVolumeUpdateUseCase;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
@@ -208,9 +209,18 @@ public class ProjectApplicationConfiguration {
             ProjectTrackRepositoryPort tracks,
             ProjectClipRepositoryPort clips,
             MediaFileRepositoryPort mediaFiles,
+            ProfileRepositoryPort profiles,
             TransactionRunner transactionRunner
     ) {
-        return new TrackGetListUseCase(projects, members, tracks, clips, mediaFiles, transactionRunner);
+        return new TrackGetListUseCase(projects, members, tracks, clips, mediaFiles, profiles, transactionRunner);
+    }
+
+    @Bean
+    EmptyTrackDeleteUseCase emptyTrackDeleteUseCase(ProjectRepositoryPort projects, ProjectTrackRepositoryPort tracks,
+                                                   ProjectClipRepositoryPort clips, EditorDraftRepositoryPort drafts,
+                                                   ProjectContributionItemRepositoryPort contributionItems,
+                                                   TransactionRunner transactions) {
+        return new EmptyTrackDeleteUseCase(projects, tracks, clips, drafts, contributionItems, transactions);
     }
 
     @Bean

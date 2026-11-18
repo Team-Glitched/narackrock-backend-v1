@@ -36,7 +36,7 @@ class MidiClipCreateUseCaseTest {
         ProjectTrackRepositoryPort tracks = mock(ProjectTrackRepositoryPort.class);
         ProjectClipRepositoryPort clips = mock(ProjectClipRepositoryPort.class);
         UserRepositoryPort users = mock(UserRepositoryPort.class);
-        when(projects.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(project));
+        when(projects.findByIdAndDeletedAtIsNullForUpdate(10L)).thenReturn(Optional.of(project));
         when(members.findByProjectIdAndUserId(10L, 1L)).thenReturn(
                 Optional.of(new ProjectMember(project, owner, ProjectMemberRole.OWNER)));
         when(tracks.findTrackByIdAndIsDeletedFalse(103L)).thenReturn(Optional.of(track));

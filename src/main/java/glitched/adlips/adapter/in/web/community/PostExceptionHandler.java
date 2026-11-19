@@ -15,7 +15,7 @@ public class PostExceptionHandler {
         HttpStatus status = switch (e.getErrorCode()) {
             case VALIDATION_ERROR, INVALID_INPUT_VALUE, INVALID_SEARCH_KEYWORD, INVALID_SORT_CONDITION ->
                     HttpStatus.BAD_REQUEST;
-            case NOT_POST_OWNER -> HttpStatus.FORBIDDEN;
+            case NOT_POST_OWNER, NOT_GALLERY_MEMBER -> HttpStatus.FORBIDDEN;
             case BANNED_USER_ACCESS, GALLERY_RESTRICTED_USER -> HttpStatus.FORBIDDEN;
             case GALLERY_NOT_FOUND, POST_NOT_FOUND -> HttpStatus.NOT_FOUND;
         };

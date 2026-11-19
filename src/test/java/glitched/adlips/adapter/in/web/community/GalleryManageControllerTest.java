@@ -5,6 +5,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -54,6 +55,7 @@ class GalleryManageControllerTest {
 
     @MockitoBean GetMyGalleryRoleUseCase getMyGalleryRoleUseCase;
     @MockitoBean UpdateGalleryUseCase updateGalleryUseCase;
+    @MockitoBean glitched.adlips.application.community.UpdateGalleryImagesUseCase updateGalleryImagesUseCase;
     @MockitoBean GetGalleryModerationLogsUseCase getGalleryModerationLogsUseCase;
     @MockitoBean SanctionGalleryUserUseCase sanctionGalleryUserUseCase;
     @MockitoBean LiftGalleryBanUseCase liftGalleryBanUseCase;
@@ -74,6 +76,24 @@ class GalleryManageControllerTest {
         bearer = "Bearer " + token;
         when(accessTokenPort.verify(token)).thenReturn(3L);
         when(authenticatedUserResolver.requireUserId(bearer)).thenReturn(3L);
+    }
+
+    @Test
+    void 커뮤니티_아이콘과_배너를_저장한다() throws Exception {
+        mockMvc.perform(put("/api/v1/galleries/10/manage/images").header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"imageFileId\":11,\"bannerImageFileId\":12}"))
+                .andExpect(status().isOk());
+        verify(updateGalleryImagesUseCase).execute(3L,10L,11L,12L);
+    }
+
+    @Test
+    void 미관리자의_이미지_변경은_403이다() throws Exception {
+        doThrow(new GalleryModerationApplicationException(GalleryModerationErrorCode.FORBIDDEN,"권한이 없습니다."))
+                .when(updateGalleryImagesUseCase).execute(3L,10L,11L,null);
+        mockMvc.perform(put("/api/v1/galleries/10/manage/images").header("Authorization", bearer)
+                        .contentType(MediaType.APPLICATION_JSON).content("{\"imageFileId\":11,\"bannerImageFileId\":null}"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

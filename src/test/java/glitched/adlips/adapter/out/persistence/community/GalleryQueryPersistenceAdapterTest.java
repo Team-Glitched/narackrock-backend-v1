@@ -118,6 +118,23 @@ class GalleryQueryPersistenceAdapterTest {
         assertThat(adapter.findManageableGalleries(3L)).isEmpty();
     }
 
+    @Test
+    void 이미지와_배너가_모든_커뮤니티_목록에_반영된다() {
+        for (long id : new long[]{100L,101L}) {
+            jdbcTemplate.update("INSERT INTO media_files (id,owner_id,file_url,file_type,status,file_size,created_at,updated_at) VALUES (?,1,?,'IMAGE','READY',100,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)",id,"https://files.test/"+id+".png");
+        }
+        jdbcTemplate.update("UPDATE galleries SET image_file_id=100,banner_image_file_id=101 WHERE id=10");
+        jdbcTemplate.update("INSERT INTO gallery_managers (gallery_id,user_id,role,created_at) VALUES (10,1,'MANAGER',CURRENT_TIMESTAMP)");
+        for (List<GalleryQueryItem> list : List.of(adapter.findGalleries(),adapter.findSubscribedGalleries(1L),adapter.findManageableGalleries(1L))) {
+            GalleryQueryItem item=list.stream().filter(it->it.galleryId().equals(10L)).findFirst().orElseThrow();
+            assertThat(item.imageFileId()).isEqualTo(100L);
+            assertThat(item.bannerImageFileId()).isEqualTo(101L);
+            assertThat(item.imageUrl()).isEqualTo("https://files.test/100.png");
+            assertThat(item.bannerImageUrl()).isEqualTo("https://files.test/101.png");
+            assertThat(item.subscriberCount()).isEqualTo(2L);
+        }
+    }
+
     private void insertUser(long id, String email) {
         jdbcTemplate.update(
                 "INSERT INTO users (id, email, role, created_at) VALUES (?, ?, 'USER', CURRENT_TIMESTAMP)",

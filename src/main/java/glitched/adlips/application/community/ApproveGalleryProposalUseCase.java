@@ -4,6 +4,7 @@ import glitched.adlips.application.notification.NotificationEvents;
 import static glitched.adlips.domain.notification.NotificationType.*;
 
 import glitched.adlips.application.community.port.out.GalleryManagementPort;
+import glitched.adlips.application.community.port.out.GallerySubscriptionPort;
 import glitched.adlips.application.community.port.out.GalleryProposalPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
@@ -18,6 +19,7 @@ public class ApproveGalleryProposalUseCase {
 
     private final GalleryProposalPort proposalPort;
     private final GalleryManagementPort managementPort;
+    private final GallerySubscriptionPort subscriptions;
     private final UserRepositoryPort userRepository;
     private final TransactionRunner transactionRunner;
     private final Clock clock;
@@ -25,20 +27,23 @@ public class ApproveGalleryProposalUseCase {
     public ApproveGalleryProposalUseCase(
             GalleryProposalPort proposalPort,
             GalleryManagementPort managementPort,
+            GallerySubscriptionPort subscriptions,
             UserRepositoryPort userRepository,
             TransactionRunner transactionRunner,
             Clock clock
     ) {
-        this(proposalPort, managementPort, userRepository, transactionRunner, clock, NotificationEvents.none());
+        this(proposalPort, managementPort, subscriptions, userRepository, transactionRunner, clock, NotificationEvents.none());
     }
 
     public ApproveGalleryProposalUseCase(GalleryProposalPort proposalPort,
             GalleryManagementPort managementPort,
+            GallerySubscriptionPort subscriptions,
             UserRepositoryPort userRepository,
             TransactionRunner transactionRunner,
             Clock clock, NotificationEvents notifications) {
         this.proposalPort = proposalPort;
         this.managementPort = managementPort;
+        this.subscriptions = subscriptions;
         this.userRepository = userRepository;
         this.transactionRunner = transactionRunner;
         this.clock = clock;
@@ -63,6 +68,7 @@ public class ApproveGalleryProposalUseCase {
 
             Long galleryId = managementPort.createGallery(proposal.getName(), proposal.getDescription());
             managementPort.addManager(galleryId, proposal.getProposerId(), GalleryRole.MANAGER);
+            subscriptions.saveSubscription(proposal.getProposerId(), galleryId);
             proposal.approve(admin, LocalDateTime.now(clock));
             proposalPort.update(proposal);
             notifications.record(GALLERY_APPROVED,adminUserId,proposal.getId(),galleryId,null);

@@ -56,6 +56,22 @@ class NotificationPersistenceAdapterTest {
     }
 
     @Test
+    void deleteReadPreservesUnreadAndOtherRecipients() {
+        store.insert(draft(1, "read"));
+        Long read = store.list(1L, null, null, false, 20).getFirst().getId();
+        store.markRead(1L, read, Instant.now());
+        store.insert(draft(1, "unread"));
+        store.insert(draft(2, "other"));
+        Long other = store.list(2L, null, null, false, 20).getFirst().getId();
+        store.markRead(2L, other, Instant.now());
+        assertThat(store.deleteRead(1L)).isEqualTo(1);
+        assertThat(store.list(1L, null, null, false, 20)).hasSize(1);
+        assertThat(store.unread(1L)).isEqualTo(1);
+        assertThat(store.list(2L, null, null, false, 20)).hasSize(1);
+        assertThat(store.deleteRead(1L)).isZero();
+    }
+
+    @Test
     void preferencesPersistAndOptionalBroadcastsAreDisabledByDefault() {
         assertThat(store.preferences(1L).followingContent()).isFalse();
         assertThat(store.preferences(1L).reactions()).isTrue();

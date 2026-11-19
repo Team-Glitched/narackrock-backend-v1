@@ -17,6 +17,8 @@ public interface NotificationStore {
 
     int markAllRead(Long userId, Long throughId, Instant now);
 
+    int deleteRead(Long userId);
+
     NotificationPreferences.Values preferences(Long userId);
 
     void preferences(Long userId, NotificationPreferences.Values values);

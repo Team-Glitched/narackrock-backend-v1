@@ -15,12 +15,16 @@ public class GalleryQueryPersistenceAdapter implements GalleryQueryPort {
     // 구독자 수는 galleries.subscriber_count 컬럼이 아니라 gallery_subs를 세어 구한다.
     // 구독 등록 API가 아직 없어 컬럼을 증감시키는 주체가 없기 때문이다(docs/gallery-list-plan.md §4).
     private static final String SELECT_GALLERY = """
-            SELECT g.id, g.name, g.description, COUNT(s.id), g.created_at
+            SELECT g.id, g.name, g.description, COUNT(s.id), g.created_at,
+                   g.image_file_id, g.banner_image_file_id, icon.file_url, banner.file_url
               FROM galleries g
+         LEFT JOIN media_files icon ON icon.id = g.image_file_id
+         LEFT JOIN media_files banner ON banner.id = g.banner_image_file_id
             """;
 
     private static final String GROUP_AND_ORDER = """
-             GROUP BY g.id, g.name, g.description, g.created_at
+             GROUP BY g.id, g.name, g.description, g.created_at,
+                      g.image_file_id, g.banner_image_file_id, icon.file_url, banner.file_url
              ORDER BY COUNT(s.id) DESC, g.id ASC
             """;
 
@@ -77,7 +81,11 @@ public class GalleryQueryPersistenceAdapter implements GalleryQueryPort {
                 row[1].toString(),
                 row[2] == null ? null : row[2].toString(),
                 ((Number) row[3]).longValue(),
-                localDateTime(row[4]));
+                localDateTime(row[4]),
+                row[5] == null ? null : ((Number) row[5]).longValue(),
+                row[6] == null ? null : ((Number) row[6]).longValue(),
+                row[7] == null ? null : row[7].toString(),
+                row[8] == null ? null : row[8].toString());
     }
 
     private static LocalDateTime localDateTime(Object value) {

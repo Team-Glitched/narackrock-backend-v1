@@ -139,6 +139,15 @@ public class NotificationInboxUseCase {
                 });
     }
 
+    public void deleteRead(Long user) {
+        transactions.required(
+                () -> {
+                    store.deleteRead(user);
+                    delivery.changed(user);
+                    return null;
+                });
+    }
+
     public NotificationPreferences.Values preferences(Long user) {
         return transactions.readOnly(() -> store.preferences(user));
     }

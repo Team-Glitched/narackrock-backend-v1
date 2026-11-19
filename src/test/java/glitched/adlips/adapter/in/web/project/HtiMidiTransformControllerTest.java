@@ -10,10 +10,26 @@ import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.application.project.dto.response.HtiMidiTransformResponse;
 import glitched.adlips.application.project.usecase.HtiMidiTransformUseCase;
 import java.util.List;
+import glitched.adlips.domain.project.AudioTranscriptionMode;
+import org.mockito.ArgumentCaptor;
+import glitched.adlips.application.project.dto.request.HtiMidiTransformRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockMultipartFile;
 
 class HtiMidiTransformControllerTest {
+    @Test
+    void preservesExplicitInstrumentChoice() {
+        var useCase = mock(HtiMidiTransformUseCase.class);
+        var resolver = mock(AuthenticatedUserResolver.class);
+        when(resolver.requireUserId("Bearer token")).thenReturn(7L);
+        new HtiMidiTransformController(useCase, resolver).transform(10L, "Bearer token",
+                new MockMultipartFile("audio", "piano.wav", "audio/wav", new byte[]{1}),
+                AudioTranscriptionMode.INSTRUMENT);
+        var captured = ArgumentCaptor.forClass(HtiMidiTransformRequest.class);
+        verify(useCase).execute(captured.capture());
+        assertThat(captured.getValue().soundKind()).isEqualTo(AudioTranscriptionMode.INSTRUMENT);
+    }
+
     @Test
     void sendsRecordedAudioToUseCase() {
         HtiMidiTransformUseCase useCase = mock(HtiMidiTransformUseCase.class);
@@ -28,6 +44,8 @@ class HtiMidiTransformControllerTest {
 
         assertThat(result.message()).isEqualTo("녹음을 MIDI로 변환했습니다.");
         assertThat(result.data().durationTick()).isEqualTo(960);
-        verify(useCase).execute(any());
+        var captured = ArgumentCaptor.forClass(HtiMidiTransformRequest.class);
+        verify(useCase).execute(captured.capture());
+        assertThat(captured.getValue().soundKind()).isEqualTo(AudioTranscriptionMode.AUTO);
     }
 }

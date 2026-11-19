@@ -1,6 +1,9 @@
 package glitched.adlips.config;
 
 import glitched.adlips.adapter.out.hti.HtiMidiRestAdapter;
+import java.net.http.HttpClient;
+import java.time.Duration;
+import org.springframework.http.client.JdkClientHttpRequestFactory;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.media.port.out.MediaContentStoragePort;
 import glitched.adlips.application.opensource.OpenSourceMediaPort;

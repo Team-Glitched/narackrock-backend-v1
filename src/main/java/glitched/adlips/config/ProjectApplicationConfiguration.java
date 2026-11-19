@@ -146,8 +146,9 @@ public class ProjectApplicationConfiguration {
     ProjectMetadataUpdateUseCase projectMetadataUpdateUseCase(ProjectRepositoryPort projects,
                                                               ProjectMemberRepositoryPort members,
                                                               MediaFileRepositoryPort mediaFiles,
+                                                              PublishedShortPort publishedShorts,
                                                               TransactionRunner transactions) {
-        return new ProjectMetadataUpdateUseCase(projects, members, mediaFiles, transactions);
+        return new ProjectMetadataUpdateUseCase(projects, members, mediaFiles, publishedShorts, transactions);
     }
 
     @Bean

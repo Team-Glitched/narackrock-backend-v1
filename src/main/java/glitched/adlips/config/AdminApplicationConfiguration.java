@@ -5,6 +5,7 @@ import glitched.adlips.application.community.GetGalleryProposalsUseCase;
 import glitched.adlips.application.community.RejectGalleryProposalUseCase;
 import glitched.adlips.application.community.port.out.GalleryManagementPort;
 import glitched.adlips.application.community.port.out.GalleryProposalPort;
+import glitched.adlips.application.community.port.out.GallerySubscriptionPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.report.port.out.ReportContentModerationPort;
 import glitched.adlips.application.report.port.out.ReportResolutionPort;
@@ -66,12 +67,13 @@ public class AdminApplicationConfiguration {
     ApproveGalleryProposalUseCase approveGalleryProposalUseCase(
             GalleryProposalPort galleryProposalPort,
             GalleryManagementPort galleryManagementPort,
+            GallerySubscriptionPort subscriptions,
             UserRepositoryPort userRepositoryPort,
             TransactionRunner transactionRunner,
             Clock clock
     , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new ApproveGalleryProposalUseCase(
-                galleryProposalPort, galleryManagementPort, userRepositoryPort, transactionRunner, clock, notificationEvents);
+                galleryProposalPort, galleryManagementPort, subscriptions, userRepositoryPort, transactionRunner, clock, notificationEvents);
     }
 
     @Bean

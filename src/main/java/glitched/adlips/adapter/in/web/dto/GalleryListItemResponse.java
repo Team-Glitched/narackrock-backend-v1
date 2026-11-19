@@ -8,7 +8,8 @@ public record GalleryListItemResponse(
         String name,
         String description,
         long subscriberCount,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        Long imageFileId, Long bannerImageFileId, String imageUrl, String bannerImageUrl
 ) {
 
     public static GalleryListItemResponse from(GalleryQueryItem item) {
@@ -17,6 +18,6 @@ public record GalleryListItemResponse(
                 item.name(),
                 item.description(),
                 item.subscriberCount(),
-                item.createdAt());
+                item.createdAt(), item.imageFileId(), item.bannerImageFileId(), item.imageUrl(), item.bannerImageUrl());
     }
 }

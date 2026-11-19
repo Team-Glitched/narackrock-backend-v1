@@ -32,6 +32,7 @@ import glitched.adlips.application.community.GetLikedPostsUseCase;
 import glitched.adlips.application.community.port.out.LikedPostQueryPort;
 import glitched.adlips.application.community.UnsubscribeGalleryUseCase;
 import glitched.adlips.application.community.UpdateGalleryUseCase;
+import glitched.adlips.application.community.UpdateGalleryImagesUseCase;
 import glitched.adlips.application.community.UpdatePostCommentUseCase;
 import glitched.adlips.application.community.UpdatePostUseCase;
 import glitched.adlips.application.community.port.out.GalleryAuthorityPort;
@@ -114,6 +115,13 @@ public class CommunityApplicationConfiguration {
             Clock clock
     ) {
         return new GetMyGalleryRoleUseCase(galleryAuthorityPort, transactionRunner, clock);
+    }
+
+    @Bean
+    UpdateGalleryImagesUseCase updateGalleryImagesUseCase(
+            GalleryAuthorityPort authority, GalleryManagementPort management, GalleryModerationLogPort logs,
+            MediaFileRepositoryPort media, TransactionRunner transactions, Clock clock) {
+        return new UpdateGalleryImagesUseCase(authority, management, logs, media, transactions, clock);
     }
 
     @Bean
@@ -289,6 +297,7 @@ public class CommunityApplicationConfiguration {
     @Bean
     CreatePostUseCase createPostUseCase(
             PostPort postPort,
+            GallerySubscriptionPort subscriptions,
             UserBanQueryPort userBanQueryPort,
             GalleryBanQueryPort galleryBanQueryPort,
             MediaFileRepositoryPort mediaFileRepository,
@@ -297,6 +306,7 @@ public class CommunityApplicationConfiguration {
     , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new CreatePostUseCase(
                 postPort,
+                subscriptions,
                 userBanQueryPort,
                 galleryBanQueryPort,
                 mediaFileRepository,

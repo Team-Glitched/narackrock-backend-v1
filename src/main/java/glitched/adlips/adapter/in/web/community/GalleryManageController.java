@@ -25,6 +25,8 @@ import glitched.adlips.application.community.ModeratePostDeletionUseCase;
 import glitched.adlips.application.community.RevokeGalleryManagerUseCase;
 import glitched.adlips.application.community.SanctionGalleryUserUseCase;
 import glitched.adlips.application.community.UpdateGalleryUseCase;
+import glitched.adlips.application.community.UpdateGalleryImagesUseCase;
+import org.springframework.web.bind.annotation.PutMapping;
 import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -47,6 +49,7 @@ public class GalleryManageController {
 
     private final GetMyGalleryRoleUseCase getMyGalleryRoleUseCase;
     private final UpdateGalleryUseCase updateGalleryUseCase;
+    private final UpdateGalleryImagesUseCase updateGalleryImagesUseCase;
     private final GetGalleryModerationLogsUseCase getGalleryModerationLogsUseCase;
     private final SanctionGalleryUserUseCase sanctionGalleryUserUseCase;
     private final LiftGalleryBanUseCase liftGalleryBanUseCase;
@@ -61,6 +64,7 @@ public class GalleryManageController {
     public GalleryManageController(
             GetMyGalleryRoleUseCase getMyGalleryRoleUseCase,
             UpdateGalleryUseCase updateGalleryUseCase,
+            UpdateGalleryImagesUseCase updateGalleryImagesUseCase,
             GetGalleryModerationLogsUseCase getGalleryModerationLogsUseCase,
             SanctionGalleryUserUseCase sanctionGalleryUserUseCase,
             LiftGalleryBanUseCase liftGalleryBanUseCase,
@@ -74,6 +78,7 @@ public class GalleryManageController {
     ) {
         this.getMyGalleryRoleUseCase = getMyGalleryRoleUseCase;
         this.updateGalleryUseCase = updateGalleryUseCase;
+        this.updateGalleryImagesUseCase = updateGalleryImagesUseCase;
         this.getGalleryModerationLogsUseCase = getGalleryModerationLogsUseCase;
         this.sanctionGalleryUserUseCase = sanctionGalleryUserUseCase;
         this.liftGalleryBanUseCase = liftGalleryBanUseCase;
@@ -106,6 +111,18 @@ public class GalleryManageController {
         Long userId = authenticatedUserResolver.requireUserId(authorization);
         updateGalleryUseCase.execute(userId, galleryId, request.description());
         return ResponseEntity.ok(ApiResponse.success("갤러리 정보가 수정되었습니다.", null));
+    }
+
+    public record ImagesRequest(Long imageFileId, Long bannerImageFileId) {}
+
+    @PutMapping("/images")
+    public ResponseEntity<ApiResponse<Void>> updateImages(
+            @PathVariable Long galleryId,
+            @RequestHeader("Authorization") String authorization,
+            @RequestBody ImagesRequest request) {
+        updateGalleryImagesUseCase.execute(authenticatedUserResolver.requireUserId(authorization), galleryId,
+                request.imageFileId(), request.bannerImageFileId());
+        return ResponseEntity.ok(ApiResponse.success("커뮤니티 이미지를 저장했습니다.", null));
     }
 
     @GetMapping("/logs")

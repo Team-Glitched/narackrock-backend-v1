@@ -19,6 +19,22 @@ public class Gallery extends BaseCreatedEntity {
     @Column(name = "description")
     private String description;
 
+    @Column(name = "image_file_id")
+    private Long imageFileId;
+
+    @Column(name = "banner_image_file_id")
+    private Long bannerImageFileId;
+
+    public Long getImageFileId() { return imageFileId; }
+    public Long getBannerImageFileId() { return bannerImageFileId; }
+
+    public void changeImages(Long imageFileId, Long bannerImageFileId) {
+        if ((imageFileId != null && imageFileId < 1) || (bannerImageFileId != null && bannerImageFileId < 1))
+            throw new IllegalArgumentException("유효한 이미지 파일을 선택해 주세요.");
+        this.imageFileId = imageFileId;
+        this.bannerImageFileId = bannerImageFileId;
+    }
+
     protected Gallery() {
     }
 

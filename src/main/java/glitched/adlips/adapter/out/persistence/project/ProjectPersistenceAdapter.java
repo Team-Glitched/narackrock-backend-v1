@@ -117,6 +117,11 @@ public class ProjectPersistenceAdapter implements
     }
 
     @Override
+    public Optional<ProjectClip> findClipForUpdate(Long id) {
+        return clips.findActiveForUpdate(id);
+    }
+
+    @Override
     public List<ProjectClip> findByTrackIdAndIsDeletedFalseOrderByStartTickAscIdAsc(Long trackId) {
         return clips.findByTrackIdAndIsDeletedFalseOrderByStartTickAscIdAsc(trackId);
     }

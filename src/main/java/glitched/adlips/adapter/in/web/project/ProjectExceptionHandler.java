@@ -49,6 +49,7 @@ public class ProjectExceptionHandler {
             case MEDIA_FILE_NOT_READY,
                     EDITOR_DRAFT_CONFLICT,
                     EDITOR_DRAFT_BASE_CHANGED,
+                    AUDIO_SOURCE_CHANGED,
                     PROJECT_NOT_PUBLIC,
                     TRACK_INSTRUMENT_NOT_SET,
                     TRACK_LIMIT_EXCEEDED,

@@ -1,10 +1,20 @@
 package glitched.adlips.application.project.port.out;
 
+import glitched.adlips.domain.project.AudioSoundKind;
 import java.util.List;
 import java.util.Map;
 
 public interface HtiMidiTransformPort {
     Result transform(Command command);
+
+    default AudioResult analyze(AudioCommand command) {
+        throw new HtiServiceException("Audio analysis is unavailable", null);
+    }
+
+    record AudioCommand(AudioSoundKind soundKind, String filename, String contentType, byte[] content,
+                        int bpm, int ppq, int offsetMs, long durationMs) {}
+
+    record AudioResult(String engineVersion, List<Note> midiNotes) {}
 
     record Command(
             long clipId,

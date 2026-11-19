@@ -72,6 +72,10 @@ public class ProjectClip extends BaseTimeEntity {
     @Column(name = "midi_notes", columnDefinition = "json")
     private List<MidiNote> midiNotes = List.of();
 
+    @JdbcTypeCode(SqlTypes.JSON)
+    @Column(name = "audio_analysis", columnDefinition = "json")
+    private AudioAnalysis audioAnalysis;
+
     @Column(name = "start_tick", nullable = false)
     private int startTick;
 
@@ -161,6 +165,10 @@ public class ProjectClip extends BaseTimeEntity {
         if (!Objects.equals(this.mediaFileId, mediaFileId) || this.sourceType != sourceType) {
             this.originOpenSourceId = null;
         }
+        if (!Objects.equals(this.mediaFileId, mediaFileId) || this.clipOffsetMs != clipOffsetMs
+                || !Objects.equals(this.durationMs, durationMs)) {
+            this.audioAnalysis = null;
+        }
         this.sourceType = sourceType;
         this.mediaFileId = mediaFileId;
         this.waveformFileId = waveformFileId;
@@ -171,6 +179,13 @@ public class ProjectClip extends BaseTimeEntity {
         this.clipOffsetMs = clipOffsetMs;
         this.midiNotes = List.of();
         track.invalidateRenderedMedia();
+    }
+
+    public void storeAudioAnalysis(AudioAnalysis analysis) {
+        if (clipType != ClipType.AUDIO) {
+            throw new IllegalStateException("only AUDIO clips can store audio analysis");
+        }
+        this.audioAnalysis = Objects.requireNonNull(analysis);
     }
 
     public void updateMidi(int startTick, long durationTick, List<MidiNote> midiNotes) {
@@ -219,6 +234,7 @@ public class ProjectClip extends BaseTimeEntity {
 
     public void deleteForContribution() {
         isDeleted = true;
+        audioAnalysis = null;
         track.invalidateRenderedMedia();
     }
 

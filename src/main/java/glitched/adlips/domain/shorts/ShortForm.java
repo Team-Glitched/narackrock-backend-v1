@@ -91,6 +91,12 @@ public class ShortForm extends BaseTimeEntity {
         return shortForm;
     }
 
+    public void refreshMetadata() {
+        if (deletedAt != null) throw new IllegalStateException("deleted short cannot be updated");
+        title = project.getTitle();
+        albumImageFileId = project.getAlbumImageFileId();
+    }
+
     public void complete() {
         status = ShortStatus.COMPLETED;
     }

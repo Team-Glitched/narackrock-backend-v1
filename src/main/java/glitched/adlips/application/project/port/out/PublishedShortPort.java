@@ -6,5 +6,7 @@ public interface PublishedShortPort {
 
     Long publish(Project project, Long exportId, Long mixedAudioFileId);
 
+    void updateMetadata(Project project);
+
     void completeProject(Long projectId);
 }

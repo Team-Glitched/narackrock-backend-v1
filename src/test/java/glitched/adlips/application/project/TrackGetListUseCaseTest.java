@@ -74,6 +74,7 @@ class TrackGetListUseCaseTest {
         assertThat(response.tracks().getFirst().clips().getFirst().midiNotes())
                 .containsExactly(note);
         assertThat(response.tracks().getFirst().ownerProfileImageUrl()).isNull();
+        assertThat(response.tracks().getFirst().ownerNickname()).isEqualTo("사용자");
     }
     @Test
     void hidesOtherUsersEmptyTracksButKeepsOwnEmptyLayerEditable() {
@@ -113,7 +114,7 @@ class TrackGetListUseCaseTest {
     }
 
     @Test
-    void includesLayerOwnersProfilePhotoWithoutRequiringPublicProfile() {
+    void includesLayerOwnersNameAndPhotoWithoutRequiringPublicProfile() {
         User owner = User.create("owner@example.com").withId(1L);
         Project project = new Project(owner, "곡", "설명", 701L);
         ProjectTrack track = mock(ProjectTrack.class);
@@ -139,6 +140,7 @@ class TrackGetListUseCaseTest {
                 .execute(new TrackGetListRequest(10L, 1L));
 
         assertThat(response.tracks().getFirst().ownerProfileImageUrl()).isEqualTo("https://files.test/owner.png");
+        assertThat(response.tracks().getFirst().ownerNickname()).isEqualTo("기타 연주자");
     }
 
 }

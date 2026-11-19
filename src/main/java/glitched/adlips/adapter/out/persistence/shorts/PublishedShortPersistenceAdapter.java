@@ -64,6 +64,11 @@ public class PublishedShortPersistenceAdapter implements PublishedShortPort {
     }
 
     @Override
+    public void updateMetadata(Project project) {
+        shortForms.findByProjectIdAndDeletedAtIsNull(project.getId()).forEach(ShortForm::refreshMetadata);
+    }
+
+    @Override
     public void completeProject(Long projectId) {
         shortForms.findByProjectIdAndDeletedAtIsNull(projectId).forEach(ShortForm::complete);
     }

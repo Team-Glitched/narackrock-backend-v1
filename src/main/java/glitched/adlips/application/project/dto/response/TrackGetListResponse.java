@@ -21,7 +21,7 @@ public record TrackGetListResponse(ViewerPermission viewerPermission, ProjectSum
     public record TrackSummary(Long trackId, Long ownerId, String name, String instrument,
                                Long mediaFileId, String mediaUrl, int volume, int pan, int sortOrder,
                                boolean isMuted, boolean isSolo, ApprovalStatus approvalStatus,
-                               List<ClipSummary> clips, String ownerProfileImageUrl) {}
+                               List<ClipSummary> clips, String ownerProfileImageUrl, String ownerNickname) {}
     public record ClipSummary(Long clipId, Long ownerId, ClipType clipType, ClipSourceType sourceType,
                               Long mediaFileId, String mediaUrl, String waveformUrl, int startTick,
                               Long durationTick, int startTimeMs, Long durationMs,

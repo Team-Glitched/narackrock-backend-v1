@@ -51,7 +51,7 @@ public class AudioClipCreateUseCase {
 
     private AudioClipCreateResponse executeInternal(AudioClipCreateRequest request) {
         validateBasic(request);
-        var project = projects.findByIdAndDeletedAtIsNull(request.projectId())
+        var project = projects.findByIdAndDeletedAtIsNullForUpdate(request.projectId())
                 .orElseThrow(() -> error(ProjectErrorCode.PROJECT_NOT_FOUND, "존재하지 않는 프로젝트입니다."));
         members.findByProjectIdAndUserId(request.projectId(), request.userId())
                 .filter(member -> member.getRole() != ProjectMemberRole.VIEWER)

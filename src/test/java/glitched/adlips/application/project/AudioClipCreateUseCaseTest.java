@@ -39,7 +39,7 @@ class AudioClipCreateUseCaseTest {
         ProjectClipRepositoryPort clips = mock(ProjectClipRepositoryPort.class);
         UserRepositoryPort users = mock(UserRepositoryPort.class);
         MediaFileRepositoryPort mediaFiles = mock(MediaFileRepositoryPort.class);
-        when(projects.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(project));
+        when(projects.findByIdAndDeletedAtIsNullForUpdate(10L)).thenReturn(Optional.of(project));
         when(members.findByProjectIdAndUserId(10L, 1L)).thenReturn(
                 Optional.of(new ProjectMember(project, owner, ProjectMemberRole.OWNER)));
         when(tracks.findTrackByIdAndIsDeletedFalse(21L)).thenReturn(Optional.of(track));
@@ -66,7 +66,7 @@ class AudioClipCreateUseCaseTest {
         var track=new ProjectTrack(project,owner,"오디오",null,0);
         var projects=mock(ProjectRepositoryPort.class);var members=mock(ProjectMemberRepositoryPort.class);
         var tracks=mock(ProjectTrackRepositoryPort.class);
-        when(projects.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(project));
+        when(projects.findByIdAndDeletedAtIsNullForUpdate(10L)).thenReturn(Optional.of(project));
         when(members.findByProjectIdAndUserId(10L,1L)).thenReturn(Optional.of(new ProjectMember(project,owner,ProjectMemberRole.OWNER)));
         when(tracks.findTrackByIdAndIsDeletedFalse(21L)).thenReturn(Optional.of(track));
         org.assertj.core.api.Assertions.assertThatThrownBy(()->new AudioClipCreateUseCase(projects,members,tracks,

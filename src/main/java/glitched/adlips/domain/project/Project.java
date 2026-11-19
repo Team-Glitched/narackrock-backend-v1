@@ -115,8 +115,8 @@ public class Project extends BaseTimeEntity {
     }
 
     public void updateMetadata(String title, Long albumImageFileId) {
-        if (status != ProjectStatus.DRAFT || deletedAt != null) {
-            throw new IllegalStateException("only draft metadata can be updated");
+        if (status == ProjectStatus.DELETED || deletedAt != null) {
+            throw new IllegalStateException("deleted project metadata cannot be updated");
         }
         if (title == null || title.isBlank() || albumImageFileId == null || albumImageFileId < 0) {
             throw new IllegalArgumentException("title and a valid album image reference are required");

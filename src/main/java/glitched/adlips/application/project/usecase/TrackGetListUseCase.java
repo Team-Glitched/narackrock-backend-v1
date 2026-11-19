@@ -13,7 +13,6 @@ import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
-import glitched.adlips.domain.user.Profile;
 import glitched.adlips.domain.project.ProjectMemberRole;
 import glitched.adlips.domain.project.ProjectContribution;
 import glitched.adlips.domain.project.ApprovalStatus;
@@ -24,7 +23,6 @@ import java.util.stream.Collectors;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Optional;
 public class TrackGetListUseCase {
     private final ProjectRepositoryPort projects;
     private final ProjectMemberRepositoryPort members;
@@ -88,7 +86,7 @@ public class TrackGetListUseCase {
                 project.getMaxDurationMs(), project.getMaxTick(),
                 new ProjectVersionResponse(project.getMajorVersion(), project.getMinorVersion(), project.getDisplayVersion()),
                 project.getStatus(), project.isPublic());
-        var ownerImages = new HashMap<Long, Optional<String>>();
+        var ownerIdentities = new HashMap<Long, OwnerIdentity>();
         var summaries = new ArrayList<TrackGetListResponse.TrackSummary>();
         for (var track : tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(request.projectId())) {
             Long ownerId = track.getOwner().getId();
@@ -113,15 +111,19 @@ public class TrackGetListUseCase {
                             clip.getStartTimeMs(), clip.getDurationMs(), clip.getClipOffsetMs(),
                             clip.getApprovalStatus(), clip.getMidiNotes(), clip.getAudioAnalysis()))
                     .toList();
-            var ownerImage = ownerImages.computeIfAbsent(ownerId, id ->
-                    profiles.findByUserId(id).map(Profile::getProfileImageFileId).map(this::url));
+            var ownerIdentity = ownerIdentities.computeIfAbsent(ownerId, id ->
+                    profiles.findByUserId(id)
+                            .map(profile -> new OwnerIdentity(profile.getNickname(), url(profile.getProfileImageFileId())))
+                            .orElseGet(() -> new OwnerIdentity("사용자", null)));
             summaries.add(new TrackGetListResponse.TrackSummary(track.getId(), ownerId,
                     track.getName(), track.getInstrument(), track.getMediaFileId(), url(track.getMediaFileId()),
                     track.getVolume(), track.getPan(), track.getSortOrder(), track.isMuted(), track.isSolo(),
-                    track.getApprovalStatus(), clipSummaries, ownerImage.orElse(null)));
+                    track.getApprovalStatus(), clipSummaries, ownerIdentity.profileImageUrl(), ownerIdentity.nickname()));
         }
         return new TrackGetListResponse(permission, projectSummary, List.copyOf(summaries));
     }
+
+    private record OwnerIdentity(String nickname, String profileImageUrl) {}
 
     private Set<Long> targetIds(ProjectContribution contribution, ContributionTargetType type) {
         if (contribution == null) return Set.of();

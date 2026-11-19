@@ -27,6 +27,32 @@ class PublishedShortPersistenceAdapterTest {
     @Autowired ProjectMemberJpaRepository projectMembers;
 
     @Test
+    void metadataUpdatesPublishedAndCompletedShortsWithoutReplacingAudioOrCredits() {
+        User owner = User.create("metadata-owner@example.com");
+        entityManager.persist(owner);
+        Project project = new Project(owner, "원래 제목", null, 701L);
+        entityManager.persist(project);
+        entityManager.persist(new ProjectMember(project, owner, ProjectMemberRole.OWNER));
+        project.startPublishing();
+        project.publish(LocalDateTime.now());
+        var adapter = new PublishedShortPersistenceAdapter(shortForms, participants, projectMembers);
+        Long shortId = adapter.publish(project, 20L, 801L);
+        for (boolean completed : new boolean[]{false, true}) {
+            if (completed) { project.complete(); adapter.completeProject(project.getId()); }
+            project.updateMetadata("수정한 제목 " + completed, 702L);
+            adapter.updateMetadata(project);
+            entityManager.flush();
+            ShortForm saved = shortForms.findById(shortId).orElseThrow();
+            assertThat(saved.getTitle()).isEqualTo(project.getTitle());
+            assertThat(saved.getAlbumImageFileId()).isEqualTo(702L);
+            assertThat(saved.getExportId()).isEqualTo(20L);
+            assertThat(saved.getMediaFileId()).isEqualTo(801L);
+            assertThat(saved.getStatus()).isEqualTo(completed ? ShortStatus.COMPLETED : ShortStatus.IN_PROGRESS);
+            assertThat(participants.countByShortsId(shortId)).isEqualTo(1L);
+        }
+    }
+
+    @Test
     void excludesEditorsWhoHaveNotSubmittedApprovedContributions() {
         User owner = User.create("owner-export@example.com");
         User editor = User.create("editor-export@example.com");

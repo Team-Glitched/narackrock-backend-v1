@@ -84,6 +84,13 @@ public class NotificationPersistenceAdapter implements NotificationStore {
                 .executeUpdate();
     }
 
+    public int deleteRead(Long userId) {
+        return em.createQuery(
+                        "delete from ServiceNotification n where n.recipientId=:user and n.readAt is not null")
+                .setParameter("user", userId)
+                .executeUpdate();
+    }
+
     public NotificationPreferences.Values preferences(Long userId) {
         var p = em.find(NotificationPreferences.class, userId);
         return p == null ? NotificationPreferences.Values.defaults() : p.values();

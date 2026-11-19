@@ -68,6 +68,22 @@ class AnalyzeAudioClipUseCaseTest {
         verifyNoInteractions(storage, inference);
     }
 
+    @Test
+    void discardsTheResultWhenTheSourceChangesDuringInference() {
+        var clip = clip();
+        when(media.findById(7L)).thenReturn(Optional.of(MediaFile.readyGenerated(
+                1L, "/files/audio.wav", "audio.wav", "audio.wav", MediaFileType.AUDIO, "audio/wav", 3)));
+        when(storage.get("audio.wav")).thenReturn(new byte[]{1, 2, 3});
+        when(inference.analyze(any())).thenAnswer(invocation -> {
+            ReflectionTestUtils.setField(clip, "clipOffsetMs", 250);
+            return new HtiMidiTransformPort.AudioResult("hti-test", List.of(note(60)));
+        });
+        assertThatThrownBy(() -> useCase.execute(10L, 5L, 1L, AudioSoundKind.HUMMING, false))
+                .isInstanceOf(ProjectApplicationException.class)
+                .extracting("errorCode").isEqualTo(ProjectErrorCode.AUDIO_SOURCE_CHANGED);
+        assertThat(clip.getAudioAnalysis()).isNull();
+    }
+
     private ProjectClip clip() {
         var user = User.create("audio@example.test").withId(1L);
         var project = new Project(user, "곡", null, 5L);

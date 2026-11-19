@@ -88,7 +88,7 @@ public class AnalyzeAudioClipUseCase {
         return transactions.required(() -> {
             var current = authorizedClip(projectId, userId, clips.findClipForUpdate(clipId));
             if (!source.equals(source(current))) {
-                throw error(ProjectErrorCode.EDITOR_DRAFT_BASE_CHANGED, "원본 오디오가 바뀌었습니다. 다시 분석해 주세요.");
+                throw error(ProjectErrorCode.AUDIO_SOURCE_CHANGED, "원본 오디오가 바뀌었습니다. 다시 분석해 주세요.");
             }
             if (!refresh && reusable(current.getAudioAnalysis(), kind)) return current.getAudioAnalysis();
             current.storeAudioAnalysis(analysis);

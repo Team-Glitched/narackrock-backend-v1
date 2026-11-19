@@ -44,7 +44,7 @@ public class GetShortsParticipantTracksUseCase {
                                     clip.getClipType(), clip.getSourceType(), clip.getMediaFileId(), url(clip.getMediaFileId()),
                                     null, clip.getStartTick(), clip.getDurationTick(), clip.getStartTimeMs(),
                                     clip.getDurationMs(), clip.getClipOffsetMs(), clip.getApprovalStatus(), clip.getMidiNotes()))
-                            .toList())).toList();
+                            .toList(), null)).toList();
             return new ShortsParticipantTracksResult(shortId,
                     new ShortsParticipantTracksResult.ProjectTiming(project.getBpm(), project.getPpq(), project.getMaxDurationMs()),
                     approvedTracks);

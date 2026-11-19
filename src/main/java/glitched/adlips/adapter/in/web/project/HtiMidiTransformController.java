@@ -10,6 +10,8 @@ import glitched.adlips.application.project.usecase.HtiMidiTransformUseCase;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.io.IOException;
+import glitched.adlips.domain.project.AudioTranscriptionMode;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestHeader;
@@ -32,18 +34,23 @@ public class HtiMidiTransformController {
         this.userResolver = userResolver;
     }
 
+    public ApiResponse<HtiMidiTransformResponse> transform(Long projectId, String authorization, MultipartFile audio) {
+        return transform(projectId, authorization, audio, AudioTranscriptionMode.AUTO);
+    }
+
     @PostMapping
     public ApiResponse<HtiMidiTransformResponse> transform(
             @PathVariable Long projectId,
             @RequestHeader("Authorization") String authorization,
-            @RequestPart("audio") MultipartFile audio) {
+            @RequestPart("audio") MultipartFile audio,
+            @RequestParam(defaultValue = "AUTO") AudioTranscriptionMode soundKind) {
         try {
             var response = useCase.execute(new HtiMidiTransformRequest(
                     projectId,
                     userResolver.requireUserId(authorization),
                     audio.getOriginalFilename(),
                     audio.getContentType(),
-                    audio.getBytes()));
+                    audio.getBytes(), soundKind));
             return ApiResponse.success("녹음을 MIDI로 변환했습니다.", response);
         } catch (IOException exception) {
             throw new ProjectApplicationException(

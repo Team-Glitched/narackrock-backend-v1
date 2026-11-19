@@ -35,12 +35,14 @@ class HtiMidiTransformUseCaseTest {
         var note = new HtiMidiTransformPort.Note(60, 0, 480, 100, null, Map.of());
         when(transformer.transform(new HtiMidiTransformPort.Command(
                 10L, "recording.wav", "audio/wav", content, 120, 480)))
-                .thenReturn(new HtiMidiTransformPort.Result(960, List.of(note)));
+                .thenReturn(new HtiMidiTransformPort.Result(960, List.of(note),
+                        new HtiMidiTransformPort.Routing("BASIC_PITCH", "POLYPHONIC", "여러 음", "signal-rules-v1")));
 
         var response = new HtiMidiTransformUseCase(projects, members, transformer).execute(
                 new HtiMidiTransformRequest(10L, 1L, "recording.wav", "audio/wav", content));
 
         assertThat(response.durationTick()).isEqualTo(960);
+        assertThat(response.routing().engine()).isEqualTo("BASIC_PITCH");
         assertThat(response.midiNotes()).hasSize(1);
         assertThat(response.midiNotes().getFirst().pitch()).isEqualTo(60);
     }

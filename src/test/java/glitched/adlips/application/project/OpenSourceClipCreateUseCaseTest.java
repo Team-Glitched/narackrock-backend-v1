@@ -57,7 +57,7 @@ class OpenSourceClipCreateUseCaseTest {
         project = new Project(caller, "곡", null, 701L);
         track = new ProjectTrack(project, caller, "Guitar", "GUITAR", 0);
         track.replaceRenderedMedia(900L);
-        when(projects.findByIdAndDeletedAtIsNull(10L)).thenReturn(Optional.of(project));
+        when(projects.findByIdAndDeletedAtIsNullForUpdate(10L)).thenReturn(Optional.of(project));
         when(members.findByProjectIdAndUserId(10L, 1L))
                 .thenReturn(Optional.of(new ProjectMember(project, caller, ProjectMemberRole.EDITOR)));
         when(tracks.findTrackByIdAndIsDeletedFalse(21L)).thenReturn(Optional.of(track));

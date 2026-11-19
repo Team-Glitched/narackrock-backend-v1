@@ -113,6 +113,7 @@ jobs:
         with:
           repository: ${{ vars.DEPLOY_REPOSITORY || 'parafara/narackrock-deploy' }}
           ref: ${{ vars.DEPLOY_REF || 'main' }}
+          fetch-depth: 0
           # Write deploy key scoped to the deployment repository only.
           ssh-key: ${{ secrets.NARACKROCK_DEPLOY_KEY }}
           path: deploy
@@ -121,6 +122,7 @@ jobs:
         env:
           IMAGE: ${{ needs.build.outputs.image }}
           DIGEST: ${{ needs.build.outputs.digest }}
+          DEPLOY_REF: ${{ vars.DEPLOY_REF || 'main' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -141,4 +143,7 @@ jobs:
             exit 0
           fi
           git -C deploy commit -m "chore: deploy narackrock-api ${GITHUB_SHA}"
-          git -C deploy push
+          # The frontend and HTI workflows push to the same branch; keep their updates.
+          # A rebase or push conflict remains a visible workflow failure.
+          git -C deploy pull --rebase origin "${DEPLOY_REF}"
+          git -C deploy push origin "HEAD:${DEPLOY_REF}"

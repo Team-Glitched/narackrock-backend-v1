@@ -83,17 +83,24 @@ class OpenSourceClipIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT owner_id FROM project_clips WHERE id=?", Long.class, data.at("/clipId").asLong()))
                 .isEqualTo(97002L);
 
+        var composition = call("GET", "/api/v1/projects/97301/tracks?view=WORKING", null, 97002L);
+        assertThat(composition.status()).isEqualTo(200);
+        JsonNode clip = composition.body().at("/data/tracks/0/clips/0");
+        assertThat(composition.body().at("/data/tracks/0/trackId").asLong()).isEqualTo(97401L);
+        assertThat(clip.at("/clipId").asLong()).isEqualTo(data.at("/clipId").asLong());
+        assertThat(clip.at("/ownerId").asLong()).isEqualTo(97002L);
+        assertThat(clip.at("/sourceType").asText()).isEqualTo("IMPORTED");
+        assertThat(clip.at("/mediaFileId").asLong()).isEqualTo(97101L);
+        assertThat(clip.at("/mediaUrl").asText()).isEqualTo("http://local/files/riff.wav");
+
         for (long viewer : new long[]{97002L, 97003L}) {
-            var composition = call("GET", "/api/v1/projects/97301/tracks", null, viewer);
-            assertThat(composition.status()).isEqualTo(200);
-            JsonNode clip = composition.body().at("/data/tracks/0/clips/0");
-            assertThat(composition.body().at("/data/tracks/0/trackId").asLong()).isEqualTo(97401L);
-            assertThat(clip.at("/clipId").asLong()).isEqualTo(data.at("/clipId").asLong());
-            assertThat(clip.at("/ownerId").asLong()).isEqualTo(97002L);
-            assertThat(clip.at("/sourceType").asText()).isEqualTo("IMPORTED");
-            assertThat(clip.at("/mediaFileId").asLong()).isEqualTo(97101L);
-            assertThat(clip.at("/mediaUrl").asText()).isEqualTo("http://local/files/riff.wav");
+            var published = call("GET", "/api/v1/projects/97301/tracks", null, viewer);
+            assertThat(published.status()).isEqualTo(200);
+            assertThat(published.body().at("/data/tracks").size()).isZero();
         }
+        var otherWorking = call("GET", "/api/v1/projects/97301/tracks?view=WORKING", null, 97003L);
+        assertThat(otherWorking.body().at("/data/tracks/0/trackId").asLong()).isEqualTo(97402L);
+        assertThat(otherWorking.body().at("/data/tracks/0/clips").size()).isZero();
     }
 
     @Test void rejectsAnotherMembersLayerAndCompletedProject() throws Exception {

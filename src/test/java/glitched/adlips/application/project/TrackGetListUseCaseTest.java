@@ -6,6 +6,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectContributionRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
@@ -34,7 +35,7 @@ class TrackGetListUseCaseTest {
         when(members.findByProjectIdAndUserId(10L, 1L)).thenReturn(Optional.of(new ProjectMember(project, owner, ProjectMemberRole.OWNER)));
         when(tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of());
 
-        var response = new TrackGetListUseCase(projects, members, tracks, clips, mock(MediaFileRepositoryPort.class), mock(ProfileRepositoryPort.class))
+        var response = new TrackGetListUseCase(projects, members, tracks, clips, mock(MediaFileRepositoryPort.class), mock(ProfileRepositoryPort.class), mock(ProjectContributionRepositoryPort.class))
                 .execute(new TrackGetListRequest(10L, 1L));
 
         assertThat(response.project().maxTick()).isEqualTo(57_600L);
@@ -68,7 +69,7 @@ class TrackGetListUseCaseTest {
         when(clip.getMidiNotes()).thenReturn(List.of(note));
 
         var response = new TrackGetListUseCase(projects, members, tracks, clips,
-                mock(MediaFileRepositoryPort.class), mock(ProfileRepositoryPort.class)).execute(new TrackGetListRequest(10L, 1L));
+                mock(MediaFileRepositoryPort.class), mock(ProfileRepositoryPort.class), mock(ProjectContributionRepositoryPort.class)).execute(new TrackGetListRequest(10L, 1L));
 
         assertThat(response.tracks().getFirst().clips().getFirst().midiNotes())
                 .containsExactly(note);
@@ -98,12 +99,14 @@ class TrackGetListUseCaseTest {
         when(emptyOther.getOwner()).thenReturn(owner);
         when(populated.getId()).thenReturn(22L);
         when(populated.getOwner()).thenReturn(owner);
+        when(populated.getApprovalStatus()).thenReturn(ApprovalStatus.APPROVED);
+        when(clip.getApprovalStatus()).thenReturn(ApprovalStatus.APPROVED);
         when(clip.getOwner()).thenReturn(owner);
         when(clips.findByTrackIdAndIsDeletedFalseOrderByStartTickAscIdAsc(22L)).thenReturn(List.of(clip));
 
         ProfileRepositoryPort profiles = mock(ProfileRepositoryPort.class);
         var response = new TrackGetListUseCase(projects, members, tracks, clips,
-                mock(MediaFileRepositoryPort.class), profiles).execute(new TrackGetListRequest(10L, 2L));
+                mock(MediaFileRepositoryPort.class), profiles, mock(ProjectContributionRepositoryPort.class)).execute(new TrackGetListRequest(10L, 2L));
 
         verify(profiles).findByUserId(1L);
         assertThat(response.tracks()).extracting(t -> t.trackId()).containsExactly(20L, 22L);
@@ -132,7 +135,7 @@ class TrackGetListUseCaseTest {
         when(media.findById(42L)).thenReturn(Optional.of(photo));
         when(photo.getFileUrl()).thenReturn("https://files.test/owner.png");
 
-        var response = new TrackGetListUseCase(projects, members, tracks, clips, media, profiles)
+        var response = new TrackGetListUseCase(projects, members, tracks, clips, media, profiles, mock(ProjectContributionRepositoryPort.class))
                 .execute(new TrackGetListRequest(10L, 1L));
 
         assertThat(response.tracks().getFirst().ownerProfileImageUrl()).isEqualTo("https://files.test/owner.png");

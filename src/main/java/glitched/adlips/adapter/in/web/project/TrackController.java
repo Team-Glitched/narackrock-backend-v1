@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Tag(name = "트랙", description = "트랙 API")
 @SecurityRequirement(name = "bearerAuth")
@@ -49,9 +50,11 @@ public class TrackController {
 
     @GetMapping
     public ApiResponse<TrackGetListResponse> getList(
-            @PathVariable Long projectId, @RequestHeader("Authorization") String authorization) {
+            @PathVariable Long projectId, @RequestHeader("Authorization") String authorization,
+            @RequestParam(defaultValue = "STUDIO") TrackGetListRequest.View view,
+            @RequestParam(required = false) Long contributionId) {
         Long userId = authenticatedUserResolver.requireUserId(authorization);
         return ApiResponse.success("트랙 목록 조회가 완료되었습니다.",
-                trackGetListUseCase.execute(new TrackGetListRequest(projectId, userId)));
+                trackGetListUseCase.execute(new TrackGetListRequest(projectId, userId, view, contributionId)));
     }
 }

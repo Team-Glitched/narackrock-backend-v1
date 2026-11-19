@@ -4,6 +4,7 @@ import glitched.adlips.application.notification.NotificationEvents;
 import static glitched.adlips.domain.notification.NotificationType.*;
 
 import glitched.adlips.application.community.port.out.PostPort;
+import glitched.adlips.application.community.port.out.GallerySubscriptionPort;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.community.port.out.GalleryBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
@@ -18,6 +19,7 @@ public class CreatePostUseCase {
     private final NotificationEvents notifications;
 
     private final PostPort port;
+    private final GallerySubscriptionPort subscriptions;
     private final UserBanQueryPort userBanQueryPort;
     private final GalleryBanQueryPort galleryBanQueryPort;
     private final MediaFileRepositoryPort mediaFileRepository;
@@ -26,32 +28,35 @@ public class CreatePostUseCase {
 
     public CreatePostUseCase(
             PostPort port,
+            GallerySubscriptionPort subscriptions,
             UserBanQueryPort userBanQueryPort,
             MediaFileRepositoryPort mediaFileRepository,
             TransactionRunner transactionRunner,
             Clock clock
     ) {
-        this(port, userBanQueryPort, GalleryBanQueryPort.none(), mediaFileRepository, transactionRunner, clock);
+        this(port, subscriptions, userBanQueryPort, GalleryBanQueryPort.none(), mediaFileRepository, transactionRunner, clock);
     }
 
     public CreatePostUseCase(
             PostPort port,
+            GallerySubscriptionPort subscriptions,
             UserBanQueryPort userBanQueryPort,
             GalleryBanQueryPort galleryBanQueryPort,
             MediaFileRepositoryPort mediaFileRepository,
             TransactionRunner transactionRunner,
             Clock clock
     ) {
-        this(port, userBanQueryPort, galleryBanQueryPort, mediaFileRepository, transactionRunner, clock, NotificationEvents.none());
+        this(port, subscriptions, userBanQueryPort, galleryBanQueryPort, mediaFileRepository, transactionRunner, clock, NotificationEvents.none());
     }
 
-    public CreatePostUseCase(PostPort port,
+    public CreatePostUseCase(PostPort port, GallerySubscriptionPort subscriptions,
             UserBanQueryPort userBanQueryPort,
             GalleryBanQueryPort galleryBanQueryPort,
             MediaFileRepositoryPort mediaFileRepository,
             TransactionRunner transactionRunner,
             Clock clock, NotificationEvents notifications) {
         this.port = port;
+        this.subscriptions = subscriptions;
         this.userBanQueryPort = userBanQueryPort;
         this.galleryBanQueryPort = galleryBanQueryPort;
         this.mediaFileRepository = mediaFileRepository;
@@ -63,10 +68,11 @@ public class CreatePostUseCase {
 
     public CreatePostUseCase(
             PostPort port,
+            GallerySubscriptionPort subscriptions,
             MediaFileRepositoryPort mediaFileRepository,
             TransactionRunner transactionRunner
     ) {
-        this(port, (userId, now) -> false, mediaFileRepository, transactionRunner, Clock.systemUTC());
+        this(port, subscriptions, (userId, now) -> false, mediaFileRepository, transactionRunner, Clock.systemUTC());
     }
 
     public PostResult execute(Long galleryId, Long userId, String title, String content, Long imageFileId) {
@@ -83,13 +89,17 @@ public class CreatePostUseCase {
         }
 
         return transactionRunner.required(() -> {
-            if (!port.existsGallery(galleryId)) {
+            if (!subscriptions.lockGallery(galleryId)) {
                 throw new PostApplicationException(
                         PostErrorCode.GALLERY_NOT_FOUND, "존재하지 않는 갤러리에는 게시글을 작성할 수 없습니다.");
             }
             if (galleryBanQueryPort.isRestrictedInGallery(galleryId, userId, LocalDateTime.now(clock))) {
                 throw new PostApplicationException(PostErrorCode.GALLERY_RESTRICTED_USER,
                         "이 갤러리에서 이용이 제한된 상태이므로 게시글을 작성할 수 없습니다.");
+            }
+            if (!subscriptions.isSubscribed(userId, galleryId)) {
+                throw new PostApplicationException(PostErrorCode.NOT_GALLERY_MEMBER,
+                        "커뮤니티에 가입한 후 게시글을 작성할 수 있습니다.");
             }
             validateImage(imageFileId, userId);
             Long postId = port.save(galleryId, userId, title.trim(), content.trim(), imageFileId);

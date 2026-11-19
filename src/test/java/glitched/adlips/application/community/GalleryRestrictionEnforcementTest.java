@@ -50,9 +50,12 @@ class GalleryRestrictionEnforcementTest {
     void 제재된_사용자는_그_갤러리에_게시글을_쓸_수_없다() {
         PostPort postPort = mock(PostPort.class);
         when(postPort.existsGallery(10L)).thenReturn(true);
+        GallerySubscriptionPort subscriptions = mock(GallerySubscriptionPort.class);
+        when(subscriptions.lockGallery(10L)).thenReturn(true);
+        when(subscriptions.isSubscribed(USER, 10L)).thenReturn(true);
         when(galleryBanQueryPort.isRestrictedInGallery(10L, USER, NOW)).thenReturn(true);
         CreatePostUseCase useCase = new CreatePostUseCase(
-                postPort, (userId, now) -> false, galleryBanQueryPort, mock(MediaFileRepositoryPort.class), TX, CLOCK);
+                postPort, subscriptions, (userId, now) -> false, galleryBanQueryPort, mock(MediaFileRepositoryPort.class), TX, CLOCK);
 
         assertThatThrownBy(() -> useCase.execute(10L, USER, "제목", "내용", null))
                 .isInstanceOf(PostApplicationException.class)
@@ -64,8 +67,11 @@ class GalleryRestrictionEnforcementTest {
     void 제재되지_않았으면_게시글을_쓸_수_있다() {
         PostPort postPort = mock(PostPort.class);
         when(postPort.existsGallery(10L)).thenReturn(true);
+        GallerySubscriptionPort subscriptions = mock(GallerySubscriptionPort.class);
+        when(subscriptions.lockGallery(10L)).thenReturn(true);
+        when(subscriptions.isSubscribed(USER, 10L)).thenReturn(true);
         CreatePostUseCase useCase = new CreatePostUseCase(
-                postPort, (userId, now) -> false, galleryBanQueryPort, mock(MediaFileRepositoryPort.class), TX, CLOCK);
+                postPort, subscriptions, (userId, now) -> false, galleryBanQueryPort, mock(MediaFileRepositoryPort.class), TX, CLOCK);
 
         useCase.execute(10L, USER, "제목", "내용", null);
 
@@ -176,6 +182,9 @@ class GalleryRestrictionEnforcementTest {
     void 제재_검사가_없는_기존_생성자는_제재를_무시한다() {
         PostPort postPort = mock(PostPort.class);
         when(postPort.existsGallery(10L)).thenReturn(true);
+        GallerySubscriptionPort subscriptions = mock(GallerySubscriptionPort.class);
+        when(subscriptions.lockGallery(10L)).thenReturn(true);
+        when(subscriptions.isSubscribed(USER, 10L)).thenReturn(true);
         Post post = new Post(Gallery.create("재즈", "설명"), User.create("a@test.com").withId(USER), "제목", "내용");
         when(postPort.findActivePost(5L)).thenReturn(Optional.of(post));
 

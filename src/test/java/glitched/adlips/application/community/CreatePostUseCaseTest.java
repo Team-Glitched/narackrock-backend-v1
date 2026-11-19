@@ -9,6 +9,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import glitched.adlips.application.community.port.out.PostPort;
+import glitched.adlips.application.community.port.out.GallerySubscriptionPort;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
@@ -25,6 +26,7 @@ import org.junit.jupiter.api.Test;
 class CreatePostUseCaseTest {
 
     PostPort port;
+    GallerySubscriptionPort subscriptions;
     TransactionRunner transactionRunner;
     UserBanQueryPort userBanQueryPort;
     MediaFileRepositoryPort mediaFileRepository;
@@ -33,12 +35,15 @@ class CreatePostUseCaseTest {
     @BeforeEach
     void setUp() {
         port = mock(PostPort.class);
+        subscriptions = mock(GallerySubscriptionPort.class);
+        when(subscriptions.lockGallery(10L)).thenReturn(true);
+        when(subscriptions.isSubscribed(1L, 10L)).thenReturn(true);
         transactionRunner = mock(TransactionRunner.class);
         userBanQueryPort = mock(UserBanQueryPort.class);
         mediaFileRepository = mock(MediaFileRepositoryPort.class);
         when(transactionRunner.required(any())).thenAnswer(invocation ->
                 invocation.<Supplier<?>>getArgument(0).get());
-        useCase = new CreatePostUseCase(port, mediaFileRepository, transactionRunner);
+        useCase = new CreatePostUseCase(port, subscriptions, mediaFileRepository, transactionRunner);
     }
 
     @Test
@@ -140,12 +145,37 @@ class CreatePostUseCaseTest {
         Clock clock = Clock.fixed(Instant.parse("2026-08-23T10:00:00Z"), ZoneOffset.UTC);
         when(userBanQueryPort.isBanned(1L, java.time.LocalDateTime.of(2026, 8, 23, 10, 0)))
                 .thenReturn(true);
-        useCase = new CreatePostUseCase(port, userBanQueryPort, mediaFileRepository, transactionRunner, clock);
+        useCase = new CreatePostUseCase(port, subscriptions, userBanQueryPort, mediaFileRepository, transactionRunner, clock);
 
         assertThatThrownBy(() -> useCase.execute(10L, 1L, "제목", "내용"))
                 .isInstanceOf(PostApplicationException.class)
                 .extracting("errorCode")
                 .isEqualTo(PostErrorCode.BANNED_USER_ACCESS);
+        verify(port, never()).save(any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void 미가입자는_게시글을_생성할_수_없다() {
+        when(subscriptions.isSubscribed(1L, 10L)).thenReturn(false);
+
+        assertThatThrownBy(() -> useCase.execute(10L, 1L, "제목", "내용", 100L))
+                .isInstanceOf(PostApplicationException.class)
+                .extracting("errorCode").asString().isEqualTo("NOT_GALLERY_MEMBER");
+
+        verify(port, never()).save(any(), any(), any(), any(), any());
+        org.mockito.Mockito.verifyNoInteractions(mediaFileRepository);
+    }
+
+    @Test
+    void 다른_커뮤니티에만_가입했거나_탈퇴했으면_작성할_수_없다() {
+        when(subscriptions.lockGallery(20L)).thenReturn(true);
+        assertThatThrownBy(() -> useCase.execute(20L, 1L, "제목", "내용", null))
+                .isInstanceOf(PostApplicationException.class)
+                .extracting("errorCode").isEqualTo(PostErrorCode.NOT_GALLERY_MEMBER);
+        when(subscriptions.isSubscribed(1L, 10L)).thenReturn(false);
+        assertThatThrownBy(() -> useCase.execute(10L, 1L, "제목", "내용", null))
+                .isInstanceOf(PostApplicationException.class)
+                .extracting("errorCode").isEqualTo(PostErrorCode.NOT_GALLERY_MEMBER);
         verify(port, never()).save(any(), any(), any(), any(), any());
     }
 

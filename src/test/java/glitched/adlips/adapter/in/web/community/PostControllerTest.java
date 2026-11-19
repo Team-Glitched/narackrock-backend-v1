@@ -101,6 +101,18 @@ class PostControllerTest {
     }
 
     @Test
+    void 미가입자의_게시글_생성은_403을_반환한다() throws Exception {
+        when(createPostUseCase.execute(10L, 1L, "제목", "내용", null)).thenThrow(
+                new PostApplicationException(PostErrorCode.NOT_GALLERY_MEMBER, "커뮤니티에 가입한 후 게시글을 작성할 수 있습니다."));
+        mockMvc.perform(post("/api/v1/galleries/10/posts")
+                        .header("Authorization", "Bearer " + validToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"title\":\"제목\",\"content\":\"내용\"}"))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.errorCode").value("NOT_GALLERY_MEMBER"));
+    }
+
+    @Test
     void 게시글_생성시_인증없는_요청은_401을_반환한다() throws Exception {
         mockMvc.perform(post("/api/v1/galleries/10/posts")
                         .contentType(MediaType.APPLICATION_JSON)

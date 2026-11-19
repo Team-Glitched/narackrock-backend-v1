@@ -14,6 +14,7 @@ import static org.mockito.Mockito.when;
 
 import glitched.adlips.application.community.port.out.GalleryManagementPort;
 import glitched.adlips.application.community.port.out.GalleryProposalPort;
+import glitched.adlips.application.community.port.out.GallerySubscriptionPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.domain.community.GalleryProposal;
@@ -38,6 +39,7 @@ class ApproveGalleryProposalUseCaseTest {
 
     GalleryProposalPort proposalPort;
     GalleryManagementPort managementPort;
+    final GallerySubscriptionPort subscriptions = mock(GallerySubscriptionPort.class);
     UserRepositoryPort userRepository;
     TransactionRunner transactionRunner;
     ApproveGalleryProposalUseCase useCase;
@@ -62,11 +64,11 @@ class ApproveGalleryProposalUseCaseTest {
         lenient().when(userRepository.findById(9L)).thenReturn(Optional.of(admin));
         lenient().when(userRepository.findById(1L)).thenReturn(Optional.of(proposer));
         useCase = new ApproveGalleryProposalUseCase(
-                proposalPort, managementPort, userRepository, transactionRunner, CLOCK);
+                proposalPort, managementPort, subscriptions, userRepository, transactionRunner, CLOCK);
     }
 
     @Test
-    void 승인하면_갤러리를_만들고_요청자를_매니저로_지정한다() {
+    void 승인하면_요청자를_매니저와_가입자로_같은_트랜잭션에_등록한다() {
         GalleryProposal proposal = GalleryProposal.submit(proposer, "재즈", "재즈 이야기");
         when(proposalPort.findByIdForUpdate(50L)).thenReturn(Optional.of(proposal));
         when(managementPort.createGallery("재즈", "재즈 이야기")).thenAnswer(invocation -> {
@@ -78,6 +80,12 @@ class ApproveGalleryProposalUseCaseTest {
             return null;
         }).when(managementPort).addManager(10L, 1L, GalleryRole.MANAGER);
 
+        doAnswer(invocation -> {
+            calls.add("auto-join");
+            return null;
+        })
+                .when(subscriptions).saveSubscription(1L, 10L);
+
         GalleryProposalReviewResult result = useCase.execute(50L, 9L);
 
         assertThat(result.galleryId()).isEqualTo(10L);
@@ -85,7 +93,8 @@ class ApproveGalleryProposalUseCaseTest {
         assertThat(proposal.getStatus()).isEqualTo(GalleryProposalStatus.APPROVED);
         assertThat(proposal.getReviewedAt()).isEqualTo(LocalDateTime.now(CLOCK));
         verify(proposalPort).update(proposal);
-        assertThat(calls).containsExactly("tx-begin", "create-gallery", "add-manager", "tx-end");
+        verify(subscriptions).saveSubscription(1L, 10L);
+        assertThat(calls).containsExactly("tx-begin", "create-gallery", "add-manager", "auto-join", "tx-end");
     }
 
     @Test
@@ -127,6 +136,18 @@ class ApproveGalleryProposalUseCaseTest {
         assertProposalError(() -> useCase.execute(50L, 9L), GalleryProposalErrorCode.GALLERY_NAME_DUPLICATED);
         verify(managementPort, never()).createGallery(anyString(), anyString());
         assertThat(proposal.getStatus()).isEqualTo(GalleryProposalStatus.PENDING);
+    }
+
+    @Test
+    void 자동_가입_실패시_승인_상태를_확정하지_않는다() {
+        GalleryProposal proposal = GalleryProposal.submit(proposer, "재즈", "설명");
+        when(proposalPort.findByIdForUpdate(50L)).thenReturn(Optional.of(proposal));
+        when(managementPort.createGallery("재즈", "설명")).thenReturn(10L);
+        org.mockito.Mockito.doThrow(new IllegalStateException("subscription failed"))
+                .when(subscriptions).saveSubscription(1L, 10L);
+        assertThatThrownBy(() -> useCase.execute(50L, 9L)).isInstanceOf(IllegalStateException.class);
+        assertThat(proposal.getStatus()).isEqualTo(GalleryProposalStatus.PENDING);
+        verify(proposalPort, never()).update(any());
     }
 
     private static void assertProposalError(Runnable action, GalleryProposalErrorCode errorCode) {

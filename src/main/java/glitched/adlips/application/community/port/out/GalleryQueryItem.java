@@ -7,6 +7,10 @@ public record GalleryQueryItem(
         String name,
         String description,
         long subscriberCount,
-        LocalDateTime createdAt
+        LocalDateTime createdAt,
+        Long imageFileId, Long bannerImageFileId, String imageUrl, String bannerImageUrl
 ) {
+    public GalleryQueryItem(Long galleryId, String name, String description, long subscriberCount, LocalDateTime createdAt) {
+        this(galleryId, name, description, subscriberCount, createdAt, null, null, null, null);
+    }
 }

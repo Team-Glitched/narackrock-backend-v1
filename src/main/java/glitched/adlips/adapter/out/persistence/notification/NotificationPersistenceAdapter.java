@@ -34,7 +34,7 @@ public class NotificationPersistenceAdapter implements NotificationStore {
     public List<ServiceNotification> list(
             Long userId, Long cursor, String category, boolean unreadOnly, int size) {
         String where =
-                "n.recipientId=:user"
+                "n.recipientId=:user and n.deletedAt is null"
                         + (cursor == null ? "" : " and n.id<:cursor")
                         + (category == null ? "" : " and n.type in :types")
                         + (unreadOnly ? " and n.readAt is null" : "");
@@ -58,7 +58,7 @@ public class NotificationPersistenceAdapter implements NotificationStore {
     public long unread(Long userId) {
         return em.createQuery(
                         "select count(n) from ServiceNotification n where n.recipientId=:user and"
-                            + " n.readAt is null",
+                            + " n.readAt is null and n.deletedAt is null",
                         Long.class)
                 .setParameter("user", userId)
                 .getSingleResult();
@@ -67,7 +67,7 @@ public class NotificationPersistenceAdapter implements NotificationStore {
     public int markRead(Long userId, Long id, Instant now) {
         return em.createQuery(
                         "update ServiceNotification n set n.readAt=:now where n.recipientId=:user"
-                            + " and n.id=:id and n.readAt is null")
+                            + " and n.id=:id and n.readAt is null and n.deletedAt is null")
                 .setParameter("now", now)
                 .setParameter("user", userId)
                 .setParameter("id", id)
@@ -77,17 +77,29 @@ public class NotificationPersistenceAdapter implements NotificationStore {
     public int markAllRead(Long userId, Long throughId, Instant now) {
         return em.createQuery(
                         "update ServiceNotification n set n.readAt=:now where n.recipientId=:user"
-                            + " and n.id<=:id and n.readAt is null")
+                            + " and n.id<=:id and n.readAt is null and n.deletedAt is null")
                 .setParameter("now", now)
                 .setParameter("user", userId)
                 .setParameter("id", throughId)
                 .executeUpdate();
     }
 
-    public int deleteRead(Long userId) {
+    public int deleteRead(Long userId, Instant now) {
         return em.createQuery(
-                        "delete from ServiceNotification n where n.recipientId=:user and n.readAt is not null")
+                        "update ServiceNotification n set n.deletedAt=:now where n.recipientId=:user"
+                            + " and n.readAt is not null and n.deletedAt is null")
+                .setParameter("now", now)
                 .setParameter("user", userId)
+                .executeUpdate();
+    }
+
+    public int deleteOne(Long userId, Long id, Instant now) {
+        return em.createQuery(
+                        "update ServiceNotification n set n.deletedAt=:now where n.recipientId=:user"
+                            + " and n.id=:id and n.deletedAt is null")
+                .setParameter("now", now)
+                .setParameter("user", userId)
+                .setParameter("id", id)
                 .executeUpdate();
     }
 

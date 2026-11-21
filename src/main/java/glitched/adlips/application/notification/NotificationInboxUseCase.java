@@ -142,7 +142,17 @@ public class NotificationInboxUseCase {
     public void deleteRead(Long user) {
         transactions.required(
                 () -> {
-                    store.deleteRead(user);
+                    store.deleteRead(user, clock.instant());
+                    delivery.changed(user);
+                    return null;
+                });
+    }
+
+    public void delete(Long user, Long id) {
+        if (id == null || id < 1) throw invalid();
+        transactions.required(
+                () -> {
+                    store.deleteOne(user, id, clock.instant());
                     delivery.changed(user);
                     return null;
                 });

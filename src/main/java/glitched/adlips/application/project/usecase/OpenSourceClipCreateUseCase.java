@@ -65,7 +65,7 @@ public class OpenSourceClipCreateUseCase {
     private AudioClipCreateResponse executeInternal(OpenSourceClipCreateRequest request) {
         if (request == null || request.projectId() == null || request.trackId() == null
                 || request.userId() == null || request.openSourceId() == null || request.openSourceId() <= 0) {
-            throw error(ProjectErrorCode.VALIDATION_ERROR, "오픈소스 ID가 올바르지 않습니다.");
+            throw error(ProjectErrorCode.VALIDATION_ERROR, "샘플 ID가 올바르지 않습니다.");
         }
         var project = projects.findByIdAndDeletedAtIsNullForUpdate(request.projectId())
                 .orElseThrow(() -> error(ProjectErrorCode.PROJECT_NOT_FOUND, "존재하지 않는 프로젝트입니다."));
@@ -73,7 +73,7 @@ public class OpenSourceClipCreateUseCase {
                 .filter(member -> member.getRole() != ProjectMemberRole.VIEWER)
                 .orElseThrow(() -> error(ProjectErrorCode.PROJECT_ACCESS_DENIED, "해당 프로젝트에 접근할 권한이 없습니다."));
         if (project.getStatus() == ProjectStatus.COMPLETED) {
-            throw error(ProjectErrorCode.PROJECT_ACCESS_DENIED, "완료된 곡에는 오픈소스를 추가할 수 없습니다.");
+            throw error(ProjectErrorCode.PROJECT_ACCESS_DENIED, "완료된 곡에는 샘플을 추가할 수 없습니다.");
         }
         var track = tracks.findTrackByIdAndIsDeletedFalse(request.trackId())
                 .orElseThrow(() -> error(ProjectErrorCode.TRACK_NOT_FOUND, "존재하지 않는 트랙입니다."));
@@ -81,14 +81,14 @@ public class OpenSourceClipCreateUseCase {
             throw error(ProjectErrorCode.TRACK_NOT_IN_PROJECT, "해당 프로젝트에 속한 트랙이 아닙니다.");
         }
         if (!request.userId().equals(track.getOwner().getId())) {
-            throw error(ProjectErrorCode.TRACK_EDIT_DENIED, "본인의 레이어에만 오픈소스를 추가할 수 있습니다.");
+            throw error(ProjectErrorCode.TRACK_EDIT_DENIED, "본인의 레이어에만 샘플을 추가할 수 있습니다.");
         }
         if (InstrumentFamily.of(track.getInstrument()) == null) {
             throw error(ProjectErrorCode.TRACK_INSTRUMENT_NOT_SET, "오디오를 저장하기 전에 악기나 보컬 역할을 선택해 주세요.");
         }
         validateRange(request.startTick(), request.durationTick(), project.getMaxTick());
         var source = openSources.findAvailable(request.openSourceId())
-                .orElseThrow(() -> error(ProjectErrorCode.OPEN_SOURCE_NOT_FOUND, "존재하지 않거나 접근할 수 없는 오픈소스입니다."));
+                .orElseThrow(() -> error(ProjectErrorCode.OPEN_SOURCE_NOT_FOUND, "존재하지 않거나 접근할 수 없는 샘플입니다."));
         var media = mediaFiles.findById(source.mediaFileId())
                 .filter(file -> file.getOwnerId().equals(source.ownerId())
                         && file.getFileType() == MediaFileType.AUDIO

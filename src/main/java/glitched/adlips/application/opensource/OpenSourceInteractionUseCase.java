@@ -102,7 +102,7 @@ public class OpenSourceInteractionUseCase {
     }
     private CommentRef findComment(Long id) { return port.findComment(id).orElseThrow(this::commentMissing); }
     private void available(Long id) {
-        if(!port.lockAvailableSource(id)) throw new OpenSourceException(OPEN_SOURCE_NOT_FOUND,"존재하지 않거나 접근할 수 없는 오픈소스입니다.");
+        if(!port.lockAvailableSource(id)) throw new OpenSourceException(OPEN_SOURCE_NOT_FOUND,"존재하지 않거나 접근할 수 없는 샘플입니다.");
     }
     private void writeAllowed(Long userId) {
         validId(userId);

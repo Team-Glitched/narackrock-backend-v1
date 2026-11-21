@@ -62,6 +62,8 @@ class OpenSourceQueryIntegrationTest {
         assertThat(last.at("/items/0/canPreview").asBoolean()).isTrue();
         assertThat(last.at("/items/0/writer/nickname").asText()).isEqualTo("작곡가");
         assertThat(get("/api/v1/open-sources?page=2&size=2",96002L).body().at("/data/items").size()).isZero();
+        assertThat(get("/api/v1/sources/96201", 96002L).body().at("/data/openSourceId").asLong()).isEqualTo(96201L);
+        assertThat(ids(get("/api/v1/sources?size=2&page=0", 96002L).body().at("/data/items"))).containsExactly(96203L, 96202L);
     }
     @Test void popularSourcesUseTheSongScoreAndKeepVisibilityAndViewerState() throws Exception {
         jdbc.update("INSERT INTO open_source_reactions(user_id,target_type,target_id,reaction_type,created_at) "

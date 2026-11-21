@@ -59,7 +59,7 @@ public class PostController {
         this.authenticatedUserResolver = authenticatedUserResolver;
     }
 
-    @PostMapping("/galleries/{galleryId}/posts")
+    @PostMapping({"/communities/{galleryId}/posts", "/galleries/{galleryId}/posts"})
     public ResponseEntity<ApiResponse<PostCreateResponse>> create(
             @PathVariable Long galleryId,
             @RequestHeader("Authorization") String authorization,
@@ -72,7 +72,7 @@ public class PostController {
                 .body(ApiResponse.success("게시글이 성공적으로 등록되었습니다.", PostCreateResponse.from(result)));
     }
 
-    @GetMapping("/galleries/{galleryId}/posts")
+    @GetMapping({"/communities/{galleryId}/posts", "/galleries/{galleryId}/posts"})
     public ResponseEntity<ApiResponse<PostListResponse>> getPosts(
             @PathVariable Long galleryId,
             @RequestParam(defaultValue = "0") int page,

@@ -26,7 +26,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 @Tag(name = "갤러리", description = "갤러리 API")
 @RestController
-@RequestMapping("/api/v1/galleries")
+@RequestMapping({"/api/v1/communities", "/api/v1/galleries"})
 public class GalleryController {
 
     private final GetGalleriesUseCase getGalleriesUseCase;

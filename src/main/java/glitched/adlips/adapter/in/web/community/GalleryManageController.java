@@ -44,7 +44,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "갤러리 관리", description = "갤러리 매니저·관리자용 갤러리 관리 API")
 @SecurityRequirement(name = "bearerAuth")
 @RestController
-@RequestMapping("/api/v1/galleries/{galleryId}/manage")
+@RequestMapping({"/api/v1/communities/{galleryId}/manage", "/api/v1/galleries/{galleryId}/manage"})
 public class GalleryManageController {
 
     private final GetMyGalleryRoleUseCase getMyGalleryRoleUseCase;

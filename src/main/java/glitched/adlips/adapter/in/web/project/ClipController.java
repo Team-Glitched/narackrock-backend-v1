@@ -55,7 +55,7 @@ public class ClipController {
                 .body(ApiResponse.success("오디오 클립이 생성되었습니다.", response));
     }
 
-    @PostMapping("/open-source")
+    @PostMapping({"/source", "/open-source"})
     public ResponseEntity<ApiResponse<AudioClipCreateResponse>> createFromOpenSource(
             @PathVariable Long projectId,
             @PathVariable Long trackId,
@@ -65,7 +65,7 @@ public class ClipController {
                 projectId, trackId, userResolver.requireUserId(authorization), request.openSourceId(),
                 request.startTick(), request.durationTick()));
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("오픈소스를 레이어에 추가했습니다.", response));
+                .body(ApiResponse.success("샘플을 레이어에 추가했습니다.", response));
     }
 
     @PostMapping("/midi")

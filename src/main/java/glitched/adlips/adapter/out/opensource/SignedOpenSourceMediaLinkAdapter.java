@@ -23,7 +23,7 @@ public class SignedOpenSourceMediaLinkAdapter implements OpenSourceMediaLinkPort
     }
     @Override public PlaybackLink playback(Long sourceId, Long mediaId) {
         long expires = clock.instant().getEpochSecond() + ttl;
-        String url = apiBaseUrl + "/api/v1/open-sources/" + sourceId + "/audio?mediaId=" + mediaId
+        String url = apiBaseUrl + "/api/v1/sources/" + sourceId + "/audio?mediaId=" + mediaId
                 + "&expires=" + expires + "&signature=" + sign(sourceId, mediaId, expires);
         return new PlaybackLink(url, java.time.Instant.ofEpochSecond(expires));
     }

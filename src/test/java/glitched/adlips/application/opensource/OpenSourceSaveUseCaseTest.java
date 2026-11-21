@@ -22,7 +22,7 @@ class OpenSourceSaveUseCaseTest {
     }
     @Test void unavailableSourceCannotBeSaved() {
         assertThatThrownBy(() -> useCase.save(1L, 10L))
-            .isInstanceOf(OpenSourceException.class).hasMessageContaining("오픈소스");
+            .isInstanceOf(OpenSourceException.class).hasMessageContaining("샘플");
         verify(port, never()).insertSave(anyLong(), anyLong());
     }
     @Test void removalDoesNotRequireAvailableSource() {

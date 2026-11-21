@@ -5,7 +5,7 @@ import java.time.Instant;
 
 @Entity
 @Table(name="open_source_comments", indexes=@Index(name="idx_os_comments_source_parent_time",columnList="open_source_id,parent_comment_id,created_at,id"))
-class OpenSourceCommentEntity {
+public class OpenSourceCommentEntity {
     @Id @GeneratedValue(strategy=GenerationType.IDENTITY) Long id;
     @Column(name="open_source_id",nullable=false) Long openSourceId;
     @Column(name="user_id",nullable=false) Long userId;

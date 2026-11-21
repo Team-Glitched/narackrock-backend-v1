@@ -3,7 +3,9 @@ package glitched.adlips.adapter.out.persistence.report;
 import glitched.adlips.application.report.port.out.ReportContentModerationPort;
 import glitched.adlips.domain.report.ReportTargetType;
 import jakarta.persistence.EntityManager;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import org.springframework.stereotype.Repository;
@@ -19,13 +21,15 @@ public class ReportContentModerationPersistenceAdapter implements ReportContentM
 
     @Override
     public Optional<Long> findOwnerId(ReportTargetType targetType, Long targetId) {
-        String entity = switch (targetType) {
-            case POST -> "Post";
-            case POST_COMMENT -> "PostComment";
-            case SHORT -> "ShortForm";
-            case SHORT_COMMENT -> "ShortComment";
+        String query = switch (targetType) {
+            case POST -> "SELECT t.user.id FROM Post t WHERE t.id = :id";
+            case POST_COMMENT -> "SELECT t.user.id FROM PostComment t WHERE t.id = :id";
+            case SHORT -> "SELECT t.user.id FROM ShortForm t WHERE t.id = :id";
+            case SHORT_COMMENT -> "SELECT t.user.id FROM ShortComment t WHERE t.id = :id";
+            case OPEN_SOURCE -> "SELECT t.ownerId FROM OpenSourceEntity t WHERE t.id = :id";
+            case OPEN_SOURCE_COMMENT -> "SELECT t.userId FROM OpenSourceCommentEntity t WHERE t.id = :id";
         };
-        return entityManager.createQuery("SELECT t.user.id FROM " + entity + " t WHERE t.id = :id", Long.class)
+        return entityManager.createQuery(query, Long.class)
                 .setParameter("id", targetId)
                 .getResultStream()
                 .findFirst();
@@ -37,8 +41,30 @@ public class ReportContentModerationPersistenceAdapter implements ReportContentM
             case POST -> softDelete("Post", targetId, now);
             case POST_COMMENT -> deletePostComment(targetId, now);
             case SHORT_COMMENT -> deleteShortComment(targetId, now);
+            case OPEN_SOURCE -> deleteOpenSource(targetId, now);
+            case OPEN_SOURCE_COMMENT -> deleteOpenSourceComment(targetId, now);
             case SHORT -> throw new UnsupportedOperationException("숏폼 삭제는 지원하지 않습니다.");
         }
+    }
+
+    private void deleteOpenSource(Long openSourceId, LocalDateTime now) {
+        Instant deletedAt = now.toInstant(ZoneOffset.UTC);
+        entityManager.createQuery(
+                        "UPDATE OpenSourceEntity t SET t.deletedAt = :now, t.updatedAt = :now"
+                                + " WHERE t.id = :id AND t.deletedAt IS NULL")
+                .setParameter("now", deletedAt)
+                .setParameter("id", openSourceId)
+                .executeUpdate();
+    }
+
+    private void deleteOpenSourceComment(Long commentId, LocalDateTime now) {
+        Instant deletedAt = now.toInstant(ZoneOffset.UTC);
+        entityManager.createQuery(
+                        "UPDATE OpenSourceCommentEntity c SET c.deletedAt = :now"
+                                + " WHERE (c.id = :id OR c.parentCommentId = :id) AND c.deletedAt IS NULL")
+                .setParameter("now", deletedAt)
+                .setParameter("id", commentId)
+                .executeUpdate();
     }
 
     /** DeletePostCommentUseCase와 같은 규칙: 최상위 댓글은 답글까지 지우고, 답글은 부모 답글 수를 줄인다. */

@@ -24,10 +24,9 @@ public class OpenSourceQueryController {
             long likeCount, long dislikeCount, long commentCount, Instant createdAt) {
         static Summary from(OpenSourceQueryPort.Item item) {
             var writer = item.writer();
-            // Usage is unavailable until project insertion can be tracked.
             return new Summary(item.openSourceId(), item.title(), item.description(), item.thumbnailUrl(),
                     new Writer(writer.userId(), writer.nickname(), writer.profileImageUrl()),
-                    null, item.canPreview(), item.isSaved(), item.isLiked(), item.isDisliked(), item.likeCount(), item.dislikeCount(), item.commentCount(), item.createdAt());
+                    item.usageCount(), item.canPreview(), item.isSaved(), item.isLiked(), item.isDisliked(), item.likeCount(), item.dislikeCount(), item.commentCount(), item.createdAt());
         }
     }
     @JsonInclude(JsonInclude.Include.ALWAYS)

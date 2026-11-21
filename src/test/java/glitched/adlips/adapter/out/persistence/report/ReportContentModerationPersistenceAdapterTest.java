@@ -48,6 +48,16 @@ class ReportContentModerationPersistenceAdapterTest {
                 """);
         insertShortComment(80, 1, null, 1);
         insertShortComment(81, 3, 80L, 0);
+        jdbcTemplate.update("""
+                INSERT INTO open_sources (
+                    id, owner_id, title, description, media_file_id, is_public, created_at, updated_at
+                ) VALUES (30, 2, '샘플', '설명', 900, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """);
+        jdbcTemplate.update("""
+                INSERT INTO open_source_comments (id, open_source_id, user_id, parent_comment_id, content, created_at)
+                VALUES (90, 30, 1, NULL, '샘플 댓글', CURRENT_TIMESTAMP),
+                       (91, 30, 3, 90, '샘플 대댓글', CURRENT_TIMESTAMP)
+                """);
         entityManager.clear();
     }
 
@@ -57,6 +67,8 @@ class ReportContentModerationPersistenceAdapterTest {
         assertThat(adapter.findOwnerId(ReportTargetType.POST_COMMENT, 71L)).contains(3L);
         assertThat(adapter.findOwnerId(ReportTargetType.SHORT, 12L)).contains(2L);
         assertThat(adapter.findOwnerId(ReportTargetType.SHORT_COMMENT, 80L)).contains(1L);
+        assertThat(adapter.findOwnerId(ReportTargetType.OPEN_SOURCE, 30L)).contains(2L);
+        assertThat(adapter.findOwnerId(ReportTargetType.OPEN_SOURCE_COMMENT, 91L)).contains(3L);
         assertThat(adapter.findOwnerId(ReportTargetType.POST, 999L)).isEmpty();
     }
 
@@ -121,6 +133,21 @@ class ReportContentModerationPersistenceAdapterTest {
         assertThat(deletedAt("post_comments", 71)).isEqualTo(NOW.minusDays(1));
         assertThat(intColumn("SELECT reply_count FROM post_comments WHERE id = 70")).isEqualTo(2);
         assertThat(intColumn("SELECT comment_count FROM posts WHERE id = 50")).isEqualTo(3);
+    }
+
+    @Test
+    void 샘플과_샘플_댓글을_소프트_삭제한다() {
+        adapter.deleteContent(ReportTargetType.OPEN_SOURCE_COMMENT, 90L, NOW);
+        adapter.deleteContent(ReportTargetType.OPEN_SOURCE, 30L, NOW);
+        entityManager.clear();
+
+        var expectedInstant = NOW.toInstant(java.time.ZoneOffset.UTC);
+        assertThat(jdbcTemplate.queryForObject("SELECT deleted_at FROM open_source_comments WHERE id = 90", java.sql.Timestamp.class).toInstant())
+                .isEqualTo(expectedInstant);
+        assertThat(jdbcTemplate.queryForObject("SELECT deleted_at FROM open_source_comments WHERE id = 91", java.sql.Timestamp.class).toInstant())
+                .isEqualTo(expectedInstant);
+        assertThat(jdbcTemplate.queryForObject("SELECT deleted_at FROM open_sources WHERE id = 30", java.sql.Timestamp.class).toInstant())
+                .isEqualTo(expectedInstant);
     }
 
     private void insertPostComment(long id, long userId, Long parentId, int replyCount) {

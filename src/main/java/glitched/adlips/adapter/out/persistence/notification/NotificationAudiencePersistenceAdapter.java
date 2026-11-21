@@ -474,18 +474,20 @@ public class NotificationAudiencePersistenceAdapter implements NotificationAudie
                 recipients =
                         users("select id from users where role='ADMIN' and deleted_at is null");
             else if (type == USER_WARNED || type == CONTENT_MODERATED) {
-                String table =
+                String ownerQuery =
                         switch (text(p[1])) {
-                            case "POST" -> "posts";
-                            case "POST_COMMENT" -> "post_comments";
-                            case "SHORT" -> "shorts";
-                            case "SHORT_COMMENT" -> "shorts_comments";
+                            case "POST" -> "select user_id from posts where id=:p0";
+                            case "POST_COMMENT" -> "select user_id from post_comments where id=:p0";
+                            case "SHORT" -> "select user_id from shorts where id=:p0";
+                            case "SHORT_COMMENT" -> "select user_id from shorts_comments where id=:p0";
+                            case "OPEN_SOURCE" -> "select owner_id from open_sources where id=:p0";
+                            case "OPEN_SOURCE_COMMENT" -> "select user_id from open_source_comments where id=:p0";
                             default -> null;
                         };
                 recipients =
-                        table == null
+                        ownerQuery == null
                                 ? List.of()
-                                : users("select user_id from " + table + " where id=:p0", id(p[2]));
+                                : users(ownerQuery, id(p[2]));
             } else recipients = List.of(id(p[0]));
             String body =
                     type == REPORT_CREATED

@@ -195,7 +195,7 @@ public class NotificationAudiencePersistenceAdapter implements NotificationAudie
                                     + " t.approval_status='APPROVED'",
                                 project),
                         type,
-                        "회원님의 오픈소스를 사용한 ‘" + text(s[2]) + "’ 곡이 공개되었습니다.",
+                        "회원님의 샘플을 사용한 ‘" + text(s[2]) + "’ 곡이 공개되었습니다.",
                         "/abyss/" + target,
                         "SHORT",
                         target,
@@ -431,7 +431,7 @@ public class NotificationAudiencePersistenceAdapter implements NotificationAudie
             return to(
                     users("select follower_id from follows where following_id=:p0", id(p[0])),
                     type,
-                    "팔로우한 사용자가 ‘" + text(p[1]) + "’ 오픈소스를 공개했습니다.",
+                    "팔로우한 사용자가 ‘" + text(p[1]) + "’ 샘플을 공개했습니다.",
                     "/sources/" + target,
                     "SOURCE",
                     target,
@@ -451,7 +451,7 @@ public class NotificationAudiencePersistenceAdapter implements NotificationAudie
             return to(
                     List.of(id(p[0])),
                     type,
-                    who + "님이 ‘" + text(p[2]) + "’ 오픈소스를 작곡에 사용했습니다.",
+                    who + "님이 ‘" + text(p[2]) + "’ 샘플을 작곡에 사용했습니다.",
                     "/sources/" + p[1],
                     "SOURCE",
                     id(p[1]),

@@ -14,7 +14,7 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@Tag(name = "오픈소스 재생·공유")
+@Tag(name = "샘플 재생·공유")
 public class OpenSourceMediaController {
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public record Playback(Long openSourceId, String audioUrl, String mimeType, Long durationMs, Instant expiresAt) {}
@@ -23,19 +23,19 @@ public class OpenSourceMediaController {
     public OpenSourceMediaController(OpenSourceMediaUseCase useCase, AuthenticatedUserResolver users) {
         this.useCase = useCase; this.users = users;
     }
-    @GetMapping("/api/v1/open-sources/{id}/playback")
+    @GetMapping({"/api/v1/sources/{id}/playback", "/api/v1/open-sources/{id}/playback"})
     @SecurityRequirement(name = "bearerAuth")
     public ResponseEntity<ApiResponse<Playback>> playback(@PathVariable Long id, @RequestHeader("Authorization") String authorization) {
         var result = useCase.playback(users.requireUserId(authorization), id);
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(ApiResponse.success("오픈소스 재생 정보를 조회했습니다.",
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(ApiResponse.success("샘플 재생 정보를 조회했습니다.",
                 new Playback(id,result.audioUrl(),result.mimeType(),result.durationMs(),result.expiresAt())));
     }
-    @GetMapping("/api/v1/open-sources/{id}/share")
+    @GetMapping({"/api/v1/sources/{id}/share", "/api/v1/open-sources/{id}/share"})
     @SecurityRequirement(name = "bearerAuth")
     public ApiResponse<OpenSourceMediaUseCase.Share> share(@PathVariable Long id, @RequestHeader("Authorization") String authorization) {
-        return ApiResponse.success("오픈소스 공유 링크를 조회했습니다.",useCase.share(users.requireUserId(authorization),id));
+        return ApiResponse.success("샘플 공유 링크를 조회했습니다.",useCase.share(users.requireUserId(authorization),id));
     }
-    @GetMapping("/api/v1/open-sources/{id}/audio")
+    @GetMapping({"/api/v1/sources/{id}/audio", "/api/v1/open-sources/{id}/audio"})
     @Operation(summary = "서명된 재생 URL로 음원 요청", description = "로그인 후 발급한 유효한 서명이 필요합니다. Range 요청 지원")
     public ResponseEntity<Resource> audio(@PathVariable Long id, @RequestParam Long mediaId,
             @RequestParam long expires, @RequestParam String signature) {

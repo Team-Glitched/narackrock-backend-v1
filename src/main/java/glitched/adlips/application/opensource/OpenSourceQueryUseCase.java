@@ -30,7 +30,7 @@ public class OpenSourceQueryUseCase {
         validId(id);
         return transactions.readOnly(() -> query.detail(userId, id).orElseThrow(() ->
                 new OpenSourceException(OpenSourceException.Code.OPEN_SOURCE_NOT_FOUND,
-                        "존재하지 않거나 접근할 수 없는 오픈소스입니다.")));
+                        "존재하지 않거나 접근할 수 없는 샘플입니다.")));
     }
     public Page<OpenSourceQueryPort.SavedItem> saved(Long userId, int page, int size) {
         int offset = offset(userId, page, size);

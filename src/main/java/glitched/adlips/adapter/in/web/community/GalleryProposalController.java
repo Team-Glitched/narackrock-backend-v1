@@ -23,7 +23,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "갤러리 개설 요청", description = "갤러리 개설 요청 API")
 @SecurityRequirement(name = "bearerAuth")
 @RestController
-@RequestMapping("/api/v1/gallery-proposals")
+@RequestMapping({"/api/v1/community-proposals", "/api/v1/gallery-proposals"})
 public class GalleryProposalController {
 
     private final SubmitGalleryProposalUseCase submitGalleryProposalUseCase;

@@ -58,7 +58,7 @@ public class OpenSourceMediaUseCase {
     }
     private OpenSourceMediaPort.Source source(Long id) {
         return sources.findAvailable(id).orElseThrow(() ->
-                new OpenSourceException(OPEN_SOURCE_NOT_FOUND, "존재하지 않거나 접근할 수 없는 오픈소스입니다."));
+                new OpenSourceException(OPEN_SOURCE_NOT_FOUND, "존재하지 않거나 접근할 수 없는 샘플입니다."));
     }
     private MediaFile audio(Long id) {
         var source = source(id);

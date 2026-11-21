@@ -91,4 +91,43 @@ class ReportSubmissionPersistenceAdapterTest {
         assertThat(adapter.isBanned(1L, LocalDateTime.of(2026, 9, 21, 3, 0))).isTrue();
         assertThat(adapter.isBanned(1L, LocalDateTime.of(2026, 9, 23, 3, 0))).isFalse();
     }
+
+    @Test
+    void 공개_샘플과_댓글만_신고_대상으로_조회한다() {
+        jdbcTemplate.update("""
+                INSERT INTO media_files (id, owner_id, file_url, file_type, status, created_at)
+                VALUES (501, 2, 'http://cdn.test/sample.wav', 'AUDIO', 'READY', CURRENT_TIMESTAMP)
+                """);
+        jdbcTemplate.update("""
+                INSERT INTO open_sources (
+                    id, owner_id, title, description, media_file_id, is_public, created_at, updated_at, deleted_at
+                ) VALUES
+                    (60, 2, 'public sample', 'desc', 501, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+                    (61, 2, 'private sample', 'desc', 501, false, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+                    (62, 2, 'deleted sample', 'desc', 501, true, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+                """);
+        jdbcTemplate.update("""
+                INSERT INTO open_source_comments (
+                    id, open_source_id, user_id, parent_comment_id, content, deleted_at, created_at
+                ) VALUES
+                    (70, 60, 2, NULL, 'active root', NULL, CURRENT_TIMESTAMP),
+                    (71, 60, 2, 70, 'active reply', NULL, CURRENT_TIMESTAMP),
+                    (72, 61, 2, NULL, 'private source comment', NULL, CURRENT_TIMESTAMP),
+                    (73, 60, 2, NULL, 'deleted root', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+                    (74, 60, 2, 73, 'orphaned reply', NULL, CURRENT_TIMESTAMP)
+                """);
+        entityManager.clear();
+
+        assertThat(adapter.findActiveTarget(ReportTargetType.OPEN_SOURCE, 60L))
+                .contains(new ReportTarget(2L));
+        assertThat(adapter.findActiveTarget(ReportTargetType.OPEN_SOURCE, 61L)).isEmpty();
+        assertThat(adapter.findActiveTarget(ReportTargetType.OPEN_SOURCE, 62L)).isEmpty();
+        assertThat(adapter.findActiveTarget(ReportTargetType.OPEN_SOURCE_COMMENT, 70L))
+                .contains(new ReportTarget(2L));
+        assertThat(adapter.findActiveTarget(ReportTargetType.OPEN_SOURCE_COMMENT, 71L))
+                .contains(new ReportTarget(2L));
+        assertThat(adapter.findActiveTarget(ReportTargetType.OPEN_SOURCE_COMMENT, 72L)).isEmpty();
+        assertThat(adapter.findActiveTarget(ReportTargetType.OPEN_SOURCE_COMMENT, 73L)).isEmpty();
+        assertThat(adapter.findActiveTarget(ReportTargetType.OPEN_SOURCE_COMMENT, 74L)).isEmpty();
+    }
 }

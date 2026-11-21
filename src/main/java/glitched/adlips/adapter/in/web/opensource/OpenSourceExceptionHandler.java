@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
-@RestControllerAdvice(assignableTypes = {OpenSourceSaveController.class, OpenSourcePublicationController.class, OpenSourceQueryController.class, OpenSourceInteractionController.class, OpenSourceMediaController.class})
+@RestControllerAdvice(assignableTypes = {OpenSourceSaveController.class, OpenSourcePublicationController.class, OpenSourceQueryController.class, OpenSourceInteractionController.class, OpenSourceCommentController.class, OpenSourceMediaController.class})
 public class OpenSourceExceptionHandler {
     @ExceptionHandler(OpenSourceException.class)
     public ResponseEntity<ApiResponse<Void>> handle(OpenSourceException exception) {

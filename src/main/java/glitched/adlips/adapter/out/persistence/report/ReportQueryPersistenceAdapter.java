@@ -101,6 +101,8 @@ public class ReportQueryPersistenceAdapter implements ReportQueryPort {
             case POST_COMMENT -> postComment(targetId);
             case SHORT -> shortForm(targetId);
             case SHORT_COMMENT -> shortComment(targetId);
+            case OPEN_SOURCE -> openSource(targetId);
+            case OPEN_SOURCE_COMMENT -> openSourceComment(targetId);
         };
     }
 
@@ -130,7 +132,7 @@ public class ReportQueryPersistenceAdapter implements ReportQueryPort {
                 """, targetId).map(row -> new TargetSnapshot(
                 longValue(row[0]), stringValue(row[1]),
                 stringValue(row[3]), dateTimeValue(row[4]),
-                "/posts/" + longValue(row[2]) + "#comment-" + targetId,
+                "/posts/" + longValue(row[2]) + "?commentId=" + targetId,
                 false));
     }
 
@@ -145,7 +147,7 @@ public class ReportQueryPersistenceAdapter implements ReportQueryPort {
                 """, targetId).map(row -> new TargetSnapshot(
                 longValue(row[0]), stringValue(row[1]),
                 stringValue(row[2]), dateTimeValue(row[3]),
-                "/shorts/" + targetId, false));
+                "/abyss/" + targetId, false));
     }
 
     private Optional<TargetSnapshot> shortComment(Long targetId) {
@@ -160,7 +162,38 @@ public class ReportQueryPersistenceAdapter implements ReportQueryPort {
                 """, targetId).map(row -> new TargetSnapshot(
                 longValue(row[0]), stringValue(row[1]),
                 stringValue(row[3]), dateTimeValue(row[4]),
-                "/shorts/" + longValue(row[2]) + "#comment-" + targetId,
+                "/abyss/" + longValue(row[2]) + "?commentId=" + targetId,
+                false));
+    }
+
+    private Optional<TargetSnapshot> openSource(Long targetId) {
+        return first("""
+                select source.ownerId,
+                       (select profile.nickname from Profile profile where profile.userId = source.ownerId),
+                       source.title,
+                       source.deletedAt
+                  from OpenSourceEntity source
+                 where source.id = :targetId
+                   and source.ownerId is not null
+                """, targetId).map(row -> new TargetSnapshot(
+                longValue(row[0]), stringValue(row[1]),
+                stringValue(row[2]), dateTimeValue(row[3]),
+                "/sources/" + targetId, false));
+    }
+
+    private Optional<TargetSnapshot> openSourceComment(Long targetId) {
+        return first("""
+                select comment.userId,
+                       (select profile.nickname from Profile profile where profile.userId = comment.userId),
+                       comment.openSourceId,
+                       comment.content,
+                       comment.deletedAt
+                  from OpenSourceCommentEntity comment
+                 where comment.id = :targetId
+                """, targetId).map(row -> new TargetSnapshot(
+                longValue(row[0]), stringValue(row[1]),
+                stringValue(row[3]), dateTimeValue(row[4]),
+                "/sources/" + longValue(row[2]) + "/comments?commentId=" + targetId,
                 false));
     }
 
@@ -178,8 +211,9 @@ public class ReportQueryPersistenceAdapter implements ReportQueryPort {
         if (target.deleted()) {
             return switch (targetType) {
                 case POST -> "삭제된 게시글입니다.";
-                case POST_COMMENT, SHORT_COMMENT -> "삭제된 댓글입니다.";
+                case POST_COMMENT, SHORT_COMMENT, OPEN_SOURCE_COMMENT -> "삭제된 댓글입니다.";
                 case SHORT -> "삭제된 숏폼입니다.";
+                case OPEN_SOURCE -> "삭제된 샘플입니다.";
             };
         }
         if (target.content() == null || target.content().length() <= SUMMARY_MAX_LENGTH) {
@@ -192,8 +226,10 @@ public class ReportQueryPersistenceAdapter implements ReportQueryPort {
         return switch (targetType) {
             case POST -> "/posts/" + targetId;
             case POST_COMMENT -> "/posts/comments/" + targetId;
-            case SHORT -> "/shorts/" + targetId;
-            case SHORT_COMMENT -> "/shorts/comments/" + targetId;
+            case SHORT -> "/abyss/" + targetId;
+            case SHORT_COMMENT -> "/abyss/comments/" + targetId;
+            case OPEN_SOURCE -> "/sources/" + targetId;
+            case OPEN_SOURCE_COMMENT -> "/sources/comments/" + targetId;
         };
     }
 
@@ -206,7 +242,13 @@ public class ReportQueryPersistenceAdapter implements ReportQueryPort {
     }
 
     private LocalDateTime dateTimeValue(Object value) {
-        return value == null ? null : (LocalDateTime) value;
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof java.time.Instant instant) {
+            return LocalDateTime.ofInstant(instant, java.time.ZoneOffset.UTC);
+        }
+        return (LocalDateTime) value;
     }
 
     private record TargetSnapshot(

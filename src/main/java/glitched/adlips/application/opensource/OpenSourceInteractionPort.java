@@ -9,6 +9,7 @@ public interface OpenSourceInteractionPort {
     enum Target { SOURCE, COMMENT }
     record ReactionState(boolean isLiked, boolean isDisliked, long likeCount, long dislikeCount) {}
     record CommentRef(Long id, Long openSourceId, Long parentCommentId) {}
+    record OwnedCommentRef(Long id, Long openSourceId, Long parentCommentId, Long userId) {}
     record Comment(Long commentId, Long parentCommentId, OpenSourceQueryPort.Writer writer, String content,
                    long replyCount, boolean isLiked, boolean isDisliked, long likeCount, long dislikeCount, Instant createdAt) {}
     boolean lockAvailableSource(Long sourceId);
@@ -17,7 +18,10 @@ public interface OpenSourceInteractionPort {
     void setReaction(Long userId, Target target, Long targetId, ReactionType reaction, Instant now);
     ReactionState reactions(Long userId, Target target, Long targetId);
     Optional<CommentRef> findComment(Long id);
+    Optional<OwnedCommentRef> findOwnedComment(Long id);
     Long insertComment(Long sourceId, Long userId, Long parentId, String content, Instant now);
+    void updateComment(Long id, String content);
+    void deleteComment(Long id, Instant now);
     Comment comment(Long id, Long viewerId);
     List<Comment> comments(Long sourceId, Long parentId, Long viewerId, int offset, int limit);
     boolean isCommentHidden(Long userId, Long commentId);

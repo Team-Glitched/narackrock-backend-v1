@@ -112,6 +112,31 @@ class SubmitReportUseCaseTest {
     }
 
     @Test
+    void 샘플과_샘플댓글_신고를_접수하고_본인_대상이나_없는_샘플은_거부한다() {
+        store.targets.put(key(ReportTargetType.OPEN_SOURCE, 30L), new ReportTarget(20L));
+        store.targets.put(key(ReportTargetType.OPEN_SOURCE_COMMENT, 31L), new ReportTarget(20L));
+
+        ReportSubmissionResult sourceResult = useCase.execute(
+                ReportTargetType.OPEN_SOURCE, 30L, 1L, "저작권 침해", "원곡 도용");
+        ReportSubmissionResult commentResult = useCase.execute(
+                ReportTargetType.OPEN_SOURCE_COMMENT, 31L, 1L, "욕설/비방", null);
+
+        assertEquals(ReportTargetType.OPEN_SOURCE, sourceResult.targetType());
+        assertEquals(ReportTargetType.OPEN_SOURCE_COMMENT, commentResult.targetType());
+
+        store.targets.put(key(ReportTargetType.OPEN_SOURCE, 32L), new ReportTarget(1L));
+        assertEquals(ReportSubmissionErrorCode.CANNOT_REPORT_OWN_OPEN_SOURCE, assertThrows(
+                ReportSubmissionApplicationException.class,
+                () -> useCase.execute(ReportTargetType.OPEN_SOURCE, 32L, 1L, "사유", null)
+        ).getErrorCode());
+
+        assertEquals(ReportSubmissionErrorCode.OPEN_SOURCE_NOT_FOUND, assertThrows(
+                ReportSubmissionApplicationException.class,
+                () -> useCase.execute(ReportTargetType.OPEN_SOURCE, 999L, 1L, "사유", null)
+        ).getErrorCode());
+    }
+
+    @Test
     void 공백인_신고_사유는_거부한다() {
         ReportSubmissionApplicationException exception = assertThrows(
                 ReportSubmissionApplicationException.class,

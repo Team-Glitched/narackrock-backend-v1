@@ -15,10 +15,10 @@ public class PostReportExceptionHandler {
             ReportSubmissionApplicationException exception
     ) {
         HttpStatus status = switch (exception.getErrorCode()) {
-            case VALIDATION_ERROR, CANNOT_REPORT_OWN_POST, CANNOT_REPORT_OWN_COMMENT ->
+            case VALIDATION_ERROR, CANNOT_REPORT_OWN_POST, CANNOT_REPORT_OWN_OPEN_SOURCE, CANNOT_REPORT_OWN_COMMENT ->
                     HttpStatus.BAD_REQUEST;
             case BANNED_USER_ACCESS -> HttpStatus.FORBIDDEN;
-            case POST_NOT_FOUND, COMMENT_NOT_FOUND -> HttpStatus.NOT_FOUND;
+            case POST_NOT_FOUND, OPEN_SOURCE_NOT_FOUND, COMMENT_NOT_FOUND -> HttpStatus.NOT_FOUND;
             case ALREADY_REPORTED -> HttpStatus.CONFLICT;
         };
         return ResponseEntity.status(status).body(ApiErrorResponse.of(

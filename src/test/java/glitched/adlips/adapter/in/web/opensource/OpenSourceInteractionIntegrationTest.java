@@ -170,6 +170,36 @@ class OpenSourceInteractionIntegrationTest {
         var other=call("GET","/api/v1/open-sources/96202",null,96002L);
         assertThat(other.body().at("/data/likeCount").asLong()).isZero();
     }
+    @Test void commentUpdateDeleteAndReportsWorkAcrossCanonicalAndLegacyPaths() throws Exception {
+        long root = comment(96201, "original", null);
+        comment(96201, "child", root);
+        assertThat(call("PUT", "/api/v1/sources/comments/" + root, "{\"content\":\"edit\"}", 96001L).status()).isEqualTo(403);
+        var updated = call("PUT", "/api/v1/sources/comments/" + root, "{\"content\":\"  edited comment  \"}", 96002L);
+        assertThat(updated.status()).isEqualTo(200);
+        assertThat(updated.body().at("/data/commentId").asLong()).isEqualTo(root);
+        assertThat(call("GET", "/api/v1/open-sources/96201/comments", null, 96002L).body().at("/data/comments/0/content").asText())
+                .isEqualTo("edited comment");
+
+        var reportSample = call("POST", "/api/v1/sources/96201/reports",
+                "{\"reason\":\"저작권 침해\",\"description\":\"상세 설명\"}", 96002L);
+        assertThat(reportSample.status()).isEqualTo(201);
+        assertThat(reportSample.body().at("/data/targetType").asText()).isEqualTo("OPEN_SOURCE");
+        assertThat(call("POST", "/api/v1/open-sources/96201/reports",
+                "{\"reason\":\"중복 신고\"}", 96002L).status()).isEqualTo(409);
+        assertThat(call("POST", "/api/v1/sources/96201/reports",
+                "{\"reason\":\"본인 샘플\"}", 96001L).status()).isEqualTo(400);
+
+        var reportComment = call("POST", "/api/v1/sources/comments/" + root + "/reports",
+                "{\"reason\":\"욕설/비방\"}", 96001L);
+        assertThat(reportComment.status()).isEqualTo(201);
+        assertThat(reportComment.body().at("/data/targetType").asText()).isEqualTo("OPEN_SOURCE_COMMENT");
+
+        assertThat(call("DELETE", "/api/v1/open-sources/comments/" + root, null, 96001L).status()).isEqualTo(403);
+        assertThat(call("DELETE", "/api/v1/sources/comments/" + root, null, 96002L).status()).isEqualTo(200);
+        assertThat(call("GET", "/api/v1/open-sources/96201/comments", null, 96002L).body().at("/data/totalCount").asLong()).isZero();
+        assertThat(call("GET", "/api/v1/open-sources/96201", null, 96002L).body().at("/data/commentCount").asLong()).isZero();
+        jdbc.update("DELETE FROM reports WHERE reporter_id IN (96001, 96002)");
+    }
     long comment(long source,String content,Long parent) throws Exception {
         var result=postComment(source,content,parent);
         assertThat(result.status()).as(result.body().toString()).isEqualTo(201);

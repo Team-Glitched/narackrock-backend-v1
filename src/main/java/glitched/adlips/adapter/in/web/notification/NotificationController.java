@@ -58,6 +58,13 @@ public class NotificationController {
         return ApiResponse.success("읽은 알림을 모두 삭제했습니다.");
     }
 
+    @DeleteMapping("/{id:\\d+}")
+    public ApiResponse<Void> delete(
+            @RequestHeader("Authorization") String auth, @PathVariable Long id) {
+        inbox.delete(users.requireUserId(auth), id);
+        return ApiResponse.success("알림을 삭제했습니다.");
+    }
+
     @GetMapping("/preferences")
     public ApiResponse<NotificationPreferences.Values> preferences(
             @RequestHeader("Authorization") String auth) {

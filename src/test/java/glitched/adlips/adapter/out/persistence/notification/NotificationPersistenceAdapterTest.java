@@ -69,6 +69,21 @@ class NotificationPersistenceAdapterTest {
         assertThat(store.unread(1L)).isEqualTo(1);
         assertThat(store.list(2L, null, null, false, 20)).hasSize(1);
         assertThat(store.deleteRead(1L)).isZero();
+        assertThat(store.insert(draft(1, "read"))).isFalse();
+    }
+
+    @Test
+    void deleteOneSoftDeletesRecipientNotificationAndPreventsDuplicateReinsert() {
+        store.insert(draft(1, "unread-one"));
+        Long unreadId = store.list(1L, null, null, false, 20).getFirst().getId();
+        assertThat(store.deleteOne(2L, unreadId, Instant.now())).isZero();
+        assertThat(store.unread(1L)).isEqualTo(1);
+        assertThat(store.deleteOne(1L, unreadId, Instant.now())).isEqualTo(1);
+        assertThat(store.deleteOne(1L, unreadId, Instant.now())).isZero();
+        assertThat(store.list(1L, null, null, false, 20)).isEmpty();
+        assertThat(store.unread(1L)).isZero();
+        assertThat(store.markRead(1L, unreadId, Instant.now())).isZero();
+        assertThat(store.insert(draft(1, "unread-one"))).isFalse();
     }
 
     @Test

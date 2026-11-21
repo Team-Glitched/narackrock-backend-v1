@@ -57,6 +57,9 @@ public class ServiceNotification {
     @Column(name = "read_at")
     private Instant readAt;
 
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
+
     protected ServiceNotification() {}
 
     public ServiceNotification(
@@ -140,5 +143,9 @@ public class ServiceNotification {
 
     public Instant getReadAt() {
         return readAt;
+    }
+
+    public Instant getDeletedAt() {
+        return deletedAt;
     }
 }

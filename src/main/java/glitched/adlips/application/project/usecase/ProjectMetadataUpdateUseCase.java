@@ -35,8 +35,13 @@ public class ProjectMetadataUpdateUseCase {
 
     public void execute(Long projectId, Long userId, String title, Long albumImageFileId) {
         transactions.required(() -> {
-            if (title == null || title.isBlank() || title.trim().length() > 100 || (albumImageFileId != null && albumImageFileId < 0)) {
-                throw error(ProjectErrorCode.VALIDATION_ERROR, "곡 이름을 확인해 주세요.");
+            if (albumImageFileId != null && albumImageFileId < 0) {
+                throw error(ProjectErrorCode.VALIDATION_ERROR, "앨범 정보를 확인해 주세요.");
+            }
+            String trimmedTitle = title == null ? "" : title.strip();
+            if (trimmedTitle.isEmpty()
+                    || trimmedTitle.codePointCount(0, trimmedTitle.length()) > ProjectCreateUseCase.MAX_TITLE_LENGTH) {
+                throw error(ProjectErrorCode.VALIDATION_ERROR, "곡 이름은 1~40자 이내로 입력해 주세요.");
             }
             var project = projects.findByIdAndDeletedAtIsNullForUpdate(projectId)
                     .orElseThrow(() -> error(ProjectErrorCode.PROJECT_NOT_FOUND, "존재하지 않는 프로젝트입니다."));
@@ -60,7 +65,7 @@ public class ProjectMetadataUpdateUseCase {
                     throw error(ProjectErrorCode.MEDIA_FILE_NOT_READY, "앨범 이미지 파일의 업로드 처리가 완료되지 않았습니다.");
                 }
             }
-            project.updateMetadata(title.trim(), imageId);
+            project.updateMetadata(trimmedTitle, imageId);
             publishedShorts.updateMetadata(project);
             return null;
         });

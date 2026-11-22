@@ -36,9 +36,22 @@ public class ProfileActivityQueryPersistenceAdapter implements ProfileActivityQu
                 .getSingleResult();
 
         if (shortId != null && entityManager.createNativeQuery("""
-                SELECT id FROM shorts
-                 WHERE id = :shortId AND user_id = :userId
-                   AND status = 'COMPLETED' AND deleted_at IS NULL
+                SELECT s.id FROM shorts s
+                 WHERE s.id = :shortId
+                   AND s.deleted_at IS NULL
+                   AND (s.status = 'COMPLETED'
+                        OR (s.status = 'IN_PROGRESS'
+                            AND EXISTS (
+                                SELECT 1 FROM projects p
+                                 WHERE p.id = s.project_id
+                                   AND p.is_public = true
+                                   AND p.deleted_at IS NULL
+                            )))
+                   AND (s.user_id = :userId
+                        OR EXISTS (
+                            SELECT 1 FROM shorts_participants sp
+                             WHERE sp.shorts_id = s.id AND sp.user_id = :userId
+                        ))
                  FOR UPDATE
                 """)
                 .setParameter("shortId", shortId)
@@ -125,6 +138,14 @@ public class ProfileActivityQueryPersistenceAdapter implements ProfileActivityQu
                   JOIN media_files media ON media.id = s.media_file_id
                  WHERE ps.user_id = :userId
                    AND s.deleted_at IS NULL
+                   AND (s.status = 'COMPLETED'
+                        OR (s.status = 'IN_PROGRESS'
+                            AND EXISTS (
+                                SELECT 1 FROM projects p
+                                 WHERE p.id = s.project_id
+                                   AND p.is_public = true
+                                   AND p.deleted_at IS NULL
+                            )))
                  ORDER BY ps.display_order ASC, ps.id ASC
                 """)
                 .setParameter("userId", userId);

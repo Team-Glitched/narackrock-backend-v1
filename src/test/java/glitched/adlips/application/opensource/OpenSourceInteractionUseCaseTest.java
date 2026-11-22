@@ -43,4 +43,19 @@ class OpenSourceInteractionUseCaseTest {
         assertThatThrownBy(()->useCase.create(1L,10L,"comment",20L)).isInstanceOf(OpenSourceException.class)
                 .satisfies(e->assertThat(((OpenSourceException)e).getCode()).isEqualTo(OpenSourceException.Code.INVALID_REQUEST));
     }
+    @Test void onlyOwnerCanUpdateOrDeleteComment() {
+        when(port.findOwnedComment(20L)).thenReturn(Optional.of(new OwnedCommentRef(20L,10L,null,2L)));
+        when(port.lockAvailableSource(10L)).thenReturn(true);
+        assertThatThrownBy(()->useCase.updateComment(1L,20L,"edit"))
+                .isInstanceOf(OpenSourceException.class)
+                .satisfies(e->assertThat(((OpenSourceException)e).getCode()).isEqualTo(OpenSourceException.Code.OPEN_SOURCE_ACCESS_DENIED));
+        assertThatThrownBy(()->useCase.deleteComment(1L,20L))
+                .isInstanceOf(OpenSourceException.class)
+                .satisfies(e->assertThat(((OpenSourceException)e).getCode()).isEqualTo(OpenSourceException.Code.OPEN_SOURCE_ACCESS_DENIED));
+        when(port.findOwnedComment(20L)).thenReturn(Optional.of(new OwnedCommentRef(20L,10L,null,1L)));
+        assertThat(useCase.updateComment(1L,20L,"  updated  ")).isEqualTo(20L);
+        verify(port).updateComment(20L,"updated");
+        useCase.deleteComment(1L,20L);
+        verify(port).deleteComment(eq(20L),any());
+    }
 }

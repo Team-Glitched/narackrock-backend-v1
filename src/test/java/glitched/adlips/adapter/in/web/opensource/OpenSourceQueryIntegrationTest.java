@@ -62,6 +62,8 @@ class OpenSourceQueryIntegrationTest {
         assertThat(last.at("/items/0/canPreview").asBoolean()).isTrue();
         assertThat(last.at("/items/0/writer/nickname").asText()).isEqualTo("작곡가");
         assertThat(get("/api/v1/open-sources?page=2&size=2",96002L).body().at("/data/items").size()).isZero();
+        assertThat(get("/api/v1/sources/96201", 96002L).body().at("/data/openSourceId").asLong()).isEqualTo(96201L);
+        assertThat(ids(get("/api/v1/sources?size=2&page=0", 96002L).body().at("/data/items"))).containsExactly(96203L, 96202L);
     }
     @Test void popularSourcesUseTheSongScoreAndKeepVisibilityAndViewerState() throws Exception {
         jdbc.update("INSERT INTO open_source_reactions(user_id,target_type,target_id,reaction_type,created_at) "
@@ -117,7 +119,7 @@ class OpenSourceQueryIntegrationTest {
         assertThat(data.get("writer").get("profileImageUrl").isNull()).isTrue();
         assertThat(data.get("thumbnailUrl").asText()).isEqualTo("http://local/thumb.png");
         assertThat(data.toString()).doesNotContain("private.wav","secret/","mediaFileId");
-        assertThat(data.get("usageCount").isNull()).isTrue();
+        assertThat(data.get("usageCount").asLong()).isZero();
         assertThat(data.get("isLiked").asBoolean()).isFalse();
         for(long id:List.of(96204L,96205L,96206L,96299L)) assertThat(get("/api/v1/open-sources/"+id,96001L).status()).isEqualTo(404);
     }
@@ -173,6 +175,39 @@ class OpenSourceQueryIntegrationTest {
         var last=get("/api/v1/users/me/open-sources?page=1&size=2",96002L).body().get("data");
         assertThat(ids(last.get("items"))).containsExactly(96205L,96204L);
         assertThat(last.get("hasNext").asBoolean()).isFalse();
+    }
+    @Test void usageCountCountsDistinctActiveProjectsIgnoringDeletedAndRejected() throws Exception {
+        try {
+            jdbc.update("""
+                    INSERT INTO projects(id,owner_id,title,album_image_file_id,bpm,time_signature_numerator,time_signature_denominator,ppq,max_duration_ms,major_version,minor_version,status,is_public,deleted_at,created_at,updated_at) VALUES
+                    (96301,96002,'활성곡1',96102,120,4,4,480,60000,1,1,'IN_PROGRESS',true,NULL,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),
+                    (96302,96002,'활성곡2',96102,120,4,4,480,60000,1,1,'COMPLETED',true,NULL,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),
+                    (96303,96002,'삭제곡',96102,120,4,4,480,60000,1,1,'DELETED',false,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+                    """);
+            jdbc.update("""
+                    INSERT INTO project_tracks(id,project_id,owner_id,name,instrument,volume,pan,sort_order,is_muted,is_solo,approval_status,is_deleted,created_at,updated_at) VALUES
+                    (96401,96301,96002,'기타1','acoustic-guitar',100,0,0,false,false,'DRAFT',false,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),
+                    (96402,96301,96002,'기타2','acoustic-guitar',100,0,1,false,false,'APPROVED',false,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),
+                    (96403,96302,96002,'반려트랙','piano',100,0,0,false,false,'REJECTED',false,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),
+                    (96404,96302,96002,'유효트랙','piano',100,0,1,false,false,'APPROVED',false,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),
+                    (96405,96303,96002,'삭제곡트랙','piano',100,0,0,false,false,'DRAFT',false,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+                    """);
+            jdbc.update("""
+                    INSERT INTO project_clips(id,project_id,track_id,owner_id,clip_type,source_type,origin_open_source_id,media_file_id,start_tick,duration_tick,start_time_ms,clip_offset_ms,duration_ms,sort_order,approval_status,is_deleted,created_at,updated_at) VALUES
+                    (96501,96301,96401,96002,'AUDIO','IMPORTED',96201,96101,0,480,0,0,500,0,'DRAFT',false,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),
+                    (96502,96301,96402,96002,'AUDIO','IMPORTED',96201,96101,0,480,0,0,500,0,'APPROVED',false,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),
+                    (96503,96302,96403,96002,'AUDIO','IMPORTED',96201,96101,0,480,0,0,500,0,'APPROVED',false,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),
+                    (96504,96302,96404,96002,'AUDIO','IMPORTED',96201,96101,0,480,0,0,500,0,'REJECTED',false,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),
+                    (96505,96302,96404,96002,'AUDIO','IMPORTED',96201,96101,480,480,500,0,500,1,'APPROVED',true,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),
+                    (96506,96303,96405,96002,'AUDIO','IMPORTED',96201,96101,0,480,0,0,500,0,'DRAFT',false,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+                    """);
+            assertThat(get("/api/v1/open-sources/96201", 96002L).body().at("/data/usageCount").asLong()).isEqualTo(1L);
+            assertThat(get("/api/v1/open-sources/96202", 96002L).body().at("/data/usageCount").asLong()).isZero();
+        } finally {
+            jdbc.update("DELETE FROM project_clips WHERE id BETWEEN 96501 AND 96599");
+            jdbc.update("DELETE FROM project_tracks WHERE id BETWEEN 96401 AND 96499");
+            jdbc.update("DELETE FROM projects WHERE id BETWEEN 96301 AND 96399");
+        }
     }
     List<Long> ids(JsonNode items) {
         List<Long> result=new ArrayList<>(); items.forEach(item -> result.add(item.get("openSourceId").asLong())); return result;

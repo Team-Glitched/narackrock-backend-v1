@@ -66,7 +66,7 @@ class OpenSourceClipIntegrationTest {
 
         assertThat(created.status()).isEqualTo(201);
         assertThat(created.body().at("/success").asBoolean()).isTrue();
-        assertThat(created.body().at("/message").asText()).isEqualTo("오픈소스를 레이어에 추가했습니다.");
+        assertThat(created.body().at("/message").asText()).isEqualTo("샘플을 레이어에 추가했습니다.");
         JsonNode data = created.body().at("/data");
         assertThat(data.at("/projectId").asLong()).isEqualTo(97301L);
         assertThat(data.at("/trackId").asLong()).isEqualTo(97401L);

@@ -55,7 +55,7 @@ class ClipControllerTest {
 
         verify(useCase).execute(new OpenSourceClipCreateRequest(10L, 21L, 1L, 55L, 480, 960));
         assertThat(result.getStatusCode().value()).isEqualTo(201);
-        assertThat(result.getBody().message()).isEqualTo("오픈소스를 레이어에 추가했습니다.");
+        assertThat(result.getBody().message()).isEqualTo("샘플을 레이어에 추가했습니다.");
         assertThat(result.getBody().data().sourceType()).isEqualTo(ClipSourceType.IMPORTED);
         assertThat(result.getBody().data().mediaUrl()).isEqualTo("http://localhost/files/riff.wav");
     }

@@ -27,7 +27,7 @@ public class OpenSourceApplicationConfiguration {
     @Bean
     OpenSourceMediaLinkPort openSourceMediaLinkPort(
             @Value("${app.api.public-base-url}") String apiBaseUrl,
-            @Value("${app.opensource.share-base-url:http://localhost:5173/opensource}") String shareBaseUrl,
+            @Value("${app.opensource.share-base-url:https://narackrock.com/sources}") String shareBaseUrl,
             @Value("${app.opensource.playback-secret:${app.auth.token-secret}}") String secret,
             @Value("${app.opensource.playback-ttl-seconds:600}") long ttl, Clock clock) {
         return new SignedOpenSourceMediaLinkAdapter(apiBaseUrl, shareBaseUrl, secret, ttl, clock);

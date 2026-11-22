@@ -83,6 +83,42 @@ public class OpenSourceInteractionUseCase {
             return null;
         });
     }
+    public Long updateComment(Long userId, Long commentId, String content) {
+        writeAllowed(userId);
+        validId(commentId);
+        if (content == null || content.strip().isEmpty()
+                || content.strip().codePointCount(0, content.strip().length()) > 1000) {
+            throw invalid();
+        }
+        String normalized = content.strip();
+        return transactions.required(() -> {
+            var comment = findOwnedComment(commentId);
+            available(comment.openSourceId());
+            comment = findOwnedComment(commentId);
+            if (!comment.userId().equals(userId)) {
+                throw new OpenSourceException(OPEN_SOURCE_ACCESS_DENIED, "본인이 작성한 댓글만 수정할 수 있습니다.");
+            }
+            port.updateComment(commentId, normalized);
+            return commentId;
+        });
+    }
+    public void deleteComment(Long userId, Long commentId) {
+        writeAllowed(userId);
+        validId(commentId);
+        transactions.required(() -> {
+            var comment = findOwnedComment(commentId);
+            available(comment.openSourceId());
+            comment = findOwnedComment(commentId);
+            if (!comment.userId().equals(userId)) {
+                throw new OpenSourceException(OPEN_SOURCE_ACCESS_DENIED, "본인이 작성한 댓글만 삭제할 수 있습니다.");
+            }
+            port.deleteComment(commentId, clock.instant());
+            return null;
+        });
+    }
+    private OwnedCommentRef findOwnedComment(Long id) {
+        return port.findOwnedComment(id).orElseThrow(this::commentMissing);
+    }
     public Comments comments(Long userId, Long sourceId, Long parentId, int page, int size) {
         validId(userId); validId(sourceId);
         if(page<0 || size<1 || size>100 || (long)page*size>Integer.MAX_VALUE) throw invalid();
@@ -102,7 +138,7 @@ public class OpenSourceInteractionUseCase {
     }
     private CommentRef findComment(Long id) { return port.findComment(id).orElseThrow(this::commentMissing); }
     private void available(Long id) {
-        if(!port.lockAvailableSource(id)) throw new OpenSourceException(OPEN_SOURCE_NOT_FOUND,"존재하지 않거나 접근할 수 없는 오픈소스입니다.");
+        if(!port.lockAvailableSource(id)) throw new OpenSourceException(OPEN_SOURCE_NOT_FOUND,"존재하지 않거나 접근할 수 없는 샘플입니다.");
     }
     private void writeAllowed(Long userId) {
         validId(userId);

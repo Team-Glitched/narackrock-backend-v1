@@ -47,6 +47,47 @@ public class ReportSubmissionPersistenceAdapter implements
                        and comment.deletedAt is null
                        and comment.post.deletedAt is null
                     """;
+            case OPEN_SOURCE -> """
+                    select source.ownerId
+                      from OpenSourceEntity source, User owner
+                     where source.id = :targetId
+                       and owner.id = source.ownerId
+                       and owner.deletedAt is null
+                       and source.isPublic = true
+                       and source.deletedAt is null
+                       and source.title is not null
+                       and source.mediaFileId is not null
+                       and source.createdAt is not null
+                       and source.updatedAt is not null
+                    """;
+            case OPEN_SOURCE_COMMENT -> """
+                    select comment.userId
+                      from OpenSourceCommentEntity comment,
+                           User commentOwner,
+                           OpenSourceEntity source,
+                           User sourceOwner
+                     where comment.id = :targetId
+                       and commentOwner.id = comment.userId
+                       and commentOwner.deletedAt is null
+                       and comment.deletedAt is null
+                       and source.id = comment.openSourceId
+                       and sourceOwner.id = source.ownerId
+                       and sourceOwner.deletedAt is null
+                       and source.isPublic = true
+                       and source.deletedAt is null
+                       and source.title is not null
+                       and source.mediaFileId is not null
+                       and source.createdAt is not null
+                       and source.updatedAt is not null
+                       and (comment.parentCommentId is null
+                            or exists (select parent.id
+                                         from OpenSourceCommentEntity parent, User parentOwner
+                                        where parent.id = comment.parentCommentId
+                                          and parent.openSourceId = comment.openSourceId
+                                          and parentOwner.id = parent.userId
+                                          and parent.deletedAt is null
+                                          and parentOwner.deletedAt is null))
+                    """;
             default -> null;
         };
         if (query == null) {

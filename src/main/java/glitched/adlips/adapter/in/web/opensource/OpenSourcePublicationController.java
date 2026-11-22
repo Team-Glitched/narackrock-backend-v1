@@ -17,7 +17,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@Tag(name = "오픈소스 등록 및 공개", description = "작성자 전용 등록·메타데이터 수정·공개 설정·삭제·관리 상세")
+@Tag(name = "샘플 등록 및 공개", description = "작성자 전용 등록·메타데이터 수정·공개 설정·삭제·관리 상세")
 @SecurityRequirement(name = "bearerAuth")
 public class OpenSourcePublicationController {
     @Schema(description = "본인 소유 READY 오디오로 비공개 등록. 알 수 없는 필드는 거부합니다.")
@@ -52,7 +52,7 @@ public class OpenSourcePublicationController {
         this.users = users;
     }
 
-    @PostMapping("/api/v1/open-sources")
+    @PostMapping({"/api/v1/sources", "/api/v1/open-sources"})
     @Operation(requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
             content = @Content(schema = @Schema(implementation = CreateRequest.class))))
     public ResponseEntity<ApiResponse<PublicationResponse>> create(
@@ -61,10 +61,10 @@ public class OpenSourcePublicationController {
         fields(body, Set.of("title", "description", "mediaFileId", "thumbnailMediaFileId"));
         var source = useCase.create(userId, text(body, "title"), text(body, "description"),
                 id(body, "mediaFileId"), id(body, "thumbnailMediaFileId"));
-        return ResponseEntity.status(201).body(ApiResponse.success("오픈소스를 비공개로 등록했습니다.", PublicationResponse.from(source)));
+        return ResponseEntity.status(201).body(ApiResponse.success("샘플을 비공개로 등록했습니다.", PublicationResponse.from(source)));
     }
 
-    @PatchMapping("/api/v1/open-sources/{id}")
+    @PatchMapping({"/api/v1/sources/{id}", "/api/v1/open-sources/{id}"})
     @Operation(requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
             content = @Content(schema = @Schema(implementation = UpdateRequest.class))))
     public ApiResponse<PublicationResponse> update(@PathVariable Long id,
@@ -74,10 +74,10 @@ public class OpenSourcePublicationController {
         var patch = new OpenSourcePublicationUseCase.Patch(body.containsKey("title"), text(body, "title"),
                 body.containsKey("description"), text(body, "description"),
                 body.containsKey("thumbnailMediaFileId"), id(body, "thumbnailMediaFileId"));
-        return ApiResponse.success("오픈소스를 수정했습니다.", PublicationResponse.from(useCase.update(userId, id, patch)));
+        return ApiResponse.success("샘플을 수정했습니다.", PublicationResponse.from(useCase.update(userId, id, patch)));
     }
 
-    @PutMapping("/api/v1/open-sources/{id}/visibility")
+    @PutMapping({"/api/v1/sources/{id}/visibility", "/api/v1/open-sources/{id}/visibility"})
     @Operation(requestBody = @io.swagger.v3.oas.annotations.parameters.RequestBody(required = true,
             content = @Content(schema = @Schema(implementation = VisibilityRequest.class))))
     public ApiResponse<VisibilityResponse> visibility(@PathVariable Long id,
@@ -87,18 +87,18 @@ public class OpenSourcePublicationController {
         String visibility = text(body, "visibility");
         if (!"PUBLIC".equals(visibility) && !"PRIVATE".equals(visibility)) throw invalid();
         var source = useCase.visibility(userId, id, "PUBLIC".equals(visibility));
-        return ApiResponse.success("오픈소스 공개 상태를 변경했습니다.", new VisibilityResponse(source.id(), source.isPublic() ? "PUBLIC" : "PRIVATE"));
+        return ApiResponse.success("샘플 공개 상태를 변경했습니다.", new VisibilityResponse(source.id(), source.isPublic() ? "PUBLIC" : "PRIVATE"));
     }
 
-    @DeleteMapping("/api/v1/open-sources/{id}")
+    @DeleteMapping({"/api/v1/sources/{id}", "/api/v1/open-sources/{id}"})
     public ApiResponse<DeleteResponse> delete(@PathVariable Long id, @RequestHeader("Authorization") String authorization) {
         var source = useCase.delete(users.requireUserId(authorization), id);
-        return ApiResponse.success("오픈소스를 삭제했습니다.", new DeleteResponse(source.id(), true));
+        return ApiResponse.success("샘플을 삭제했습니다.", new DeleteResponse(source.id(), true));
     }
 
-    @GetMapping("/api/v1/users/me/open-source-publications/{id}")
+    @GetMapping({"/api/v1/users/me/source-publications/{id}", "/api/v1/users/me/open-source-publications/{id}"})
     public ApiResponse<PublicationResponse> detail(@PathVariable Long id, @RequestHeader("Authorization") String authorization) {
-        return ApiResponse.success("오픈소스 관리 정보를 조회했습니다.", PublicationResponse.from(useCase.get(users.requireUserId(authorization), id)));
+        return ApiResponse.success("샘플 관리 정보를 조회했습니다.", PublicationResponse.from(useCase.get(users.requireUserId(authorization), id)));
     }
 
     private void fields(Map<String, Object> body, Set<String> allowed) {

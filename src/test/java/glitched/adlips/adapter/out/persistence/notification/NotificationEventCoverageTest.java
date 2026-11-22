@@ -231,5 +231,9 @@ class NotificationEventCoverageTest {
         inbox.readAll(3L, page.throughId());
         assertThat(inbox.unread(3L)).isZero();
         assertThat(inbox.list(3L, null, null, false, 20).items()).hasSize(1);
+
+        inbox.deleteRead(3L);
+        assertThat(inbox.unread(3L)).isZero();
+        assertThat(inbox.list(3L, null, null, false, 20).items()).isEmpty();
     }
 }

@@ -89,7 +89,7 @@ public class OpenSourcePublicationUseCase {
         validId(id);
         return publications.findOwned(id, userId, lock)
                 .filter(p -> includeDeleted || p.deletedAt() == null)
-                .orElseThrow(() -> new OpenSourceException(OPEN_SOURCE_NOT_FOUND, "존재하지 않거나 접근할 수 없는 오픈소스입니다."));
+                .orElseThrow(() -> new OpenSourceException(OPEN_SOURCE_NOT_FOUND, "존재하지 않거나 접근할 수 없는 샘플입니다."));
     }
 
     private void validateMedia(Long userId, Long mediaFileId, MediaFileType type) {
@@ -107,5 +107,5 @@ public class OpenSourcePublicationUseCase {
         if (description != null && description.codePointCount(0, description.length()) > 2000) throw invalid();
     }
     private void validId(Long id) { if (id == null || id <= 0) throw invalid(); }
-    private OpenSourceException invalid() { return new OpenSourceException(INVALID_REQUEST, "오픈소스 입력값이 올바르지 않습니다."); }
+    private OpenSourceException invalid() { return new OpenSourceException(INVALID_REQUEST, "샘플 입력값이 올바르지 않습니다."); }
 }

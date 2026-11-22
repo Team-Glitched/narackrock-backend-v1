@@ -79,6 +79,10 @@ class GalleryControllerTest {
                 .andExpect(jsonPath("$.data[0].description").value("기타 연주와 작곡을 다루는 갤러리입니다."))
                 .andExpect(jsonPath("$.data[0].subscriberCount").value(128))
                 .andExpect(jsonPath("$.data[0].createdAt").value("2026-06-22T12:00:00"));
+
+        mockMvc.perform(get("/api/v1/communities"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].galleryId").value(1));
     }
 
     @Test

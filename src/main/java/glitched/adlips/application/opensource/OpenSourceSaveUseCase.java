@@ -16,7 +16,7 @@ public class OpenSourceSaveUseCase {
         return transactions.required(() -> {
             if (!port.lockAvailableSource(openSourceId)) {
                 throw new OpenSourceException(OpenSourceException.Code.OPEN_SOURCE_NOT_FOUND,
-                        "존재하지 않거나 접근할 수 없는 오픈소스입니다.");
+                        "존재하지 않거나 접근할 수 없는 샘플입니다.");
             }
             if (!port.isSaved(userId, openSourceId)) {
                 port.insertSave(userId, openSourceId);

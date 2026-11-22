@@ -195,7 +195,7 @@ public class NotificationAudiencePersistenceAdapter implements NotificationAudie
                                     + " t.approval_status='APPROVED'",
                                 project),
                         type,
-                        "회원님의 오픈소스를 사용한 ‘" + text(s[2]) + "’ 곡이 공개되었습니다.",
+                        "회원님의 샘플을 사용한 ‘" + text(s[2]) + "’ 곡이 공개되었습니다.",
                         "/abyss/" + target,
                         "SHORT",
                         target,
@@ -431,7 +431,7 @@ public class NotificationAudiencePersistenceAdapter implements NotificationAudie
             return to(
                     users("select follower_id from follows where following_id=:p0", id(p[0])),
                     type,
-                    "팔로우한 사용자가 ‘" + text(p[1]) + "’ 오픈소스를 공개했습니다.",
+                    "팔로우한 사용자가 ‘" + text(p[1]) + "’ 샘플을 공개했습니다.",
                     "/sources/" + target,
                     "SOURCE",
                     target,
@@ -451,7 +451,7 @@ public class NotificationAudiencePersistenceAdapter implements NotificationAudie
             return to(
                     List.of(id(p[0])),
                     type,
-                    who + "님이 ‘" + text(p[2]) + "’ 오픈소스를 작곡에 사용했습니다.",
+                    who + "님이 ‘" + text(p[2]) + "’ 샘플을 작곡에 사용했습니다.",
                     "/sources/" + p[1],
                     "SOURCE",
                     id(p[1]),
@@ -474,18 +474,20 @@ public class NotificationAudiencePersistenceAdapter implements NotificationAudie
                 recipients =
                         users("select id from users where role='ADMIN' and deleted_at is null");
             else if (type == USER_WARNED || type == CONTENT_MODERATED) {
-                String table =
+                String ownerQuery =
                         switch (text(p[1])) {
-                            case "POST" -> "posts";
-                            case "POST_COMMENT" -> "post_comments";
-                            case "SHORT" -> "shorts";
-                            case "SHORT_COMMENT" -> "shorts_comments";
+                            case "POST" -> "select user_id from posts where id=:p0";
+                            case "POST_COMMENT" -> "select user_id from post_comments where id=:p0";
+                            case "SHORT" -> "select user_id from shorts where id=:p0";
+                            case "SHORT_COMMENT" -> "select user_id from shorts_comments where id=:p0";
+                            case "OPEN_SOURCE" -> "select owner_id from open_sources where id=:p0";
+                            case "OPEN_SOURCE_COMMENT" -> "select user_id from open_source_comments where id=:p0";
                             default -> null;
                         };
                 recipients =
-                        table == null
+                        ownerQuery == null
                                 ? List.of()
-                                : users("select user_id from " + table + " where id=:p0", id(p[2]));
+                                : users(ownerQuery, id(p[2]));
             } else recipients = List.of(id(p[0]));
             String body =
                     type == REPORT_CREATED

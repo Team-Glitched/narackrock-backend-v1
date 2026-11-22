@@ -104,7 +104,9 @@ public class SubmitReportUseCase {
 
     private void validateTargetType(ReportTargetType targetType) {
         if (targetType != ReportTargetType.POST
-                && targetType != ReportTargetType.POST_COMMENT) {
+                && targetType != ReportTargetType.POST_COMMENT
+                && targetType != ReportTargetType.OPEN_SOURCE
+                && targetType != ReportTargetType.OPEN_SOURCE_COMMENT) {
             throw new ReportSubmissionApplicationException(
                     ReportSubmissionErrorCode.VALIDATION_ERROR,
                     "지원하지 않는 신고 대상입니다."
@@ -137,6 +139,12 @@ public class SubmitReportUseCase {
                     "존재하지 않거나 이미 삭제된 게시글은 신고할 수 없습니다."
             );
         }
+        if (targetType == ReportTargetType.OPEN_SOURCE) {
+            return new ReportSubmissionApplicationException(
+                    ReportSubmissionErrorCode.OPEN_SOURCE_NOT_FOUND,
+                    "존재하지 않거나 비공개이거나 삭제된 샘플은 신고할 수 없습니다."
+            );
+        }
         return new ReportSubmissionApplicationException(
                 ReportSubmissionErrorCode.COMMENT_NOT_FOUND,
                 "존재하지 않거나 이미 삭제된 댓글은 신고할 수 없습니다."
@@ -150,6 +158,12 @@ public class SubmitReportUseCase {
                     "본인이 작성한 게시글은 신고할 수 없습니다."
             );
         }
+        if (targetType == ReportTargetType.OPEN_SOURCE) {
+            return new ReportSubmissionApplicationException(
+                    ReportSubmissionErrorCode.CANNOT_REPORT_OWN_OPEN_SOURCE,
+                    "본인이 등록한 샘플은 신고할 수 없습니다."
+            );
+        }
         return new ReportSubmissionApplicationException(
                 ReportSubmissionErrorCode.CANNOT_REPORT_OWN_COMMENT,
                 "본인이 작성한 댓글은 신고할 수 없습니다."
@@ -157,7 +171,11 @@ public class SubmitReportUseCase {
     }
 
     private ReportSubmissionApplicationException alreadyReported(ReportTargetType targetType) {
-        String targetName = targetType == ReportTargetType.POST ? "게시글" : "댓글";
+        String targetName = switch (targetType) {
+            case POST -> "게시글";
+            case OPEN_SOURCE -> "샘플";
+            default -> "댓글";
+        };
         return new ReportSubmissionApplicationException(
                 ReportSubmissionErrorCode.ALREADY_REPORTED,
                 "이미 신고한 " + targetName + "입니다."

@@ -95,7 +95,7 @@ class OpenSourceMediaIntegrationTest {
         assertThat(audio(path.replace("mediaId=96101", "mediaId=96102"),null).statusCode()).isEqualTo(403);
         assertThat(audio(path.replaceAll("signature=.*", "signature=invalid"),null).statusCode()).isEqualTo(403);
         assertThat(audio(path.replaceAll("expires=[0-9]+", "expires=1"),null).statusCode()).isEqualTo(403);
-        assertThat(call("GET","/api/v1/open-sources/96201",null,96002L).body().at("/data/usageCount").isNull()).isTrue();
+        assertThat(call("GET","/api/v1/open-sources/96201",null,96002L).body().at("/data/usageCount").asLong()).isZero();
         jdbc.update("UPDATE open_sources SET is_public=false WHERE id=96201");
         assertThat(audio(path,null).statusCode()).isEqualTo(404);
     }

@@ -24,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "관리자 갤러리 개설", description = "갤러리 개설 요청 승인·반려 관리자 API")
 @SecurityRequirement(name = "bearerAuth")
 @RestController
-@RequestMapping("/api/v1/admin/gallery-proposals")
+@RequestMapping({"/api/v1/admin/community-proposals", "/api/v1/admin/gallery-proposals"})
 public class AdminGalleryProposalController {
 
     private final GetGalleryProposalsUseCase getGalleryProposalsUseCase;

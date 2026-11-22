@@ -26,6 +26,9 @@ public class OpenSourceQueryPersistenceAdapter implements OpenSourceQueryPort {
             +LIKE_COUNT+" AS like_count, "+count("SOURCE","s.id","DISLIKE")+" AS dislike_count, "
             +reacted("SOURCE","s.id","LIKE")+" AS is_liked, "+reacted("SOURCE","s.id","DISLIKE")+" AS is_disliked, "
             +"(SELECT COUNT(*) FROM open_source_comments c WHERE c.open_source_id=s.id AND "+visibleComment("c")+notHidden("c")+") AS comment_count, "
+            +"(SELECT COUNT(DISTINCT pc.project_id) FROM project_clips pc JOIN project_tracks pt ON pt.id = pc.track_id JOIN projects pr ON pr.id = pc.project_id "
+            +"WHERE pc.origin_open_source_id = s.id AND pc.is_deleted = false AND pc.approval_status <> 'REJECTED' "
+            +"AND pt.is_deleted = false AND pt.approval_status <> 'REJECTED' AND pr.deleted_at IS NULL) AS usage_count, "
             +"""
             s.id, s.title, s.description, s.owner_id, s.created_at,
                    thumb.file_url AS thumbnail_url, COALESCE(p.nickname, '사용자') AS nickname,
@@ -106,7 +109,7 @@ public class OpenSourceQueryPersistenceAdapter implements OpenSourceQueryPort {
         return new Item(rs.getLong("id"), rs.getString("title"), rs.getString("description"), rs.getString("thumbnail_url"),
                 new Writer(rs.getLong("owner_id"), rs.getString("nickname"), rs.getString("profile_image_url")),
                 rs.getBoolean("is_saved"), instant(rs, "created_at"), rs.getBoolean("can_preview"), rs.getBoolean("is_liked"), rs.getBoolean("is_disliked"),
-                rs.getLong("like_count"), rs.getLong("dislike_count"), rs.getLong("comment_count"));
+                rs.getLong("like_count"), rs.getLong("dislike_count"), rs.getLong("comment_count"), rs.getLong("usage_count"));
     }
     private Instant instant(ResultSet rs, String name) throws SQLException {
         return rs.getTimestamp(name).toInstant();

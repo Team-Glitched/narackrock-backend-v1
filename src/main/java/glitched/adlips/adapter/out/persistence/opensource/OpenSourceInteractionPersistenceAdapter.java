@@ -78,8 +78,20 @@ public class OpenSourceInteractionPersistenceAdapter implements OpenSourceIntera
         return jdbc.query("SELECT c.id,c.open_source_id,c.parent_comment_id FROM open_source_comments c WHERE c.id=:id AND "+visibleComment("c"),Map.of("id",id),
                 (rs,row)->new CommentRef(rs.getLong("id"),rs.getLong("open_source_id"),rs.getObject("parent_comment_id",Long.class))).stream().findFirst();
     }
+    @Override public Optional<OwnedCommentRef> findOwnedComment(Long id) {
+        return jdbc.query("SELECT c.id,c.open_source_id,c.parent_comment_id,c.user_id FROM open_source_comments c WHERE c.id=:id AND "+visibleComment("c"),Map.of("id",id),
+                (rs,row)->new OwnedCommentRef(rs.getLong("id"),rs.getLong("open_source_id"),rs.getObject("parent_comment_id",Long.class),rs.getLong("user_id"))).stream().findFirst();
+    }
     @Override public Long insertComment(Long source,Long user,Long parent,String content,Instant now) {
         var comment=new OpenSourceCommentEntity(source,user,parent,content,now);em.persist(comment);em.flush();return comment.id;
+    }
+    @Override public void updateComment(Long id, String content) {
+        jdbc.update("UPDATE open_source_comments SET content=:content WHERE id=:id AND deleted_at IS NULL",
+                Map.of("id", id, "content", content));
+    }
+    @Override public void deleteComment(Long id, Instant now) {
+        jdbc.update("UPDATE open_source_comments SET deleted_at=:now WHERE (id=:id OR parent_comment_id=:id) AND deleted_at IS NULL",
+                Map.of("id", id, "now", java.sql.Timestamp.from(now)));
     }
     @Override public Comment comment(Long id,Long viewer) {
         return jdbc.queryForObject(COMMENT_SELECT+" AND c.id=:id",Map.of("id",id,"viewer",viewer),(rs,row)->mapComment(rs));

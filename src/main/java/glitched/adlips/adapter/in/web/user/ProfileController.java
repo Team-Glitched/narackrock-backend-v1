@@ -74,13 +74,20 @@ public class ProfileController {
     @PutMapping("/me/profile/featured-music/{shortId}")
     public ApiResponse<Void> setFeaturedMusic(@RequestHeader("Authorization") String authorization,
             @PathVariable Long shortId) {
-        profileFeaturedShortUseCase.execute(authenticatedUserResolver.requireUserId(authorization), shortId);
+        profileFeaturedShortUseCase.add(authenticatedUserResolver.requireUserId(authorization), shortId);
         return ApiResponse.success("대표 음악을 설정했습니다.");
+    }
+
+    @DeleteMapping("/me/profile/featured-music/{shortId}")
+    public ApiResponse<Void> removeFeaturedMusic(@RequestHeader("Authorization") String authorization,
+            @PathVariable Long shortId) {
+        profileFeaturedShortUseCase.remove(authenticatedUserResolver.requireUserId(authorization), shortId);
+        return ApiResponse.success("대표 음악 설정을 해제했습니다.");
     }
 
     @DeleteMapping("/me/profile/featured-music")
     public ApiResponse<Void> clearFeaturedMusic(@RequestHeader("Authorization") String authorization) {
-        profileFeaturedShortUseCase.execute(authenticatedUserResolver.requireUserId(authorization), null);
+        profileFeaturedShortUseCase.clear(authenticatedUserResolver.requireUserId(authorization));
         return ApiResponse.success("대표 음악 설정을 해제했습니다.");
     }
 

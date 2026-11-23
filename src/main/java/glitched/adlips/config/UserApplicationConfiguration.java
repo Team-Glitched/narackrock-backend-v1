@@ -39,6 +39,7 @@ import glitched.adlips.application.user.relation.usecase.FollowingGetListUseCase
 import glitched.adlips.application.user.relation.usecase.RecommendedUserGetListUseCase;
 import glitched.adlips.application.user.relation.usecase.UserSearchUseCase;
 import java.time.Clock;
+import java.time.Duration;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -58,6 +59,8 @@ public class UserApplicationConfiguration {
             Clock clock,
             @Value("${app.auth.refresh-token-validity-seconds}")
             long validitySeconds,
+            @Value("${app.auth.refresh-token-reuse-grace-seconds}")
+            long reuseGraceSeconds,
             TransactionRunner transactionRunner
     ) {
         return new RefreshTokenManager(
@@ -65,6 +68,7 @@ public class UserApplicationConfiguration {
                 generator,
                 clock,
                 validitySeconds,
+                Duration.ofSeconds(reuseGraceSeconds),
                 transactionRunner
         );
     }

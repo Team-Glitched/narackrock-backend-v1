@@ -138,6 +138,65 @@ class OpenSourcePublicationIntegrationTest {
             assertThat(call("POST","/api/v1/open-sources",body,owner).status()).isEqualTo(400);
         }
     }
+    @Test void selectedInstrumentSurvivesPersistenceAndEverySourceRead() throws Exception {
+        var created = call("POST", "/api/v1/sources", createBody().replace("\"title\"", "\"instrument\":\" GUITAR \",\"title\""), owner);
+        assertThat(created.status()).isEqualTo(201);
+        long id = created.body().at("/data/openSourceId").asLong();
+        assertThat(created.body().at("/data/instrument").asText()).isEqualTo("acoustic-guitar");
+        assertThat(jdbc.queryForObject("SELECT instrument FROM open_sources WHERE id=?", String.class, id)).isEqualTo("acoustic-guitar");
+        assertThat(call("GET", manage(id), null, owner).body().at("/data/instrument").asText()).isEqualTo("acoustic-guitar");
+        assertThat(call("GET", "/api/v1/users/me/source-publications", null, owner).body().at("/data/items/0/instrument").asText()).isEqualTo("acoustic-guitar");
+        call("PUT", path(id)+"/visibility", "{\"visibility\":\"PUBLIC\"}", owner);
+        assertThat(call("GET", "/api/v1/sources/"+id, null, other).body().at("/data/instrument").asText()).isEqualTo("acoustic-guitar");
+        assertThat(call("GET", "/api/v1/sources", null, other).body().at("/data/items/0/instrument").asText()).isEqualTo("acoustic-guitar");
+        assertThat(call("GET", "/api/v1/sources/popular", null, other).body().at("/data/items/0/instrument").asText()).isEqualTo("acoustic-guitar");
+        call("PUT", path(id)+"/save", null, other);
+        assertThat(call("GET", "/api/v1/users/me/sources", null, other).body().at("/data/items/0/source/instrument").asText()).isEqualTo("acoustic-guitar");
+        call("PUT", path(id)+"/visibility", "{\"visibility\":\"PRIVATE\"}", owner);
+        assertThat(call("GET", manage(id), null, owner).body().at("/data/instrument").asText()).isEqualTo("acoustic-guitar");
+    }
+
+    @Test void instrumentUpdatesPreserveOmittedValuesAndSupportLegacyUnknownParts() throws Exception {
+        long id = create();
+        assertThat(call("GET", manage(id), null, owner).body().at("/data/instrument").isNull()).isTrue();
+        for (String instrument : List.of("violin", "drum-kit", "vocal", "backing-vocal", "rap", "percussion", "other")) {
+            var changed = call("PATCH", path(id), "{\"instrument\":\""+instrument+"\"}", owner);
+            assertThat(changed.status()).isEqualTo(200);
+            assertThat(changed.body().at("/data/instrument").asText()).isEqualTo(instrument);
+        }
+        call("PATCH", path(id), "{\"title\":\"renamed\"}", owner);
+        assertThat(call("GET", manage(id), null, owner).body().at("/data/instrument").asText()).isEqualTo("other");
+        assertThat(call("PATCH", path(id), "{\"instrument\":null}", owner).status()).isEqualTo(200);
+        assertThat(jdbc.queryForObject("SELECT instrument FROM open_sources WHERE id=?", String.class, id)).isNull();
+        assertThat(call("PATCH", path(id), "{\"instrument\":\"piano\"}", other).status()).isEqualTo(404);
+    }
+
+    @Test void instrumentOnlyPatchKeepsOverlongLegacyTextButNewDescriptionIsLimited() throws Exception {
+        long id = create();
+        String legacyTitle = "t".repeat(80), legacyDescription = "d".repeat(1200);
+        jdbc.update("UPDATE open_sources SET title=?, description=? WHERE id=?", legacyTitle, legacyDescription, id);
+        var changed = call("PATCH", path(id), "{\"instrument\":\"violin\"}", owner);
+        assertThat(changed.status()).as(changed.body().toString()).isEqualTo(200);
+        assertThat(changed.body().at("/data/instrument").asText()).isEqualTo("violin");
+        assertThat(changed.body().at("/data/title").asText()).isEqualTo(legacyTitle);
+        assertThat(changed.body().at("/data/description").asText()).isEqualTo(legacyDescription);
+        assertThat(call("PATCH", path(id), "{\"description\":\""+"x".repeat(501)+"\"}", owner).status()).isEqualTo(400);
+        assertThat(jdbc.queryForObject("SELECT description FROM open_sources WHERE id=?", String.class, id)).isEqualTo(legacyDescription);
+        assertThat(jdbc.queryForObject("SELECT title FROM open_sources WHERE id=?", String.class, id)).isEqualTo(legacyTitle);
+    }
+
+    @Test void invalidInstrumentValuesAreRejectedBeforeCreationOrMutation() throws Exception {
+        long id = create();
+        for (String value : List.of("\"unknown\"", "\" \"", "123", "{}", "[]")) {
+            String field = "\"instrument\":" + value;
+            var created = call("POST", "/api/v1/sources", createBody().replace("\"title\"", field+",\"title\""), owner);
+            assertThat(created.status()).as(value).isEqualTo(400);
+            var patched = call("PATCH", path(id), "{"+field+"}", owner);
+            assertThat(patched.status()).as(value).isEqualTo(400);
+        }
+        assertThat(jdbc.queryForObject("SELECT count(*) FROM open_sources WHERE owner_id=97001", Integer.class)).isEqualTo(1);
+    }
+
     long create() throws Exception {
         var response=call("POST","/api/v1/open-sources",createBody(),owner);
         assertThat(response.status()).as(response.body().toString()).isEqualTo(201);

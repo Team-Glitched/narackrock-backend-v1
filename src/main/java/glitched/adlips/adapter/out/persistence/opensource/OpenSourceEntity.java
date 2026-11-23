@@ -19,6 +19,8 @@ public class OpenSourceEntity {
     private Long ownerId;
     @Column(length = 100)
     private String title;
+    @Column(length = 40)
+    private String instrument;
     @Column(length = 2000)
     private String description;
     @Column(name = "media_file_id")
@@ -36,6 +38,7 @@ public class OpenSourceEntity {
         ownerId = source.ownerId();
         title = source.title();
         description = source.description();
+        instrument = source.instrument();
         mediaFileId = source.mediaFileId();
         thumbnailMediaFileId = source.thumbnailMediaFileId();
         isPublic = source.isPublic();
@@ -46,6 +49,6 @@ public class OpenSourceEntity {
 
     OpenSourcePublication toDomain() {
         return new OpenSourcePublication(id, ownerId, title, description, mediaFileId,
-                thumbnailMediaFileId, isPublic, createdAt, updatedAt, deletedAt);
+                thumbnailMediaFileId, isPublic, createdAt, updatedAt, deletedAt, instrument);
     }
 }

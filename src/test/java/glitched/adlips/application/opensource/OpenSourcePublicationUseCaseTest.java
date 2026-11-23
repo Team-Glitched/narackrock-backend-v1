@@ -44,8 +44,11 @@ class OpenSourcePublicationUseCaseTest {
     }
     @Test void invalidMetadataIsRejected() {
         assertCode(() -> useCase.create(1L, " ", null, 20L, null), "INVALID_REQUEST");
-        assertCode(() -> useCase.create(1L, "x".repeat(101), null, 20L, null), "INVALID_REQUEST");
-        assertCode(() -> useCase.create(1L, "title", "x".repeat(2001), 20L, null), "INVALID_REQUEST");
+        assertCode(() -> useCase.create(1L, "x".repeat(41), null, 20L, null), "INVALID_REQUEST");
+        assertCode(() -> useCase.create(1L, "title", "x".repeat(501), 20L, null), "INVALID_REQUEST");
+        var boundary = useCase.create(1L, "x".repeat(40), "d".repeat(500), 20L, null);
+        assertThat(boundary.title()).hasSize(40);
+        assertThat(boundary.description()).hasSize(500);
     }
     @Test void omittedFieldsArePreservedAndExplicitNullClearsOptionalFields() {
         var patch = new OpenSourcePublicationUseCase.Patch(false, null, true, null, true, null);
@@ -61,6 +64,9 @@ class OpenSourcePublicationUseCaseTest {
     }
     @Test void publishingRechecksMediaAndWithdrawalDoesNotRequireReadyMedia() {
         assertThat(useCase.visibility(1L, 10L, true).isPublic()).isTrue();
+        var legacy = new OpenSourcePublication(11L, 1L, "t".repeat(80), "d".repeat(1200), 20L, 30L, false, clock.instant(), clock.instant(), null);
+        when(publications.findOwned(11L, 1L, true)).thenReturn(Optional.of(legacy));
+        assertThat(useCase.visibility(1L, 11L, true).isPublic()).isTrue();
         when(media.findById(20L)).thenReturn(Optional.empty());
         assertCode(() -> useCase.visibility(1L, 10L, true), "MEDIA_FILE_NOT_FOUND");
         assertThat(useCase.visibility(1L, 10L, false).isPublic()).isFalse();

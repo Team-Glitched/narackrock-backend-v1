@@ -13,6 +13,9 @@ import glitched.adlips.domain.project.InstrumentFamily;
 import static glitched.adlips.application.opensource.OpenSourceException.Code.*;
 
 public class OpenSourcePublicationUseCase {
+    public static final int MAX_TITLE_LENGTH = 40;
+    public static final int MAX_DESCRIPTION_LENGTH = 500;
+
     private final NotificationEvents notifications;
     public record Patch(boolean hasTitle, String title, boolean hasDescription, String description,
                         boolean hasThumbnail, Long thumbnailMediaFileId, boolean hasInstrument, String instrument) {}
@@ -72,8 +75,9 @@ public class OpenSourcePublicationUseCase {
         return transactions.required(() -> {
             var current = owned(userId, id, true, false);
             if (visible) {
-                title(current.title());
-                description(current.description());
+                if (current.title() == null || current.title().strip().isEmpty()) {
+                    throw new OpenSourceException(INVALID_REQUEST, "샘플 이름은 1~40자 이내로 입력해 주세요.");
+                }
                 validateMedia(userId, current.mediaFileId(), MediaFileType.AUDIO);
                 if (current.thumbnailMediaFileId() != null) validateMedia(userId, current.thumbnailMediaFileId(), MediaFileType.IMAGE);
             }
@@ -109,11 +113,16 @@ public class OpenSourcePublicationUseCase {
         return normalized;
     }
     private String title(String title) {
-        if (title == null || title.strip().isEmpty() || title.strip().codePointCount(0, title.strip().length()) > 100) throw invalid();
-        return title.strip();
+        String stripped = title == null ? "" : title.strip();
+        if (stripped.isEmpty() || stripped.codePointCount(0, stripped.length()) > MAX_TITLE_LENGTH) {
+            throw new OpenSourceException(INVALID_REQUEST, "샘플 이름은 1~40자 이내로 입력해 주세요.");
+        }
+        return stripped;
     }
     private void description(String description) {
-        if (description != null && description.codePointCount(0, description.length()) > 2000) throw invalid();
+        if (description != null && description.codePointCount(0, description.length()) > MAX_DESCRIPTION_LENGTH) {
+            throw new OpenSourceException(INVALID_REQUEST, "샘플 설명은 500자 이내로 입력해 주세요.");
+        }
     }
     private void validId(Long id) { if (id == null || id <= 0) throw invalid(); }
     private OpenSourceException invalid() { return new OpenSourceException(INVALID_REQUEST, "샘플 입력값이 올바르지 않습니다."); }

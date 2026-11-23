@@ -73,4 +73,28 @@ class ProjectCreateUseCaseTest {
                 .isInstanceOf(ProjectApplicationException.class)
                 .extracting("errorCode").isEqualTo(ProjectErrorCode.MEDIA_FILE_ACCESS_DENIED);
     }
+
+    @Test
+    void enforcesTitleAndDescriptionLengthLimits() {
+        User owner = User.create("owner@example.com").withId(1L);
+        UserRepositoryPort users = mock(UserRepositoryPort.class);
+        ProjectRepositoryPort projects = mock(ProjectRepositoryPort.class);
+        ProjectMemberRepositoryPort members = mock(ProjectMemberRepositoryPort.class);
+        when(users.findById(1L)).thenReturn(Optional.of(owner));
+        when(projects.save(any(Project.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        ProjectCreateUseCase useCase = new ProjectCreateUseCase(
+                users, mock(MediaFileRepositoryPort.class), projects, members);
+
+        assertThatThrownBy(() -> useCase.execute(new ProjectCreateRequest(1L, "x".repeat(41), null, null)))
+                .isInstanceOf(ProjectApplicationException.class)
+                .extracting("errorCode").isEqualTo(ProjectErrorCode.VALIDATION_ERROR);
+        assertThatThrownBy(() -> useCase.execute(new ProjectCreateRequest(1L, "새 곡", "d".repeat(501), null)))
+                .isInstanceOf(ProjectApplicationException.class)
+                .extracting("errorCode").isEqualTo(ProjectErrorCode.VALIDATION_ERROR);
+
+        ProjectCreateResponse boundary = useCase.execute(
+                new ProjectCreateRequest(1L, "x".repeat(40), "d".repeat(500), null));
+        assertThat(boundary.title()).hasSize(40);
+        assertThat(boundary.description()).hasSize(500);
+    }
 }

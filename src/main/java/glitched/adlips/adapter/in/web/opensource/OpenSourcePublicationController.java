@@ -23,15 +23,15 @@ import org.springframework.web.bind.annotation.*;
 public class OpenSourcePublicationController {
     @Schema(description = "본인 소유 READY 오디오로 비공개 등록. 알 수 없는 필드는 거부합니다.")
     public record CreateRequest(
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minLength = 1, maxLength = 100, example = "기타 리프") String title,
-            @Schema(maxLength = 2000) String description,
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minLength = 1, maxLength = 40, example = "기타 리프") String title,
+            @Schema(maxLength = 500) String description,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minimum = "1") Long mediaFileId,
             @Schema(minimum = "1") Long thumbnailMediaFileId,
             @Schema(description = "작곡 악기/녹음 파트 ID. 생략/null은 미지정", example = "acoustic-guitar", nullable = true) String instrument) {}
     @Schema(description = "한 개 이상의 필드가 필요합니다. 생략은 유지, 설명/썸네일의 null은 제거합니다. 음원/소유자는 변경할 수 없습니다.")
     public record UpdateRequest(
-            @Schema(minLength = 1, maxLength = 100) String title,
-            @Schema(maxLength = 2000, nullable = true) String description,
+            @Schema(minLength = 1, maxLength = 40) String title,
+            @Schema(maxLength = 500, nullable = true) String description,
             @Schema(minimum = "1", nullable = true) Long thumbnailMediaFileId,
             @Schema(description = "생략 시 유지, null은 미지정", nullable = true) String instrument) {}
     public record VisibilityRequest(

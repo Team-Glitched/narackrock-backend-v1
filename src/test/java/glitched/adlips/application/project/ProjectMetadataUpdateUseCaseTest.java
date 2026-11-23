@@ -109,9 +109,12 @@ class ProjectMetadataUpdateUseCaseTest {
         assertThatThrownBy(() -> useCase.execute(10L, 2L, "침입", null)).isInstanceOf(ProjectApplicationException.class);
         assertThatThrownBy(() -> useCase.execute(10L, 1L, "수정", 701L)).isInstanceOf(ProjectApplicationException.class);
         assertThatThrownBy(() -> useCase.execute(10L, 1L, " ", null)).isInstanceOf(ProjectApplicationException.class);
-        assertThatThrownBy(() -> useCase.execute(10L, 1L, "x".repeat(101), null)).isInstanceOf(ProjectApplicationException.class);
+        assertThatThrownBy(() -> useCase.execute(10L, 1L, "x".repeat(41), null)).isInstanceOf(ProjectApplicationException.class);
         assertThat(project.getTitle()).isEqualTo("원래 제목");
         org.mockito.Mockito.verifyNoInteractions(shorts);
+
+        useCase.execute(10L, 1L, "x".repeat(40), null);
+        assertThat(project.getTitle()).isEqualTo("x".repeat(40));
     }
 
 }

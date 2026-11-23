@@ -7,6 +7,8 @@ import java.util.List;
 public interface UserRefreshTokenRepositoryPort {
     Optional<UserRefreshToken> findByTokenHashForUpdate(String tokenHash);
 
+    Optional<UserRefreshToken> findByIdForUpdate(Long id);
+
     List<UserRefreshToken> findActiveByUserId(Long userId);
 
     UserRefreshToken save(UserRefreshToken refreshToken);

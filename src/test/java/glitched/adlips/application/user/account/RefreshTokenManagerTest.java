@@ -12,7 +12,9 @@ import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.domain.user.UserRefreshToken;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.util.HashMap;
 import java.util.List;
@@ -23,16 +25,19 @@ import org.junit.jupiter.api.Test;
 
 class RefreshTokenManagerTest {
 
+    private static final Duration REUSE_GRACE = Duration.ofSeconds(60);
+
     private InMemoryRefreshTokens repository;
     private SequencedTokenGenerator generator;
+    private MutableClock clock;
     private RefreshTokenManager manager;
 
     @BeforeEach
     void setUp() {
         repository = new InMemoryRefreshTokens();
         generator = new SequencedTokenGenerator();
-        Clock clock = Clock.fixed(Instant.parse("2026-06-30T00:00:00Z"), ZoneOffset.UTC);
-        manager = new RefreshTokenManager(repository, generator, clock, 2_592_000L);
+        clock = new MutableClock(Instant.parse("2026-06-30T00:00:00Z"));
+        manager = new RefreshTokenManager(repository, generator, clock, 2_592_000L, REUSE_GRACE);
     }
 
     @Test
@@ -65,12 +70,71 @@ class RefreshTokenManagerTest {
         );
         repository.save(expired);
 
-        UserApplicationException exception = assertThrows(
-                UserApplicationException.class,
-                () -> manager.rotate("expired")
-        );
+        assertInvalid("expired");
+    }
 
-        assertEquals(UserErrorCode.INVALID_REFRESH_TOKEN, exception.getErrorCode());
+    @Test
+    void retriesLostRotationWithinGraceAndRevokesTheUnusedSuccessor() {
+        String sent = manager.issue(1L);
+        manager.rotate(sent);
+        clock.advance(Duration.ofSeconds(10));
+
+        RefreshTokenManager.Rotation retry = manager.rotate(sent);
+
+        assertEquals(1L, retry.userId());
+        assertEquals("refresh-3", retry.refreshToken());
+        assertTrue(repository.findByTokenHash("hash:refresh-2").orElseThrow().isRevoked());
+        assertFalse(repository.findByTokenHash("hash:refresh-3").orElseThrow().isRevoked());
+        assertEquals(1L, manager.rotate("refresh-3").userId());
+    }
+
+    @Test
+    void retriesNeverExtendTheGrace() {
+        String sent = manager.issue(1L);
+        manager.rotate(sent);
+        clock.advance(Duration.ofSeconds(50));
+        manager.rotate(sent);
+        clock.advance(Duration.ofSeconds(20));
+
+        assertInvalid(sent);
+        assertFalse(repository.findByTokenHash("hash:refresh-3").orElseThrow().isRevoked());
+    }
+
+    @Test
+    void rejectsRotatedTokenAfterGrace() {
+        String sent = manager.issue(1L);
+        manager.rotate(sent);
+        clock.advance(REUSE_GRACE.plusSeconds(1));
+
+        assertInvalid(sent);
+        assertFalse(repository.findByTokenHash("hash:refresh-2").orElseThrow().isRevoked());
+    }
+
+    @Test
+    void rejectsRotatedTokenOnceItsSuccessorWasUsed() {
+        String sent = manager.issue(1L);
+        String successor = manager.rotate(sent).refreshToken();
+        manager.rotate(successor);
+
+        assertInvalid(sent);
+        assertFalse(repository.findByTokenHash("hash:refresh-3").orElseThrow().isRevoked());
+    }
+
+    @Test
+    void rejectsTokenRevokedByLogoutWithinGrace() {
+        String sent = manager.issue(1L);
+        manager.revokeAll(1L);
+
+        assertInvalid(sent);
+    }
+
+    @Test
+    void rejectsRotatedTokenAfterLogoutRevokedItsSuccessor() {
+        String sent = manager.issue(1L);
+        manager.rotate(sent);
+        manager.revokeAll(1L);
+
+        assertInvalid(sent);
     }
 
     @Test
@@ -84,6 +148,41 @@ class RefreshTokenManagerTest {
         assertTrue(repository.findByTokenHash("hash:refresh-1").orElseThrow().isRevoked());
         assertTrue(repository.findByTokenHash("hash:refresh-2").orElseThrow().isRevoked());
         assertFalse(repository.findByTokenHash("hash:refresh-3").orElseThrow().isRevoked());
+    }
+
+    private void assertInvalid(String rawToken) {
+        UserApplicationException exception = assertThrows(
+                UserApplicationException.class,
+                () -> manager.rotate(rawToken)
+        );
+        assertEquals(UserErrorCode.INVALID_REFRESH_TOKEN, exception.getErrorCode());
+    }
+
+    private static final class MutableClock extends Clock {
+        private Instant now;
+
+        private MutableClock(Instant now) {
+            this.now = now;
+        }
+
+        void advance(Duration duration) {
+            now = now.plus(duration);
+        }
+
+        @Override
+        public ZoneId getZone() {
+            return ZoneOffset.UTC;
+        }
+
+        @Override
+        public Clock withZone(ZoneId zone) {
+            return this;
+        }
+
+        @Override
+        public Instant instant() {
+            return now;
+        }
     }
 
     private static final class SequencedTokenGenerator implements RefreshTokenGeneratorPort {
@@ -102,10 +201,16 @@ class RefreshTokenManagerTest {
 
     private static final class InMemoryRefreshTokens implements UserRefreshTokenRepositoryPort {
         private final Map<String, UserRefreshToken> values = new HashMap<>();
+        private long nextId = 1;
 
         @Override
         public Optional<UserRefreshToken> findByTokenHashForUpdate(String tokenHash) {
             return Optional.ofNullable(values.get(tokenHash));
+        }
+
+        @Override
+        public Optional<UserRefreshToken> findByIdForUpdate(Long id) {
+            return values.values().stream().filter(token -> id.equals(token.getId())).findFirst();
         }
 
         @Override
@@ -121,8 +226,18 @@ class RefreshTokenManagerTest {
 
         @Override
         public UserRefreshToken save(UserRefreshToken refreshToken) {
-            values.put(refreshToken.getTokenHash(), refreshToken);
-            return refreshToken;
+            UserRefreshToken stored = refreshToken.getId() != null
+                    ? refreshToken
+                    : UserRefreshToken.restore(
+                            nextId++,
+                            refreshToken.getUserId(),
+                            refreshToken.getTokenHash(),
+                            refreshToken.getExpiresAt(),
+                            refreshToken.getRevokedAt(),
+                            refreshToken.getReplacedById()
+                    );
+            values.put(stored.getTokenHash(), stored);
+            return stored;
         }
     }
 }

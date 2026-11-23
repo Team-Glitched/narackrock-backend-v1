@@ -30,7 +30,7 @@ public class OpenSourceQueryPersistenceAdapter implements OpenSourceQueryPort {
             +"WHERE pc.origin_open_source_id = s.id AND pc.is_deleted = false AND pc.approval_status <> 'REJECTED' "
             +"AND pt.is_deleted = false AND pt.approval_status <> 'REJECTED' AND pr.deleted_at IS NULL) AS usage_count, "
             +"""
-            s.id, s.title, s.description, s.owner_id, s.created_at,
+            s.id, s.title, s.description, s.owner_id, s.created_at, s.instrument,
                    thumb.file_url AS thumbnail_url, COALESCE(p.nickname, '사용자') AS nickname,
                    avatar.file_url AS profile_image_url,
                    EXISTS (SELECT 1 FROM open_source_saves saved
@@ -99,7 +99,7 @@ public class OpenSourceQueryPersistenceAdapter implements OpenSourceQueryPort {
                 parameters(ownerId, offset, limit), (rs, row) -> new OpenSourcePublication(
                         rs.getLong("id"), rs.getLong("owner_id"), rs.getString("title"), rs.getString("description"),
                         rs.getLong("media_file_id"), rs.getObject("thumbnail_media_file_id", Long.class), rs.getBoolean("is_public"),
-                        instant(rs, "created_at"), instant(rs, "updated_at"), null));
+                        instant(rs, "created_at"), instant(rs, "updated_at"), null, rs.getString("instrument")));
     }
 
     private MapSqlParameterSource parameters(Long viewerId, int offset, int limit) {
@@ -109,7 +109,7 @@ public class OpenSourceQueryPersistenceAdapter implements OpenSourceQueryPort {
         return new Item(rs.getLong("id"), rs.getString("title"), rs.getString("description"), rs.getString("thumbnail_url"),
                 new Writer(rs.getLong("owner_id"), rs.getString("nickname"), rs.getString("profile_image_url")),
                 rs.getBoolean("is_saved"), instant(rs, "created_at"), rs.getBoolean("can_preview"), rs.getBoolean("is_liked"), rs.getBoolean("is_disliked"),
-                rs.getLong("like_count"), rs.getLong("dislike_count"), rs.getLong("comment_count"), rs.getLong("usage_count"));
+                rs.getLong("like_count"), rs.getLong("dislike_count"), rs.getLong("comment_count"), rs.getLong("usage_count"), rs.getString("instrument"));
     }
     private Instant instant(ResultSet rs, String name) throws SQLException {
         return rs.getTimestamp(name).toInstant();

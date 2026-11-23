@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Instant;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.Map;
 import java.util.Set;
 import org.springframework.http.ResponseEntity;
@@ -25,21 +26,24 @@ public class OpenSourcePublicationController {
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minLength = 1, maxLength = 100, example = "기타 리프") String title,
             @Schema(maxLength = 2000) String description,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minimum = "1") Long mediaFileId,
-            @Schema(minimum = "1") Long thumbnailMediaFileId) {}
+            @Schema(minimum = "1") Long thumbnailMediaFileId,
+            @Schema(description = "작곡 악기/녹음 파트 ID. 생략/null은 미지정", example = "acoustic-guitar", nullable = true) String instrument) {}
     @Schema(description = "한 개 이상의 필드가 필요합니다. 생략은 유지, 설명/썸네일의 null은 제거합니다. 음원/소유자는 변경할 수 없습니다.")
     public record UpdateRequest(
             @Schema(minLength = 1, maxLength = 100) String title,
             @Schema(maxLength = 2000, nullable = true) String description,
-            @Schema(minimum = "1", nullable = true) Long thumbnailMediaFileId) {}
+            @Schema(minimum = "1", nullable = true) Long thumbnailMediaFileId,
+            @Schema(description = "생략 시 유지, null은 미지정", nullable = true) String instrument) {}
     public record VisibilityRequest(
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, allowableValues = {"PRIVATE", "PUBLIC"}) String visibility) {}
 
+    @JsonInclude(JsonInclude.Include.ALWAYS)
     public record PublicationResponse(Long openSourceId, Long ownerId, String title, String description,
-            Long mediaFileId, Long thumbnailMediaFileId, String visibility, Instant createdAt, Instant updatedAt) {
+            Long mediaFileId, Long thumbnailMediaFileId, String visibility, Instant createdAt, Instant updatedAt, String instrument) {
         static PublicationResponse from(OpenSourcePublication source) {
             return new PublicationResponse(source.id(), source.ownerId(), source.title(), source.description(),
                     source.mediaFileId(), source.thumbnailMediaFileId(), source.isPublic() ? "PUBLIC" : "PRIVATE",
-                    source.createdAt(), source.updatedAt());
+                    source.createdAt(), source.updatedAt(), source.instrument());
         }
     }
     public record VisibilityResponse(Long openSourceId, String visibility) {}
@@ -58,9 +62,9 @@ public class OpenSourcePublicationController {
     public ResponseEntity<ApiResponse<PublicationResponse>> create(
             @RequestHeader("Authorization") String authorization, @RequestBody Map<String, Object> body) {
         Long userId = users.requireUserId(authorization);
-        fields(body, Set.of("title", "description", "mediaFileId", "thumbnailMediaFileId"));
+        fields(body, Set.of("title", "description", "mediaFileId", "thumbnailMediaFileId", "instrument"));
         var source = useCase.create(userId, text(body, "title"), text(body, "description"),
-                id(body, "mediaFileId"), id(body, "thumbnailMediaFileId"));
+                id(body, "mediaFileId"), id(body, "thumbnailMediaFileId"), text(body, "instrument"));
         return ResponseEntity.status(201).body(ApiResponse.success("샘플을 비공개로 등록했습니다.", PublicationResponse.from(source)));
     }
 
@@ -70,10 +74,11 @@ public class OpenSourcePublicationController {
     public ApiResponse<PublicationResponse> update(@PathVariable Long id,
             @RequestHeader("Authorization") String authorization, @RequestBody Map<String, Object> body) {
         Long userId = users.requireUserId(authorization);
-        fields(body, Set.of("title", "description", "thumbnailMediaFileId"));
+        fields(body, Set.of("title", "description", "thumbnailMediaFileId", "instrument"));
         var patch = new OpenSourcePublicationUseCase.Patch(body.containsKey("title"), text(body, "title"),
                 body.containsKey("description"), text(body, "description"),
-                body.containsKey("thumbnailMediaFileId"), id(body, "thumbnailMediaFileId"));
+                body.containsKey("thumbnailMediaFileId"), id(body, "thumbnailMediaFileId"),
+                body.containsKey("instrument"), text(body, "instrument"));
         return ApiResponse.success("샘플을 수정했습니다.", PublicationResponse.from(useCase.update(userId, id, patch)));
     }
 

@@ -13,7 +13,7 @@ public record EditorDraftSnapshot(int startTick, long durationTick, List<MidiNot
     }
 
     public void validateMaxTick(long maxTick) {
-        if (durationTick > maxTick - startTick) {
+        if (!midiNotes.isEmpty() && durationTick > maxTick - startTick) {
             throw new IllegalArgumentException("MIDI draft exceeds project timeline");
         }
     }

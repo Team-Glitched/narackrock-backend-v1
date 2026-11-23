@@ -2,9 +2,12 @@ package glitched.adlips.application.project;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -40,6 +43,7 @@ import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.test.util.ReflectionTestUtils;
 
 class ProcessPendingProjectExportsUseCaseTest {
@@ -146,6 +150,127 @@ class ProcessPendingProjectExportsUseCaseTest {
     }
 
     @Test
+    void skipsNoteFreeMidiLeftBeyondTheExportLimitByATempoChange() {
+        ProjectTrack drums = approvedTrack(12L, "drum-kit");
+        ProjectTrack piano = approvedTrack(13L, "piano");
+        ProjectClip playable = ProjectClip.createMidi(
+                project, drums, owner, 0, 1_920,
+                List.of(new MidiNote(36, 0, 480, 100, null, Map.of())), 0);
+        playable.approve();
+        ReflectionTestUtils.setField(playable, "id", 22L);
+        // 40,000 ticks at 60 BPM starts 83 seconds in, past the one-minute export limit.
+        ProjectClip lateDrums = emptyMidiClip(23L, 83_333);
+        ProjectClip latePiano = emptyMidiClip(24L, 83_333);
+        when(tracks.findByProjectIdAndApprovalStatusAndIsDeletedFalse(10L, ApprovalStatus.APPROVED))
+                .thenReturn(List.of(drums, piano));
+        when(clips.findByTrackIdAndApprovalStatusAndIsDeletedFalseOrderByStartTickAscIdAsc(
+                12L, ApprovalStatus.APPROVED)).thenReturn(List.of(playable, lateDrums));
+        when(clips.findByTrackIdAndApprovalStatusAndIsDeletedFalseOrderByStartTickAscIdAsc(
+                13L, ApprovalStatus.APPROVED)).thenReturn(List.of(latePiano));
+        when(midiRenderer.render(any(), any(), anyInt(), anyInt(), anyLong())).thenReturn(new byte[]{1, 2, 3});
+        when(mixer.mix(any())).thenReturn(new ProjectAudioMixerPort.MixedAudio(new byte[]{4, 5}, 1_500));
+        when(archiver.archive(any())).thenReturn(new byte[]{6});
+        when(storage.publicUrl(any())).thenAnswer(invocation -> "/files/" + invocation.getArgument(0));
+        AtomicLong generatedId = new AtomicLong(800L);
+        when(mediaFiles.save(any(MediaFile.class)))
+                .thenAnswer(invocation -> invocation.<MediaFile>getArgument(0).withId(generatedId.incrementAndGet()));
+        when(publishedShorts.publish(project, 20L, 801L)).thenReturn(901L);
+
+        var result = useCase().execute();
+
+        assertThat(result.completedCount()).isEqualTo(1);
+        assertThat(export.getStatus()).isEqualTo(ExportStatus.COMPLETED);
+        verify(midiRenderer).render(drums.getInstrument(), playable.getMidiNotes(), project.getBpm(), project.getPpq(), 1_500);
+        verify(midiRenderer, times(1)).render(any(), any(), anyInt(), anyInt(), anyLong());
+        ArgumentCaptor<List<ProjectAudioMixerPort.AudioLayer>> layers = ArgumentCaptor.captor();
+        verify(mixer).mix(layers.capture());
+        assertThat(layers.getValue()).singleElement()
+                .satisfies(layer -> assertThat(layer.timelineStartMs()).isZero());
+    }
+
+    @Test
+    void rendersSubMillisecondMidiClipWithAPositiveSpan() {
+        ReflectionTestUtils.setField(project, "bpm", 150);
+        ProjectTrack piano = approvedTrack(13L, "piano");
+        ProjectClip clip = ProjectClip.createMidi(
+                project, piano, owner, 0, 1,
+                List.of(new MidiNote(60, 0, 1, 100, null, Map.of())), 0);
+        clip.approve();
+        ReflectionTestUtils.setField(clip, "id", 25L);
+        assertThat(clip.getDurationMs()).isZero();
+        when(tracks.findByProjectIdAndApprovalStatusAndIsDeletedFalse(10L, ApprovalStatus.APPROVED))
+                .thenReturn(List.of(piano));
+        when(clips.findByTrackIdAndApprovalStatusAndIsDeletedFalseOrderByStartTickAscIdAsc(
+                13L, ApprovalStatus.APPROVED)).thenReturn(List.of(clip));
+        when(midiRenderer.render(piano.getInstrument(), clip.getMidiNotes(), 150, project.getPpq(), 1))
+                .thenReturn(new byte[]{1});
+        when(mixer.mix(any())).thenReturn(new ProjectAudioMixerPort.MixedAudio(new byte[]{4, 5}, 1));
+        when(archiver.archive(any())).thenReturn(new byte[]{6});
+        when(storage.publicUrl(any())).thenAnswer(invocation -> "/files/" + invocation.getArgument(0));
+        AtomicLong generatedId = new AtomicLong(800L);
+        when(mediaFiles.save(any(MediaFile.class)))
+                .thenAnswer(invocation -> invocation.<MediaFile>getArgument(0).withId(generatedId.incrementAndGet()));
+        when(publishedShorts.publish(project, 20L, 801L)).thenReturn(901L);
+
+        var result = useCase().execute();
+
+        assertThat(result.completedCount()).isEqualTo(1);
+        assertThat(export.getStatus()).isEqualTo(ExportStatus.COMPLETED);
+        verify(midiRenderer).render(piano.getInstrument(), clip.getMidiNotes(), 150, project.getPpq(), 1);
+        assertThat(clip.getDurationMs()).isZero();
+    }
+
+    @Test
+    void publishesSilenceWhenNoteFreeMidiIsTheOnlyActiveInput() {
+        ProjectTrack piano = approvedTrack(13L, "piano");
+        ProjectClip empty = ProjectClip.createMidi(project, piano, owner, 0, 120, List.of(), 0);
+        empty.approve();
+        ReflectionTestUtils.setField(empty, "id", 26L);
+        when(tracks.findByProjectIdAndApprovalStatusAndIsDeletedFalse(10L, ApprovalStatus.APPROVED))
+                .thenReturn(List.of(piano));
+        when(clips.findByTrackIdAndApprovalStatusAndIsDeletedFalseOrderByStartTickAscIdAsc(
+                13L, ApprovalStatus.APPROVED)).thenReturn(List.of(empty));
+
+        assertSilentMix(piano, 125);
+    }
+
+    @Test
+    void boundsSilenceOfNoteFreeMidiLeftBeyondTheExportLimit() {
+        ProjectTrack piano = approvedTrack(13L, "piano");
+        ProjectClip late = emptyMidiClip(24L, 83_333);
+        when(tracks.findByProjectIdAndApprovalStatusAndIsDeletedFalse(10L, ApprovalStatus.APPROVED))
+                .thenReturn(List.of(piano));
+        when(clips.findByTrackIdAndApprovalStatusAndIsDeletedFalseOrderByStartTickAscIdAsc(
+                13L, ApprovalStatus.APPROVED)).thenReturn(List.of(late));
+
+        assertSilentMix(piano, 60_000);
+    }
+
+    private void assertSilentMix(ProjectTrack track, long durationMs) {
+        when(midiRenderer.render(track.getInstrument(), List.of(), project.getBpm(), project.getPpq(), durationMs))
+                .thenReturn(new byte[]{0});
+        when(mixer.mix(any())).thenReturn(new ProjectAudioMixerPort.MixedAudio(new byte[]{4, 5}, (int) durationMs));
+        when(archiver.archive(any())).thenReturn(new byte[]{6});
+        when(storage.publicUrl(any())).thenAnswer(invocation -> "/files/" + invocation.getArgument(0));
+        AtomicLong generatedId = new AtomicLong(800L);
+        when(mediaFiles.save(any(MediaFile.class)))
+                .thenAnswer(invocation -> invocation.<MediaFile>getArgument(0).withId(generatedId.incrementAndGet()));
+        when(publishedShorts.publish(project, 20L, 801L)).thenReturn(901L);
+
+        var result = useCase().execute();
+
+        assertThat(result.completedCount()).isEqualTo(1);
+        assertThat(export.getStatus()).isEqualTo(ExportStatus.COMPLETED);
+        verify(midiRenderer).render(track.getInstrument(), List.of(), project.getBpm(), project.getPpq(), durationMs);
+        ArgumentCaptor<List<ProjectAudioMixerPort.AudioLayer>> layers = ArgumentCaptor.captor();
+        verify(mixer).mix(layers.capture());
+        assertThat(layers.getValue()).singleElement().satisfies(layer -> {
+            assertThat(layer.timelineStartMs()).isZero();
+            assertThat(layer.durationMs()).isEqualTo(durationMs);
+        });
+    }
+
+    @Test
     void refreshingAnExistingPublicSongDoesNotAnnounceANewPublication() {
         project.publish(java.time.LocalDateTime.now(clock));
         mixesApprovedAudioAndStoresWaveAndLayerArchive();
@@ -164,6 +289,16 @@ class ProcessPendingProjectExportsUseCaseTest {
         track.approve();
         ReflectionTestUtils.setField(track, "id", id);
         return track;
+    }
+
+    private ProjectClip emptyMidiClip(Long id, int startTimeMs) {
+        ProjectClip clip = mock(ProjectClip.class);
+        when(clip.getId()).thenReturn(id);
+        when(clip.getClipType()).thenReturn(ClipType.MIDI);
+        when(clip.getMidiNotes()).thenReturn(List.of());
+        when(clip.getStartTimeMs()).thenReturn(startTimeMs);
+        when(clip.getDurationMs()).thenReturn(125L);
+        return clip;
     }
 
     private MediaFile readyAudio(Long id, String key) {

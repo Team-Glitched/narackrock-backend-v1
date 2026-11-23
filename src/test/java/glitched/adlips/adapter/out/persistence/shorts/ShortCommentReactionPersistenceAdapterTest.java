@@ -50,6 +50,11 @@ class ShortCommentReactionPersistenceAdapterTest {
     }
 
     @Test
+    void 삭제된_숏폼_소속_댓글은_락_조회에_실패한다() {
+        assertThat(adapter.lockActiveComment(303L, 202L)).isFalse();
+    }
+
+    @Test
     void 존재하지_않는_댓글은_락_조회에_실패한다() {
         assertThat(adapter.lockActiveComment(999L, 201L)).isFalse();
     }

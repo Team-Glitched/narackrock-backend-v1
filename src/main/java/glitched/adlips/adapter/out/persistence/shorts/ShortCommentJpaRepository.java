@@ -21,7 +21,7 @@ interface ShortCommentJpaRepository extends JpaRepository<ShortComment, Long> {
     Optional<ShortComment> findByIdAndShortsIdAndDeletedAtIsNull(Long id, Long shortsId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("SELECT c FROM ShortComment c WHERE c.id = :id AND c.shorts.id = :shortsId AND c.deletedAt IS NULL")
+    @Query("SELECT c FROM ShortComment c WHERE c.id = :id AND c.shorts.id = :shortsId AND c.deletedAt IS NULL AND c.shorts.deletedAt IS NULL")
     Optional<ShortComment> findActiveByIdAndShortsIdForUpdate(
             @Param("id") Long id, @Param("shortsId") Long shortsId);
 

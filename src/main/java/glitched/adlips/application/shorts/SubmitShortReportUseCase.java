@@ -30,11 +30,11 @@ public class SubmitShortReportUseCase {
     public ShortReportResult execute(Long shortId, Long reporterId, String reason, String description) {return transactionRunner.required(()->executeInternal(shortId, reporterId, reason, description));}
 
     private ShortReportResult executeInternal(Long shortId, Long reporterId, String reason, String description) {
-        if (reason == null || reason.isBlank()) {
+        String trimmedReason = glitched.adlips.domain.common.TextSanitizer.sanitizeSingleLine(reason);
+        if (trimmedReason.isEmpty()) {
             throw new ShortReportApplicationException(
                     ShortReportErrorCode.VALIDATION_ERROR, "신고 사유를 입력해 주세요.");
         }
-        String trimmedReason = reason.trim();
         if (ContentLimits.exceeds(trimmedReason, ContentLimits.REPORT_REASON_MAX_LENGTH)) {
             throw new ShortReportApplicationException(
                     ShortReportErrorCode.VALIDATION_ERROR,
@@ -68,7 +68,7 @@ public class SubmitShortReportUseCase {
         if (value == null) {
             return null;
         }
-        String trimmed = value.trim();
+        String trimmed = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(value);
         return trimmed.isEmpty() ? null : trimmed;
     }
 }

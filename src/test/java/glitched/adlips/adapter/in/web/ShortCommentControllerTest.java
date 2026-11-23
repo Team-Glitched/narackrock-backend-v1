@@ -326,7 +326,7 @@ class ShortCommentControllerTest {
     @Test
     void 댓글_좋아요_토글시_200과_결과를_반환한다() throws Exception {
         when(toggleShortCommentLikeUseCase.toggle(1L, 15L, 7721L))
-                .thenReturn(new ShortCommentLikeResult(7721L, true, 5));
+                .thenReturn(new ShortCommentLikeResult(7721L, true, false, 5, 1));
 
         mockMvc.perform(post("/api/v1/shorts/15/comments/7721/likes")
                         .header("Authorization", "Bearer " + validToken))
@@ -335,20 +335,37 @@ class ShortCommentControllerTest {
                 .andExpect(jsonPath("$.message").value("댓글 좋아요 상태가 성공적으로 반영되었습니다."))
                 .andExpect(jsonPath("$.data.commentId").value(7721))
                 .andExpect(jsonPath("$.data.isLiked").value(true))
-                .andExpect(jsonPath("$.data.likeCount").value(5));
+                .andExpect(jsonPath("$.data.isDisliked").value(false))
+                .andExpect(jsonPath("$.data.likeCount").value(5))
+                .andExpect(jsonPath("$.data.dislikeCount").value(1));
     }
 
     @Test
     void 댓글_싫어요_토글시_200과_결과를_반환한다() throws Exception {
         when(toggleShortCommentDislikeUseCase.toggle(1L, 15L, 7721L))
-                .thenReturn(new ShortCommentDislikeResult(7721L, true, 3));
+                .thenReturn(new ShortCommentDislikeResult(7721L, false, true, 2, 3));
 
         mockMvc.perform(post("/api/v1/shorts/15/comments/7721/dislikes")
                         .header("Authorization", "Bearer " + validToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.commentId").value(7721))
+                .andExpect(jsonPath("$.data.isLiked").value(false))
                 .andExpect(jsonPath("$.data.isDisliked").value(true))
+                .andExpect(jsonPath("$.data.likeCount").value(2))
                 .andExpect(jsonPath("$.data.dislikeCount").value(3));
+    }
+
+    @Test
+    void 댓글_좋아요_토글시_정지_사용자면_403을_반환한다() throws Exception {
+        when(toggleShortCommentLikeUseCase.toggle(1L, 15L, 7721L)).thenThrow(
+                new ShortCommentApplicationException(
+                        ShortCommentErrorCode.BANNED_USER_ACCESS,
+                        "현재 서비스 이용 정지 상태이므로 댓글 반응을 남길 수 없습니다."));
+
+        mockMvc.perform(post("/api/v1/shorts/15/comments/7721/likes")
+                        .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.errorCode").value("BANNED_USER_ACCESS"));
     }
 
     @Test

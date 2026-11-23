@@ -32,11 +32,12 @@ final class GalleryModerationGuard {
     }
 
     static void requireReason(String reason) {
-        if (reason == null || reason.isBlank()) {
+        String sanitized = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(reason);
+        if (sanitized.isEmpty()) {
             throw new GalleryModerationApplicationException(
                     GalleryModerationErrorCode.VALIDATION_ERROR, "삭제 사유를 입력해 주세요.");
         }
-        if (ContentLimits.exceeds(reason.trim(), ContentLimits.MODERATION_REASON_MAX_LENGTH)) {
+        if (ContentLimits.exceeds(sanitized, ContentLimits.MODERATION_REASON_MAX_LENGTH)) {
             throw new GalleryModerationApplicationException(
                     GalleryModerationErrorCode.VALIDATION_ERROR,
                     "삭제 사유는 " + ContentLimits.MODERATION_REASON_MAX_LENGTH + "자 이내로 입력해 주세요.");

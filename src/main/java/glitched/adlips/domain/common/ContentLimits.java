@@ -6,7 +6,7 @@ package glitched.adlips.domain.common;
 public final class ContentLimits {
     public static final int NICKNAME_MAX_LENGTH = 20;
     public static final int PROFILE_BIO_MAX_LENGTH = 200;
-    public static final int INSTRUMENT_MAX_LENGTH = 50;
+    public static final int INSTRUMENT_MAX_LENGTH = 250;
 
     public static final int COMMUNITY_NAME_MIN_LENGTH = 2;
     public static final int COMMUNITY_NAME_MAX_LENGTH = 20;

@@ -2,6 +2,7 @@ package glitched.adlips.application.opensource;
 
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.common.ContentLimits;
+import glitched.adlips.domain.common.TextSanitizer;
 import glitched.adlips.domain.opensource.OpenSourcePublication;
 import java.util.List;
 
@@ -16,7 +17,7 @@ public class OpenSourceQueryUseCase {
     }
     public Page<OpenSourceQueryPort.Item> list(Long userId, String keyword, int page, int size) {
         int offset = offset(userId, page, size);
-        String normalized = keyword == null ? null : keyword.strip();
+        String normalized = keyword == null ? null : TextSanitizer.sanitizeSingleLine(keyword);
         if (ContentLimits.exceeds(normalized, ContentLimits.SEARCH_QUERY_MAX_LENGTH)) throw invalid();
         String search = normalized == null || normalized.isEmpty() ? null : normalized;
         return transactions.readOnly(() -> page(page, size, query.list(userId, search, offset, size + 1)));

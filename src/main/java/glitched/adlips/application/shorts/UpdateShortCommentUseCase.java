@@ -3,6 +3,7 @@ package glitched.adlips.application.shorts;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.shorts.port.out.ShortCommentPort;
 import glitched.adlips.domain.common.ContentLimits;
+import glitched.adlips.domain.common.TextSanitizer;
 import glitched.adlips.domain.shorts.ShortComment;
 
 public class UpdateShortCommentUseCase {
@@ -16,11 +17,12 @@ public class UpdateShortCommentUseCase {
     }
 
     public Long execute(Long shortId, Long commentId, Long userId, String content) {
-        if (content == null || content.isBlank()) {
+        String normalized = TextSanitizer.sanitizeMultiline(content);
+        if (normalized.isEmpty()) {
             throw new ShortCommentApplicationException(
                     ShortCommentErrorCode.INVALID_INPUT_VALUE, "댓글 내용은 필수 입력 사항입니다.");
         }
-        if (ContentLimits.exceeds(content.trim(), ContentLimits.COMMENT_MAX_LENGTH)) {
+        if (ContentLimits.exceeds(normalized, ContentLimits.COMMENT_MAX_LENGTH)) {
             throw new ShortCommentApplicationException(
                     ShortCommentErrorCode.INVALID_INPUT_VALUE,
                     "댓글 내용은 " + ContentLimits.COMMENT_MAX_LENGTH + "자 이내로 입력해 주세요.");
@@ -36,7 +38,7 @@ public class UpdateShortCommentUseCase {
                         ShortCommentErrorCode.NOT_COMMENT_OWNER,
                         "본인이 작성한 댓글만 수정할 수 있습니다.");
             }
-            comment.updateContent(content.trim());
+            comment.updateContent(normalized);
             port.updateContent(comment);
             return commentId;
         });

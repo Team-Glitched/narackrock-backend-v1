@@ -88,6 +88,7 @@ import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
 import glitched.adlips.application.user.relation.port.out.ProfileQueryPort;
 import glitched.adlips.application.user.relation.usecase.UserSearchUseCase;
 import glitched.adlips.domain.common.ContentLimits;
+import glitched.adlips.domain.common.TextSanitizer;
 import glitched.adlips.domain.community.Gallery;
 import glitched.adlips.domain.community.GalleryActor;
 import glitched.adlips.domain.project.ContributionChangeType;
@@ -132,13 +133,13 @@ class ContentLimitsValidationTest {
         var updateUseCase = new ProfileUpdateUseCase(users, profiles, CLOCK);
         // 20 emoji code points (40 UTF-16 chars) allowed; 21 rejected
         var ok = updateUseCase.execute(new UserProfileUpdateRequest(
-                1L, "🎹".repeat(20), "a".repeat(50), "b".repeat(200)));
+                1L, "🎹".repeat(20), "a".repeat(250), "b".repeat(200)));
         assertThat(ok.nickname()).isEqualTo("🎹".repeat(20));
         assertThatThrownBy(() -> updateUseCase.execute(
                 new UserProfileUpdateRequest(1L, "🎹".repeat(21), null, null)))
                 .isInstanceOf(UserApplicationException.class);
         assertThatThrownBy(() -> updateUseCase.execute(
-                new UserProfileUpdateRequest(1L, null, "a".repeat(51), null)))
+                new UserProfileUpdateRequest(1L, null, "a".repeat(251), null)))
                 .isInstanceOf(UserApplicationException.class);
         assertThatThrownBy(() -> updateUseCase.execute(
                 new UserProfileUpdateRequest(1L, null, null, "b".repeat(201))))
@@ -320,5 +321,33 @@ class ContentLimitsValidationTest {
         assertThat(getShorts.search("   ", null, 20, null)).isEqualTo(new ShortsPage(List.of(), null, false, 20));
         assertThatThrownBy(() -> getShorts.search("k".repeat(101), null, 20, null))
                 .isInstanceOf(ShortsCompositionApplicationException.class);
+    }
+
+    @Test
+    void textSanitizerStripsInvisibleAndControlCharsWhilePreservingHangulAndEmojis() {
+        // Hangul fillers, Braille blank, zero-width & format chars, bidi controls, C0/DEL/C1 controls
+        assertThat(TextSanitizer.sanitizeSingleLine("\u3164\u115F\u1160\uFFA0\u2800")).isEmpty();
+        assertThat(TextSanitizer.sanitizeSingleLine("\u200B\u200C\u200E\u200F\u2060\uFEFF\u00AD")).isEmpty();
+        assertThat(TextSanitizer.sanitizeSingleLine("\u202A\u202E\u2066\u2069\u0000\u0007\u007F\u0085")).isEmpty();
+        assertThat(TextSanitizer.sanitizeSingleLine("\u00A0\u3000")).isEmpty();
+        assertThat(TextSanitizer.sanitizeSingleLine("\u200D\uFE0F")).isEmpty();
+
+        assertThat(TextSanitizer.hasVisibleContent("\u3164\u2800\u200B")).isFalse();
+        assertThat(TextSanitizer.hasVisibleContent("가")).isTrue();
+
+        // Single-line collapses newlines & Unicode spaces and strips invisible chars
+        assertThat(TextSanitizer.sanitizeSingleLine("안\u3164녕\u00A0하\n세요\u200B"))
+                .isEqualTo("안녕 하 세요");
+
+        // Multi-line preserves internal \n while stripping invisible chars & normalizing spaces
+        assertThat(TextSanitizer.sanitizeMultiline("\u200B첫\u3000줄\r\n둘\u3164째\u202E줄\n\u2800"))
+                .isEqualTo("첫 줄\n둘째줄");
+
+        // Positive Hangul + multi-code-point ZWJ emojis
+        String family = "\uD83D\uDC68\u200D\uD83D\uDC69\u200D\uD83D\uDC67\u200D\uD83D\uDC66";
+        String rainbowFlag = "\uD83C\uDFF3\uFE0F\u200D\uD83C\uDF08";
+        String heartOnFire = "\u2764\uFE0F\u200D\uD83D\uDD25";
+        assertThat(TextSanitizer.sanitizeSingleLine("안녕하세요 " + family + " " + rainbowFlag + " " + heartOnFire))
+                .isEqualTo("안녕하세요 " + family + " " + rainbowFlag + " " + heartOnFire);
     }
 }

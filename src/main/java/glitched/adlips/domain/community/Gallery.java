@@ -65,7 +65,7 @@ public class Gallery extends BaseCreatedEntity {
     }
 
     public static String normalizeName(String name) {
-        String trimmed = name == null ? "" : name.trim();
+        String trimmed = glitched.adlips.domain.common.TextSanitizer.sanitizeSingleLine(name);
         int length = ContentLimits.codePointLength(trimmed);
         if (length < NAME_MIN_LENGTH || length > NAME_MAX_LENGTH) {
             throw new IllegalArgumentException(
@@ -75,7 +75,7 @@ public class Gallery extends BaseCreatedEntity {
     }
 
     public static String normalizeDescription(String description) {
-        String trimmed = description == null ? "" : description.trim();
+        String trimmed = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(description);
         int length = ContentLimits.codePointLength(trimmed);
         if (trimmed.isEmpty() || length > DESCRIPTION_MAX_LENGTH) {
             throw new IllegalArgumentException("갤러리 소개는 1자 이상 " + DESCRIPTION_MAX_LENGTH + "자 이하여야 합니다.");

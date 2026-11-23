@@ -81,11 +81,12 @@ public class UserBanCreateUseCase {
                 now
         );
 
+        String sanitizedReason = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(request.banReason());
         UserBan saved = userBanRepository.save(
                 UserBan.create(
                         target,
                         admin,
-                        request.banReason(),
+                        sanitizedReason,
                         bannedUntil
                 )
         );
@@ -115,11 +116,11 @@ public class UserBanCreateUseCase {
             throw validation("차단 기간을 확인해 주세요.");
         }
 
-        if (request.banReason() == null
-                || request.banReason().isBlank()) {
+        String sanitizedReason = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(request.banReason());
+        if (sanitizedReason.isEmpty()) {
             throw validation("차단 사유를 입력해 주세요.");
         }
-        if (ContentLimits.exceeds(request.banReason().trim(), ContentLimits.MODERATION_REASON_MAX_LENGTH)) {
+        if (ContentLimits.exceeds(sanitizedReason, ContentLimits.MODERATION_REASON_MAX_LENGTH)) {
             throw validation("차단 사유는 " + ContentLimits.MODERATION_REASON_MAX_LENGTH + "자 이내로 입력해 주세요.");
         }
     }

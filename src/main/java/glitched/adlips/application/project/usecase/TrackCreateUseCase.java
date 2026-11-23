@@ -10,6 +10,7 @@ import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.domain.common.ContentLimits;
+import glitched.adlips.domain.common.TextSanitizer;
 import glitched.adlips.domain.project.Project;
 import glitched.adlips.domain.project.ProjectStatus;
 import glitched.adlips.domain.project.InstrumentFamily;
@@ -43,8 +44,9 @@ public class TrackCreateUseCase {
     }
 
     private TrackCreateResponse executeInternal(TrackCreateRequest request) {
-        if (request == null || request.name() == null || request.name().isBlank()
-                || ContentLimits.exceeds(request.name().trim(), ContentLimits.TRACK_NAME_MAX_LENGTH)
+        String sanitizedName = request == null ? "" : TextSanitizer.sanitizeSingleLine(request.name());
+        if (request == null || sanitizedName.isEmpty()
+                || ContentLimits.exceeds(sanitizedName, ContentLimits.TRACK_NAME_MAX_LENGTH)
                 || request.sortOrder() < 0) {
             throw new ProjectApplicationException(ProjectErrorCode.VALIDATION_ERROR, "트랙 이름과 순서를 확인해 주세요.");
         }
@@ -64,7 +66,7 @@ public class TrackCreateUseCase {
         }
         String instrument=InstrumentFamily.normalize(request.instrument());
         if(InstrumentFamily.of(instrument)==null) throw new ProjectApplicationException(ProjectErrorCode.VALIDATION_ERROR,"악기나 보컬 역할을 선택해 주세요.");
-        ProjectTrack saved = tracks.save(new ProjectTrack(project, user, request.name().trim(),
+        ProjectTrack saved = tracks.save(new ProjectTrack(project, user, sanitizedName,
                 instrument, request.sortOrder()));
         return new TrackCreateResponse(saved.getId(), project.getId(), saved.getName(), saved.getInstrument(),
                 null, null, saved.getVolume(), saved.getPan(), saved.getSortOrder(), saved.isMuted(),

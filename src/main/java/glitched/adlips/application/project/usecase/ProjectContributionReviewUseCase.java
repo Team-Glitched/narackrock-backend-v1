@@ -196,7 +196,9 @@ public class ProjectContributionReviewUseCase {
     }
 
     private String normalize(String value) {
-        return value == null || value.isBlank() ? null : value.trim();
+        if (value == null) return null;
+        String sanitized = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(value);
+        return sanitized.isEmpty() ? null : sanitized;
     }
 
     private ProjectApplicationException invalidItem() {

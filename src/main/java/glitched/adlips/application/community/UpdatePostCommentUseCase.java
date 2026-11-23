@@ -5,6 +5,7 @@ import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.community.port.out.GalleryBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.common.ContentLimits;
+import glitched.adlips.domain.common.TextSanitizer;
 import glitched.adlips.domain.community.PostComment;
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -46,11 +47,12 @@ public class UpdatePostCommentUseCase {
                     PostCommentErrorCode.BANNED_USER_ACCESS,
                     "현재 서비스 이용 정지 상태이므로 댓글을 수정할 수 없습니다.");
         }
-        if (content == null || content.isBlank()) {
+        String normalizedContent = TextSanitizer.sanitizeMultiline(content);
+        if (normalizedContent.isEmpty()) {
             throw new PostCommentApplicationException(
                     PostCommentErrorCode.INVALID_INPUT_VALUE, "댓글 내용은 필수 입력 사항입니다.");
         }
-        if (ContentLimits.exceeds(content.trim(), ContentLimits.COMMENT_MAX_LENGTH)) {
+        if (ContentLimits.exceeds(normalizedContent, ContentLimits.COMMENT_MAX_LENGTH)) {
             throw new PostCommentApplicationException(
                     PostCommentErrorCode.INVALID_INPUT_VALUE,
                     "댓글 내용은 " + ContentLimits.COMMENT_MAX_LENGTH + "자 이내로 입력해 주세요.");
@@ -70,7 +72,7 @@ public class UpdatePostCommentUseCase {
                 throw new PostCommentApplicationException(PostCommentErrorCode.GALLERY_RESTRICTED_USER,
                         "이 갤러리에서 이용이 제한된 상태이므로 댓글을 수정할 수 없습니다.");
             }
-            comment.updateContent(content.trim());
+            comment.updateContent(normalizedContent);
             port.update(comment);
             return commentId;
         });

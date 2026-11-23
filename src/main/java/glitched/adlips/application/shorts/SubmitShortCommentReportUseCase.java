@@ -46,11 +46,11 @@ public class SubmitShortCommentReportUseCase {
     private ShortCommentReportResult executeInternal(
             Long shortId, Long commentId, Long reporterId, String reason, String description
     ) {
-        if (reason == null || reason.isBlank()) {
+        String trimmedReason = glitched.adlips.domain.common.TextSanitizer.sanitizeSingleLine(reason);
+        if (trimmedReason.isEmpty()) {
             throw new ShortCommentApplicationException(
                     ShortCommentErrorCode.INVALID_INPUT_VALUE, "신고 사유를 입력해 주세요.");
         }
-        String trimmedReason = reason.trim();
         if (ContentLimits.exceeds(trimmedReason, ContentLimits.REPORT_REASON_MAX_LENGTH)) {
             throw new ShortCommentApplicationException(
                     ShortCommentErrorCode.INVALID_INPUT_VALUE,
@@ -85,7 +85,7 @@ public class SubmitShortCommentReportUseCase {
         if (value == null) {
             return null;
         }
-        String trimmed = value.trim();
+        String trimmed = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(value);
         return trimmed.isEmpty() ? null : trimmed;
     }
 }

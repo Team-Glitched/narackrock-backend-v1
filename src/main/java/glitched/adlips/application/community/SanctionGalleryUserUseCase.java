@@ -75,7 +75,8 @@ public class SanctionGalleryUserUseCase {
             Gallery gallery = managementPort.findGalleryForUpdate(galleryId)
                     .orElseThrow(GalleryModerationGuard::galleryNotFound);
             GalleryActor actor = GalleryModerationGuard.requireManager(authorityPort, actorId, galleryId, now);
-            GalleryBanType type = validate(typeValue, durationDays, reason);
+            String sanitizedReason = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(reason);
+            GalleryBanType type = validate(typeValue, durationDays, sanitizedReason);
 
             GalleryActor target = authorityPort.findActor(targetUserId, galleryId, now)
                     .orElseThrow(() -> new GalleryModerationApplicationException(
@@ -93,8 +94,8 @@ public class SanctionGalleryUserUseCase {
             User targetUser = userRepository.findById(targetUserId).orElseThrow();
             User actorUser = userRepository.findById(actorId).orElseThrow();
             GalleryBan ban = type == GalleryBanType.SUSPEND
-                    ? GalleryBan.suspend(gallery, targetUser, actorUser, reason, durationDays, now)
-                    : GalleryBan.expel(gallery, targetUser, actorUser, reason);
+                    ? GalleryBan.suspend(gallery, targetUser, actorUser, sanitizedReason, durationDays, now)
+                    : GalleryBan.expel(gallery, targetUser, actorUser, sanitizedReason);
             Long banId = banPort.save(ban);
             if (type == GalleryBanType.EXPEL) {
                 subscriptionPort.deleteSubscription(targetUserId, galleryId);
@@ -105,17 +106,17 @@ public class SanctionGalleryUserUseCase {
         });
     }
 
-    private static GalleryBanType validate(String typeValue, Integer durationDays, String reason) {
+    private static GalleryBanType validate(String typeValue, Integer durationDays, String sanitizedReason) {
         GalleryBanType type;
         try {
             type = GalleryBanType.valueOf(typeValue);
         } catch (IllegalArgumentException | NullPointerException e) {
             throw validationError("제재 유형은 SUSPEND 또는 EXPEL이어야 합니다.");
         }
-        if (reason == null || reason.isBlank()) {
+        if (sanitizedReason == null || sanitizedReason.isEmpty()) {
             throw validationError("제재 사유를 입력해 주세요.");
         }
-        if (ContentLimits.exceeds(reason.trim(), ContentLimits.MODERATION_REASON_MAX_LENGTH)) {
+        if (ContentLimits.exceeds(sanitizedReason, ContentLimits.MODERATION_REASON_MAX_LENGTH)) {
             throw validationError("제재 사유는 " + ContentLimits.MODERATION_REASON_MAX_LENGTH + "자 이내로 입력해 주세요.");
         }
         if (type == GalleryBanType.SUSPEND && (durationDays == null

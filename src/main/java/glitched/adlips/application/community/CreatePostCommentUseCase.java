@@ -8,6 +8,7 @@ import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.community.port.out.GalleryBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.common.ContentLimits;
+import glitched.adlips.domain.common.TextSanitizer;
 import java.time.Clock;
 import java.time.LocalDateTime;
 
@@ -60,12 +61,13 @@ public class CreatePostCommentUseCase {
                     "현재 서비스 이용 정지 상태이므로 댓글을 작성할 수 없습니다.");
         }
         boolean isReply = parentCommentId != null;
-        if (content == null || content.isBlank()) {
+        String normalizedContent = TextSanitizer.sanitizeMultiline(content);
+        if (normalizedContent.isEmpty()) {
             throw new PostCommentApplicationException(
                     PostCommentErrorCode.INVALID_INPUT_VALUE,
                     isReply ? "대댓글 내용은 필수 입력 사항입니다." : "댓글 내용은 필수 입력 사항입니다.");
         }
-        if (ContentLimits.exceeds(content.trim(), ContentLimits.COMMENT_MAX_LENGTH)) {
+        if (ContentLimits.exceeds(normalizedContent, ContentLimits.COMMENT_MAX_LENGTH)) {
             throw new PostCommentApplicationException(
                     PostCommentErrorCode.INVALID_INPUT_VALUE,
                     "댓글 내용은 " + ContentLimits.COMMENT_MAX_LENGTH + "자 이내로 입력해 주세요.");
@@ -86,7 +88,7 @@ public class CreatePostCommentUseCase {
                         PostCommentErrorCode.PARENT_COMMENT_NOT_FOUND,
                         "존재하지 않거나 삭제된 댓글에는 대댓글을 작성할 수 없습니다.");
             }
-            Long commentId = port.save(postId, userId, content.trim(), parentCommentId);
+            Long commentId = port.save(postId, userId, normalizedContent, parentCommentId);
             port.adjustPostCommentCount(postId, 1);
             if (isReply) {
                 port.adjustParentReplyCount(parentCommentId, 1);

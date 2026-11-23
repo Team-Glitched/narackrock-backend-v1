@@ -5,6 +5,7 @@ import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.community.port.out.GalleryBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.common.ContentLimits;
+import glitched.adlips.domain.common.TextSanitizer;
 import glitched.adlips.domain.community.Post;
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -51,18 +52,20 @@ public class UpdatePostUseCase {
                     PostErrorCode.BANNED_USER_ACCESS,
                     "현재 서비스 이용 정지 상태이므로 게시글을 수정할 수 없습니다.");
         }
-        if (title == null || title.isBlank()) {
+        String normalizedTitle = TextSanitizer.sanitizeSingleLine(title);
+        if (normalizedTitle.isEmpty()) {
             throw new PostApplicationException(PostErrorCode.INVALID_INPUT_VALUE, "게시글의 제목과 내용은 필수 입력 사항입니다.");
         }
-        if (ContentLimits.exceeds(title.trim(), ContentLimits.POST_TITLE_MAX_LENGTH)) {
+        if (ContentLimits.exceeds(normalizedTitle, ContentLimits.POST_TITLE_MAX_LENGTH)) {
             throw new PostApplicationException(
                     PostErrorCode.INVALID_INPUT_VALUE,
                     "게시글 제목은 " + ContentLimits.POST_TITLE_MAX_LENGTH + "자 이내로 입력해 주세요.");
         }
-        if (content == null || content.isBlank()) {
+        String normalizedContent = TextSanitizer.sanitizeMultiline(content);
+        if (normalizedContent.isEmpty()) {
             throw new PostApplicationException(PostErrorCode.INVALID_INPUT_VALUE, "게시글의 제목과 내용은 필수 입력 사항입니다.");
         }
-        if (ContentLimits.exceeds(content.trim(), ContentLimits.POST_CONTENT_MAX_LENGTH)) {
+        if (ContentLimits.exceeds(normalizedContent, ContentLimits.POST_CONTENT_MAX_LENGTH)) {
             throw new PostApplicationException(
                     PostErrorCode.INVALID_INPUT_VALUE,
                     "게시글 내용은 " + ContentLimits.POST_CONTENT_MAX_LENGTH + "자 이내로 입력해 주세요.");
@@ -80,7 +83,7 @@ public class UpdatePostUseCase {
                 throw new PostApplicationException(PostErrorCode.GALLERY_RESTRICTED_USER,
                         "이 갤러리에서 이용이 제한된 상태이므로 게시글을 수정할 수 없습니다.");
             }
-            post.updateTitleAndContent(title.trim(), content.trim());
+            post.updateTitleAndContent(normalizedTitle, normalizedContent);
             port.update(post);
             return postId;
         });

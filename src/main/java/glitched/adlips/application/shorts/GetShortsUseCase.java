@@ -5,6 +5,7 @@ import glitched.adlips.application.shorts.port.out.ShortsQueryItem;
 import glitched.adlips.application.shorts.port.out.ShortsQueryPort;
 import glitched.adlips.application.shorts.port.out.ShortReactionCountCachePort;
 import glitched.adlips.domain.common.ContentLimits;
+import glitched.adlips.domain.common.TextSanitizer;
 import glitched.adlips.domain.shorts.ShortStatus;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,7 @@ public class GetShortsUseCase {
     }
 
     public ShortsPage search(String keyword, Long cursor, int size, Long currentUserId) {
-        String term = keyword == null ? "" : keyword.strip();
+        String term = TextSanitizer.sanitizeSingleLine(keyword);
         if (ContentLimits.exceeds(term, ContentLimits.SEARCH_QUERY_MAX_LENGTH)) {
             throw new ShortsCompositionApplicationException(
                     ShortsCompositionErrorCode.INVALID_SEARCH_KEYWORD,

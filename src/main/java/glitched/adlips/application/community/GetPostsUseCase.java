@@ -4,6 +4,7 @@ import glitched.adlips.application.community.port.out.PostQueryItem;
 import glitched.adlips.application.community.port.out.PostQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.domain.common.ContentLimits;
+import glitched.adlips.domain.common.TextSanitizer;
 import java.util.List;
 
 public class GetPostsUseCase {
@@ -61,12 +62,12 @@ public class GetPostsUseCase {
         if (keyword == null) {
             return null;
         }
-        if (keyword.isBlank()) {
+        String trimmed = TextSanitizer.sanitizeSingleLine(keyword);
+        if (trimmed.isEmpty()) {
             throw new PostApplicationException(
                     PostErrorCode.INVALID_SEARCH_KEYWORD,
                     "검색어는 공백을 제외한 최소 1자 이상 입력해야 합니다.");
         }
-        String trimmed = keyword.trim();
         if (ContentLimits.exceeds(trimmed, ContentLimits.SEARCH_QUERY_MAX_LENGTH)) {
             throw new PostApplicationException(
                     PostErrorCode.INVALID_SEARCH_KEYWORD,

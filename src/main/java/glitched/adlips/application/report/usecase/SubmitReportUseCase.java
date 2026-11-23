@@ -123,13 +123,13 @@ public class SubmitReportUseCase {
     }
 
     private String requireReason(String reason) {
-        if (reason == null || reason.isBlank()) {
+        String trimmed = glitched.adlips.domain.common.TextSanitizer.sanitizeSingleLine(reason);
+        if (trimmed.isEmpty()) {
             throw new ReportSubmissionApplicationException(
                     ReportSubmissionErrorCode.VALIDATION_ERROR,
                     "신고 사유를 입력해 주세요."
             );
         }
-        String trimmed = reason.trim();
         if (ContentLimits.exceeds(trimmed, ContentLimits.REPORT_REASON_MAX_LENGTH)) {
             throw new ReportSubmissionApplicationException(
                     ReportSubmissionErrorCode.VALIDATION_ERROR,
@@ -143,7 +143,7 @@ public class SubmitReportUseCase {
         if (value == null) {
             return null;
         }
-        String normalized = value.trim();
+        String normalized = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(value);
         return normalized.isEmpty() ? null : normalized;
     }
 

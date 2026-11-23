@@ -18,6 +18,9 @@ import glitched.adlips.domain.project.ProjectMember;
 import glitched.adlips.domain.project.ProjectMemberRole;
 import glitched.adlips.domain.user.User;
 public class ProjectCreateUseCase {
+    public static final int MAX_TITLE_LENGTH = 40;
+    public static final int MAX_DESCRIPTION_LENGTH = 500;
+
     private final UserRepositoryPort userRepository;
     private final MediaFileRepositoryPort mediaFileRepository;
     private final ProjectRepositoryPort projectRepository;
@@ -49,9 +52,16 @@ public class ProjectCreateUseCase {
 
     private ProjectCreateResponse executeInternal(ProjectCreateRequest request) {
         if (request == null || request.ownerId() == null
-                || (request.albumImageFileId() != null && request.albumImageFileId() < 0)
-                || request.title() == null || request.title().isBlank()) {
+                || (request.albumImageFileId() != null && request.albumImageFileId() < 0)) {
             throw error(ProjectErrorCode.VALIDATION_ERROR, "곡 이름을 확인해 주세요.");
+        }
+        String trimmedTitle = request.title() == null ? "" : request.title().strip();
+        if (trimmedTitle.isEmpty() || trimmedTitle.codePointCount(0, trimmedTitle.length()) > MAX_TITLE_LENGTH) {
+            throw error(ProjectErrorCode.VALIDATION_ERROR, "곡 이름은 1~40자 이내로 입력해 주세요.");
+        }
+        if (request.description() != null
+                && request.description().codePointCount(0, request.description().length()) > MAX_DESCRIPTION_LENGTH) {
+            throw error(ProjectErrorCode.VALIDATION_ERROR, "곡 설명은 500자 이내로 입력해 주세요.");
         }
         User owner = userRepository.findById(request.ownerId()).filter(User::isActive)
                 .orElseThrow(() -> error(ProjectErrorCode.PROJECT_ACCESS_DENIED, "프로젝트를 생성할 권한이 없습니다."));
@@ -69,7 +79,7 @@ public class ProjectCreateUseCase {
                 throw error(ProjectErrorCode.MEDIA_FILE_NOT_READY, "앨범 이미지 파일의 업로드 처리가 완료되지 않았습니다.");
             }
         }
-        Project saved = projectRepository.save(new Project(owner, request.title().trim(), request.description(),
+        Project saved = projectRepository.save(new Project(owner, trimmedTitle, request.description(),
                 image == null ? 0L : image.getId()));
         memberRepository.save(new ProjectMember(saved, owner, ProjectMemberRole.OWNER));
         return new ProjectCreateResponse(saved.getId(), saved.getTitle(), saved.getDescription(),

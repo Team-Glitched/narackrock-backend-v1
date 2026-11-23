@@ -69,16 +69,26 @@ class ProjectTimingUpdateUseCaseTest {
     }
     @Test void slowingTempoCannotTruncateSavedClipsOrPrivateDrafts() {
         var track=new ProjectTrack(project,owner,"Piano","piano",0);
-        var clip=ProjectClip.createMidi(project,track,owner,40_000,1000,List.of(),0);
+        var clip=ProjectClip.createMidi(project,track,owner,40_000,1000,List.of(new MidiNote(60,0,480,100,null,Map.of())),0);
         when(tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of(track));
         when(clips.findByTrackIdAndIsDeletedFalseOrderByStartTickAscIdAsc(null)).thenReturn(List.of(clip));
         assertThatThrownBy(()->timing.execute(10L,1L,60,4,4)).isInstanceOf(ProjectApplicationException.class);
         assertThat(project.getBpm()).isEqualTo(120);
         when(tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of());
-        var draft=EditorDraft.create(UUID.randomUUID(),2L,10L,7L,null,new EditorDraftSnapshot(0,40_000,List.of()),null,UUID.randomUUID(),Instant.now());
+        var draft=EditorDraft.create(UUID.randomUUID(),2L,10L,7L,null,new EditorDraftSnapshot(0,40_000,List.of(new MidiNote(60,39_000,480,100,null,Map.of()))),null,UUID.randomUUID(),Instant.now());
         when(drafts.findActiveByProject(10L)).thenReturn(List.of(draft));
         assertThatThrownBy(()->timing.execute(10L,1L,60,4,4)).isInstanceOf(ProjectApplicationException.class);
         assertThat(project.getBpm()).isEqualTo(120);
+    }
+    @Test void emptyMidiAndEmptyDraftDoNotPreventSlowingTempo() {
+        var track=new ProjectTrack(project,owner,"Piano","piano",0);
+        var clip=ProjectClip.createMidi(project,track,owner,40_000,1000,List.of(),0);
+        when(tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of(track));
+        when(clips.findByTrackIdAndIsDeletedFalseOrderByStartTickAscIdAsc(null)).thenReturn(List.of(clip));
+        var draft=EditorDraft.create(UUID.randomUUID(),2L,10L,7L,null,
+                new EditorDraftSnapshot(40_000,1000,List.of()),null,UUID.randomUUID(),Instant.now());
+        when(drafts.findActiveByProject(10L)).thenReturn(List.of(draft));
+        assertThat(timing.execute(10L,1L,60,4,4).bpm()).isEqualTo(60);
     }
     @Test void publishedSongQueuesUpdatedMix() {
         project.startPublishing();project.publish(java.time.LocalDateTime.now());

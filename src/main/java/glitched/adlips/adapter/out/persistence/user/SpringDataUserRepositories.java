@@ -58,6 +58,10 @@ interface SpringDataUserRefreshTokenRepository extends JpaRepository<UserRefresh
     @Query("select token from UserRefreshToken token where token.tokenHash = :tokenHash")
     Optional<UserRefreshToken> findByTokenHashForUpdate(@Param("tokenHash") String tokenHash);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select token from UserRefreshToken token where token.id = :id")
+    Optional<UserRefreshToken> findByIdForUpdate(@Param("id") Long id);
+
     List<UserRefreshToken> findAllByUserIdAndRevokedAtIsNull(Long userId);
 }
 

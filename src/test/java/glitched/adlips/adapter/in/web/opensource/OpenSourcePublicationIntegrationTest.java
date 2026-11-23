@@ -171,6 +171,20 @@ class OpenSourcePublicationIntegrationTest {
         assertThat(call("PATCH", path(id), "{\"instrument\":\"piano\"}", other).status()).isEqualTo(404);
     }
 
+    @Test void instrumentOnlyPatchKeepsOverlongLegacyTextButNewDescriptionIsLimited() throws Exception {
+        long id = create();
+        String legacyTitle = "t".repeat(80), legacyDescription = "d".repeat(1200);
+        jdbc.update("UPDATE open_sources SET title=?, description=? WHERE id=?", legacyTitle, legacyDescription, id);
+        var changed = call("PATCH", path(id), "{\"instrument\":\"violin\"}", owner);
+        assertThat(changed.status()).as(changed.body().toString()).isEqualTo(200);
+        assertThat(changed.body().at("/data/instrument").asText()).isEqualTo("violin");
+        assertThat(changed.body().at("/data/title").asText()).isEqualTo(legacyTitle);
+        assertThat(changed.body().at("/data/description").asText()).isEqualTo(legacyDescription);
+        assertThat(call("PATCH", path(id), "{\"description\":\""+"x".repeat(501)+"\"}", owner).status()).isEqualTo(400);
+        assertThat(jdbc.queryForObject("SELECT description FROM open_sources WHERE id=?", String.class, id)).isEqualTo(legacyDescription);
+        assertThat(jdbc.queryForObject("SELECT title FROM open_sources WHERE id=?", String.class, id)).isEqualTo(legacyTitle);
+    }
+
     @Test void invalidInstrumentValuesAreRejectedBeforeCreationOrMutation() throws Exception {
         long id = create();
         for (String value : List.of("\"unknown\"", "\" \"", "123", "{}", "[]")) {

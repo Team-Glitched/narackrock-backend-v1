@@ -43,12 +43,12 @@ public class OpenSourcePublicationUseCase {
         validId(userId);
         String normalizedTitle = title(title);
         String normalizedInstrument = instrument(instrument);
-        description(description);
+        String normalizedDescription = description(description);
         return transactions.required(() -> {
             validateMedia(userId, mediaFileId, MediaFileType.AUDIO);
             if (thumbnailMediaFileId != null) validateMedia(userId, thumbnailMediaFileId, MediaFileType.IMAGE);
             var now = clock.instant();
-            return publications.save(new OpenSourcePublication(null, userId, normalizedTitle, description,
+            return publications.save(new OpenSourcePublication(null, userId, normalizedTitle, normalizedDescription,
                     mediaFileId, thumbnailMediaFileId, false, now, now, null, normalizedInstrument));
         });
     }
@@ -62,8 +62,7 @@ public class OpenSourcePublicationUseCase {
         return transactions.required(() -> {
             var current = owned(userId, id, true, false);
             String title = patch.hasTitle() ? title(patch.title()) : current.title();
-            String description = patch.hasDescription() ? patch.description() : current.description();
-            description(description);
+            String description = patch.hasDescription() ? description(patch.description()) : current.description();
             Long thumbnail = patch.hasThumbnail() ? patch.thumbnailMediaFileId() : current.thumbnailMediaFileId();
             if (patch.hasThumbnail() && thumbnail != null) validateMedia(userId, thumbnail, MediaFileType.IMAGE);
             String instrument = patch.hasInstrument() ? instrument(patch.instrument()) : current.instrument();
@@ -119,10 +118,11 @@ public class OpenSourcePublicationUseCase {
         }
         return stripped;
     }
-    private void description(String description) {
+    private String description(String description) {
         if (description != null && description.codePointCount(0, description.length()) > MAX_DESCRIPTION_LENGTH) {
             throw new OpenSourceException(INVALID_REQUEST, "샘플 설명은 500자 이내로 입력해 주세요.");
         }
+        return description;
     }
     private void validId(Long id) { if (id == null || id <= 0) throw invalid(); }
     private OpenSourceException invalid() { return new OpenSourceException(INVALID_REQUEST, "샘플 입력값이 올바르지 않습니다."); }

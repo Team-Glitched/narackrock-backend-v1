@@ -62,6 +62,16 @@ class OpenSourcePublicationUseCaseTest {
         assertCode(() -> useCase.update(1L, 10L, new OpenSourcePublicationUseCase.Patch(false,null,false,null,false,null, false, null)), "INVALID_REQUEST");
         assertCode(() -> useCase.update(1L, 10L, new OpenSourcePublicationUseCase.Patch(true,null,false,null,false,null, false, null)), "INVALID_REQUEST");
     }
+    @Test void omittedLegacyTextIsPreservedButSuppliedTextIsStillLimited() {
+        var legacy = new OpenSourcePublication(11L, 1L, "t".repeat(80), "d".repeat(1200), 20L, 30L, false, clock.instant(), clock.instant(), null, null);
+        when(publications.findOwned(11L, 1L, true)).thenReturn(Optional.of(legacy));
+        var updated = useCase.update(1L, 11L, new OpenSourcePublicationUseCase.Patch(false, null, false, null, false, null, true, "violin"));
+        assertThat(updated.instrument()).isEqualTo("violin");
+        assertThat(updated.title()).isEqualTo("t".repeat(80));
+        assertThat(updated.description()).isEqualTo("d".repeat(1200));
+        assertCode(() -> useCase.update(1L, 11L, new OpenSourcePublicationUseCase.Patch(false, null, true, "x".repeat(501), false, null, false, null)), "INVALID_REQUEST");
+        assertThat(useCase.update(1L, 11L, new OpenSourcePublicationUseCase.Patch(false, null, true, "😀".repeat(500), false, null, false, null)).description()).isEqualTo("😀".repeat(500));
+    }
     @Test void publishingRechecksMediaAndWithdrawalDoesNotRequireReadyMedia() {
         assertThat(useCase.visibility(1L, 10L, true).isPublic()).isTrue();
         var legacy = new OpenSourcePublication(11L, 1L, "t".repeat(80), "d".repeat(1200), 20L, 30L, false, clock.instant(), clock.instant(), null, null);

@@ -3,6 +3,7 @@ package glitched.adlips.adapter.out.persistence.user;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import glitched.adlips.application.user.profile.dto.response.UserProfileGetResponse;
+import glitched.adlips.application.user.profile.port.out.ProfileFeaturedShortPort.PinResult;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -46,7 +47,7 @@ class ProfileActivityQueryPersistenceAdapterTest {
     }
 
     @Test
-    void 공개된_작업물과_참가작은_대표곡으로_설정되고_비공개_미참가_삭제곡은_거부된다() {
+    void 공개된_작업물과_참가작은_최대_5개까지_대표곡으로_설정되고_비공개_미참가_삭제곡은_거부된다() {
         jdbcTemplate.update("""
                 INSERT INTO projects (
                     id, owner_id, title, album_image_file_id, bpm,
@@ -71,7 +72,9 @@ class ProfileActivityQueryPersistenceAdapterTest {
                     (34, 2, NULL, '다른 유저 곡', 101, 'COMPLETED', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP),
                     (35, 1, 11, '비공개 작업 중', 101, 'IN_PROGRESS', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP),
                     (36, 1, NULL, '프로젝트 없는 미완성', 101, 'IN_PROGRESS', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP),
-                    (37, 1, NULL, '삭제한 곡', 101, 'COMPLETED', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP)
+                    (37, 1, NULL, '삭제한 곡', 101, 'COMPLETED', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP),
+                    (38, 1, NULL, '다섯번째 곡', 101, 'COMPLETED', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP),
+                    (39, 1, NULL, '여섯번째 곡', 101, 'COMPLETED', 0, 0, 0, 0, 0, CURRENT_TIMESTAMP)
                 """);
         jdbcTemplate.update("UPDATE shorts SET deleted_at = CURRENT_TIMESTAMP WHERE id = 37");
         jdbcTemplate.update("""
@@ -81,34 +84,44 @@ class ProfileActivityQueryPersistenceAdapterTest {
                     (41, 33, 1, 'COMPOSER', CURRENT_TIMESTAMP)
                 """);
 
-        assertThat(adapter.replaceFeaturedShort(1L, 30L)).isTrue();
-        assertThat(adapter.findByUserId(1L).pinnedShorts())
-                .extracting(UserProfileGetResponse.PinnedShortActivity::shortId).containsExactly(30L);
-
         // 비공개/미연결 IN_PROGRESS, 미참여 타인 곡, 삭제곡은 거부
-        assertThat(adapter.replaceFeaturedShort(1L, 34L)).isFalse();
-        assertThat(adapter.replaceFeaturedShort(1L, 35L)).isFalse();
-        assertThat(adapter.replaceFeaturedShort(1L, 36L)).isFalse();
-        assertThat(adapter.replaceFeaturedShort(1L, 37L)).isFalse();
+        assertThat(adapter.addFeaturedShort(1L, 34L, 5)).isEqualTo(PinResult.NOT_ELIGIBLE);
+        assertThat(adapter.addFeaturedShort(1L, 35L, 5)).isEqualTo(PinResult.NOT_ELIGIBLE);
+        assertThat(adapter.addFeaturedShort(1L, 36L, 5)).isEqualTo(PinResult.NOT_ELIGIBLE);
+        assertThat(adapter.addFeaturedShort(1L, 37L, 5)).isEqualTo(PinResult.NOT_ELIGIBLE);
 
-        // 참가한 완성곡 및 공개 진행 참가곡 설정 허용
-        assertThat(adapter.replaceFeaturedShort(1L, 33L)).isTrue();
+        // 최대 5개까지 대표곡 설정 및 멱등 재설정 허용
+        assertThat(adapter.addFeaturedShort(1L, 30L, 5)).isEqualTo(PinResult.PINNED);
+        assertThat(adapter.addFeaturedShort(1L, 33L, 5)).isEqualTo(PinResult.PINNED);
+        assertThat(adapter.addFeaturedShort(1L, 32L, 5)).isEqualTo(PinResult.PINNED);
+        assertThat(adapter.addFeaturedShort(1L, 31L, 5)).isEqualTo(PinResult.PINNED);
+        assertThat(adapter.addFeaturedShort(1L, 31L, 5)).isEqualTo(PinResult.PINNED);
+        assertThat(adapter.addFeaturedShort(1L, 38L, 5)).isEqualTo(PinResult.PINNED);
         assertThat(adapter.findByUserId(1L).pinnedShorts())
-                .extracting(UserProfileGetResponse.PinnedShortActivity::shortId).containsExactly(33L);
-        assertThat(adapter.replaceFeaturedShort(1L, 32L)).isTrue();
-        assertThat(adapter.findByUserId(1L).pinnedShorts())
-                .extracting(UserProfileGetResponse.PinnedShortActivity::shortId).containsExactly(32L);
+                .extracting(UserProfileGetResponse.PinnedShortActivity::shortId)
+                .containsExactly(30L, 33L, 32L, 31L, 38L);
 
-        // 본인 공개 IN_PROGRESS 곡 설정 및 동시 재설정/비공개 전환 시 숨김
-        assertThat(adapter.replaceFeaturedShort(1L, 31L)).isTrue();
-        assertThat(adapter.replaceFeaturedShort(1L, 31L)).isTrue();
-        assertThat(adapter.findByUserId(1L).pinnedShorts())
-                .extracting(UserProfileGetResponse.PinnedShortActivity::shortId).containsExactly(31L);
+        // 6번째 추가 시도는 최대 개수 초과 반환
+        assertThat(adapter.addFeaturedShort(1L, 39L, 5)).isEqualTo(PinResult.LIMIT_EXCEEDED);
 
+        // 개별 해제 후 새 대표곡 추가 허용
+        adapter.removeFeaturedShort(1L, 33L);
+        assertThat(adapter.addFeaturedShort(1L, 39L, 5)).isEqualTo(PinResult.PINNED);
+        assertThat(adapter.findByUserId(1L).pinnedShorts())
+                .extracting(UserProfileGetResponse.PinnedShortActivity::shortId)
+                .containsExactly(30L, 32L, 31L, 38L, 39L);
+
+        // 비공개 전환 시 조회에서 제외되고 슬롯도 회수됨
         jdbcTemplate.update("UPDATE projects SET is_public = false WHERE id = 10");
-        assertThat(adapter.findByUserId(1L).pinnedShorts()).isEmpty();
+        assertThat(adapter.findByUserId(1L).pinnedShorts())
+                .extracting(UserProfileGetResponse.PinnedShortActivity::shortId)
+                .containsExactly(30L, 32L, 38L, 39L);
+        assertThat(adapter.addFeaturedShort(1L, 33L, 5)).isEqualTo(PinResult.PINNED);
+        assertThat(adapter.findByUserId(1L).pinnedShorts())
+                .extracting(UserProfileGetResponse.PinnedShortActivity::shortId)
+                .containsExactly(30L, 32L, 38L, 39L, 33L);
 
-        assertThat(adapter.replaceFeaturedShort(1L, null)).isTrue();
+        adapter.clearFeaturedShorts(1L);
         assertThat(adapter.findByUserId(1L).pinnedShorts()).isEmpty();
     }
 

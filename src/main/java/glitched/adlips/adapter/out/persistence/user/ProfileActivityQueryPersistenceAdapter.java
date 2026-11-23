@@ -3,6 +3,7 @@ package glitched.adlips.adapter.out.persistence.user;
 import glitched.adlips.application.user.profile.dto.response.UserProfileGetResponse;
 import glitched.adlips.application.user.profile.port.out.ProfileActivityQueryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileFeaturedShortPort;
+import glitched.adlips.application.user.profile.usecase.ProfileFeaturedShortUseCase;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import java.util.List;
@@ -29,13 +30,13 @@ public class ProfileActivityQueryPersistenceAdapter implements ProfileActivityQu
     }
 
     @Override
-    public boolean replaceFeaturedShort(Long userId, Long shortId) {
+    public PinResult addFeaturedShort(Long userId, Long shortId, int maxCount) {
         // Serialize edits even when the profile has no pinned songs yet.
         entityManager.createNativeQuery("SELECT id FROM users WHERE id = :userId FOR UPDATE")
                 .setParameter("userId", userId)
                 .getSingleResult();
 
-        if (shortId != null && entityManager.createNativeQuery("""
+        if (shortId == null || entityManager.createNativeQuery("""
                 SELECT s.id FROM shorts s
                  WHERE s.id = :shortId
                    AND s.deleted_at IS NULL
@@ -57,23 +58,85 @@ public class ProfileActivityQueryPersistenceAdapter implements ProfileActivityQu
                 .setParameter("shortId", shortId)
                 .setParameter("userId", userId)
                 .getResultList().isEmpty()) {
-            return false;
+            return PinResult.NOT_ELIGIBLE;
         }
 
-        entityManager.createNativeQuery("DELETE FROM profile_pinned_shorts WHERE user_id = :userId")
+        // Remove stale or no-longer-public pins so hidden items never occupy the 5-slot cap.
+        entityManager.createNativeQuery("""
+                DELETE FROM profile_pinned_shorts
+                 WHERE user_id = :userId
+                   AND shorts_id NOT IN (
+                       SELECT s.id FROM shorts s
+                        WHERE s.deleted_at IS NULL
+                          AND (s.status = 'COMPLETED'
+                               OR (s.status = 'IN_PROGRESS'
+                                   AND EXISTS (
+                                       SELECT 1 FROM projects p
+                                        WHERE p.id = s.project_id
+                                          AND p.is_public = true
+                                          AND p.deleted_at IS NULL
+                                   )))
+                   )
+                """)
                 .setParameter("userId", userId)
                 .executeUpdate();
 
-        if (shortId != null) {
-            entityManager.createNativeQuery("""
-                    INSERT INTO profile_pinned_shorts (user_id, shorts_id, display_order, created_at)
-                    VALUES (:userId, :shortId, 0, CURRENT_TIMESTAMP)
-                    """)
-                    .setParameter("userId", userId)
-                    .setParameter("shortId", shortId)
-                    .executeUpdate();
+        @SuppressWarnings("unchecked")
+        List<Object[]> current = entityManager.createNativeQuery("""
+                SELECT shorts_id, display_order
+                  FROM profile_pinned_shorts
+                 WHERE user_id = :userId
+                 ORDER BY display_order ASC, id ASC
+                """)
+                .setParameter("userId", userId)
+                .getResultList();
+
+        int nextOrder = 0;
+        for (Object[] row : current) {
+            if (longValue(row[0]).equals(shortId)) {
+                return PinResult.PINNED;
+            }
+            nextOrder = Math.max(nextOrder, intValue(row[1]) + 1);
         }
-        return true;
+
+        if (current.size() >= maxCount) {
+            return PinResult.LIMIT_EXCEEDED;
+        }
+
+        entityManager.createNativeQuery("""
+                INSERT INTO profile_pinned_shorts (user_id, shorts_id, display_order, created_at)
+                VALUES (:userId, :shortId, :displayOrder, CURRENT_TIMESTAMP)
+                """)
+                .setParameter("userId", userId)
+                .setParameter("shortId", shortId)
+                .setParameter("displayOrder", nextOrder)
+                .executeUpdate();
+        return PinResult.PINNED;
+    }
+
+    @Override
+    public void removeFeaturedShort(Long userId, Long shortId) {
+        entityManager.createNativeQuery("SELECT id FROM users WHERE id = :userId FOR UPDATE")
+                .setParameter("userId", userId)
+                .getSingleResult();
+        entityManager.createNativeQuery("""
+                DELETE FROM profile_pinned_shorts
+                 WHERE user_id = :userId
+                   AND shorts_id = :shortId
+                """)
+                .setParameter("userId", userId)
+                .setParameter("shortId", shortId)
+                .executeUpdate();
+    }
+
+    @Override
+    public void clearFeaturedShorts(Long userId) {
+        entityManager.createNativeQuery("SELECT id FROM users WHERE id = :userId FOR UPDATE")
+                .setParameter("userId", userId)
+                .getSingleResult();
+        entityManager.createNativeQuery("DELETE FROM profile_pinned_shorts WHERE user_id = :userId")
+                .setParameter("userId", userId)
+                .executeUpdate();
     }
 
     private int postCount(Long userId) {
@@ -148,7 +211,8 @@ public class ProfileActivityQueryPersistenceAdapter implements ProfileActivityQu
                             )))
                  ORDER BY ps.display_order ASC, ps.id ASC
                 """)
-                .setParameter("userId", userId);
+                .setParameter("userId", userId)
+                .setMaxResults(ProfileFeaturedShortUseCase.MAX_FEATURED_SHORTS);
         @SuppressWarnings("unchecked")
         List<Object[]> rows = query.getResultList();
         return rows.stream()

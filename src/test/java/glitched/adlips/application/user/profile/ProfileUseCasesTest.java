@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import glitched.adlips.application.user.common.UserApplicationException;
@@ -23,8 +24,10 @@ import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.profile.port.out.FileStoragePort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileActivityQueryPort;
+import glitched.adlips.application.user.profile.port.out.ProfileFeaturedShortPort;
 import glitched.adlips.application.user.profile.port.out.ProfileLinkPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
+import glitched.adlips.application.user.profile.usecase.ProfileFeaturedShortUseCase;
 import glitched.adlips.application.user.profile.usecase.ProfileGetUseCase;
 import glitched.adlips.application.user.profile.usecase.ProfileImageUpdateUseCase;
 import glitched.adlips.application.user.profile.usecase.ProfileShareUseCase;
@@ -226,6 +229,37 @@ class ProfileUseCasesTest {
 
         assertEquals(1L, result.userId());
         assertEquals("https://app.example.com/users/profiles/1", result.shareUrl());
+    }
+
+    @Test
+    void managesFeaturedMusicWithMaxFiveCapAndSingleRemoval() {
+        ProfileFeaturedShortPort port = mock(ProfileFeaturedShortPort.class);
+        ProfileFeaturedShortUseCase useCase = new ProfileFeaturedShortUseCase(port, TransactionRunner.direct());
+
+        when(port.addFeaturedShort(1L, 30L, 5)).thenReturn(ProfileFeaturedShortPort.PinResult.PINNED);
+        useCase.add(1L, 30L);
+        verify(port).addFeaturedShort(1L, 30L, 5);
+
+        when(port.addFeaturedShort(1L, 31L, 5)).thenReturn(ProfileFeaturedShortPort.PinResult.NOT_ELIGIBLE);
+        UserApplicationException notEligible = assertThrows(
+                UserApplicationException.class,
+                () -> useCase.add(1L, 31L)
+        );
+        assertEquals(UserErrorCode.VALIDATION_ERROR, notEligible.getErrorCode());
+
+        when(port.addFeaturedShort(1L, 32L, 5)).thenReturn(ProfileFeaturedShortPort.PinResult.LIMIT_EXCEEDED);
+        UserApplicationException limitExceeded = assertThrows(
+                UserApplicationException.class,
+                () -> useCase.add(1L, 32L)
+        );
+        assertEquals(UserErrorCode.VALIDATION_ERROR, limitExceeded.getErrorCode());
+        assertEquals("대표 음악은 최대 5개까지 설정할 수 있습니다.", limitExceeded.getMessage());
+
+        useCase.remove(1L, 30L);
+        verify(port).removeFeaturedShort(1L, 30L);
+
+        useCase.clear(1L);
+        verify(port).clearFeaturedShorts(1L);
     }
 
     private static final class InMemoryUsers implements UserRepositoryPort {

@@ -5,6 +5,7 @@ import static glitched.adlips.domain.notification.NotificationType.*;
 
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.media.MediaFileStatus;
 import glitched.adlips.domain.media.MediaFileType;
 import glitched.adlips.domain.opensource.OpenSourcePublication;
@@ -13,8 +14,8 @@ import glitched.adlips.domain.project.InstrumentFamily;
 import static glitched.adlips.application.opensource.OpenSourceException.Code.*;
 
 public class OpenSourcePublicationUseCase {
-    public static final int MAX_TITLE_LENGTH = 40;
-    public static final int MAX_DESCRIPTION_LENGTH = 500;
+    public static final int MAX_TITLE_LENGTH = ContentLimits.SOURCE_TITLE_MAX_LENGTH;
+    public static final int MAX_DESCRIPTION_LENGTH = ContentLimits.SOURCE_DESCRIPTION_MAX_LENGTH;
 
     private final NotificationEvents notifications;
     public record Patch(boolean hasTitle, String title, boolean hasDescription, String description,
@@ -113,13 +114,13 @@ public class OpenSourcePublicationUseCase {
     }
     private String title(String title) {
         String stripped = title == null ? "" : title.strip();
-        if (stripped.isEmpty() || stripped.codePointCount(0, stripped.length()) > MAX_TITLE_LENGTH) {
+        if (stripped.isEmpty() || ContentLimits.exceeds(stripped, MAX_TITLE_LENGTH)) {
             throw new OpenSourceException(INVALID_REQUEST, "샘플 이름은 1~40자 이내로 입력해 주세요.");
         }
         return stripped;
     }
     private String description(String description) {
-        if (description != null && description.codePointCount(0, description.length()) > MAX_DESCRIPTION_LENGTH) {
+        if (ContentLimits.exceeds(description, MAX_DESCRIPTION_LENGTH)) {
             throw new OpenSourceException(INVALID_REQUEST, "샘플 설명은 500자 이내로 입력해 주세요.");
         }
         return description;

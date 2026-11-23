@@ -3,6 +3,7 @@ package glitched.adlips.application.community;
 import glitched.adlips.application.community.port.out.PostQueryItem;
 import glitched.adlips.application.community.port.out.PostQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
+import glitched.adlips.domain.common.ContentLimits;
 import java.util.List;
 
 public class GetPostsUseCase {
@@ -65,6 +66,12 @@ public class GetPostsUseCase {
                     PostErrorCode.INVALID_SEARCH_KEYWORD,
                     "검색어는 공백을 제외한 최소 1자 이상 입력해야 합니다.");
         }
-        return keyword.trim();
+        String trimmed = keyword.trim();
+        if (ContentLimits.exceeds(trimmed, ContentLimits.SEARCH_QUERY_MAX_LENGTH)) {
+            throw new PostApplicationException(
+                    PostErrorCode.INVALID_SEARCH_KEYWORD,
+                    "검색어는 " + ContentLimits.SEARCH_QUERY_MAX_LENGTH + "자 이내로 입력해야 합니다.");
+        }
+        return trimmed;
     }
 }

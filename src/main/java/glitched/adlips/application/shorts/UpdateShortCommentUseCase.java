@@ -2,6 +2,7 @@ package glitched.adlips.application.shorts;
 
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.shorts.port.out.ShortCommentPort;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.shorts.ShortComment;
 
 public class UpdateShortCommentUseCase {
@@ -18,6 +19,11 @@ public class UpdateShortCommentUseCase {
         if (content == null || content.isBlank()) {
             throw new ShortCommentApplicationException(
                     ShortCommentErrorCode.INVALID_INPUT_VALUE, "댓글 내용은 필수 입력 사항입니다.");
+        }
+        if (ContentLimits.exceeds(content.trim(), ContentLimits.COMMENT_MAX_LENGTH)) {
+            throw new ShortCommentApplicationException(
+                    ShortCommentErrorCode.INVALID_INPUT_VALUE,
+                    "댓글 내용은 " + ContentLimits.COMMENT_MAX_LENGTH + "자 이내로 입력해 주세요.");
         }
 
         return transactionRunner.required(() -> {

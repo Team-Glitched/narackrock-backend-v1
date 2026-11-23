@@ -17,6 +17,7 @@ import glitched.adlips.application.project.dto.response.ProjectContributionCreat
 import glitched.adlips.application.project.dto.response.ProjectVersionResponse;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.project.ApprovalStatus;
 import glitched.adlips.domain.project.ContributionApprovalStatus;
 import glitched.adlips.domain.project.ContributionChangeType;
@@ -124,8 +125,13 @@ public class ProjectContributionCreateUseCase {
             baseMinor = base.minor();
         }
 
+        String description = normalize(request.description());
+        if (ContentLimits.exceeds(description, ContentLimits.CONTRIBUTION_COMMENT_MAX_LENGTH)) {
+            throw error(ProjectErrorCode.VALIDATION_ERROR,
+                    "기여 설명은 " + ContentLimits.CONTRIBUTION_COMMENT_MAX_LENGTH + "자 이내로 입력해 주세요.");
+        }
         ProjectContribution contribution = new ProjectContribution(
-                project, user, normalize(request.description()), baseMajor, baseMinor);
+                project, user, description, baseMajor, baseMinor);
         List<ProjectContributionItem> savedItems = request.items().stream()
                 .map(item -> new ProjectContributionItem(contribution, item.changeType(),
                         item.targetType(), item.targetId()))

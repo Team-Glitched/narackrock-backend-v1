@@ -7,6 +7,7 @@ import glitched.adlips.application.community.port.out.PostCommentPort;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.community.port.out.GalleryBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
+import glitched.adlips.domain.common.ContentLimits;
 import java.time.Clock;
 import java.time.LocalDateTime;
 
@@ -63,6 +64,11 @@ public class CreatePostCommentUseCase {
             throw new PostCommentApplicationException(
                     PostCommentErrorCode.INVALID_INPUT_VALUE,
                     isReply ? "대댓글 내용은 필수 입력 사항입니다." : "댓글 내용은 필수 입력 사항입니다.");
+        }
+        if (ContentLimits.exceeds(content.trim(), ContentLimits.COMMENT_MAX_LENGTH)) {
+            throw new PostCommentApplicationException(
+                    PostCommentErrorCode.INVALID_INPUT_VALUE,
+                    "댓글 내용은 " + ContentLimits.COMMENT_MAX_LENGTH + "자 이내로 입력해 주세요.");
         }
 
         return transactionRunner.required(() -> {

@@ -47,7 +47,7 @@ public class GalleryBan extends BaseCreatedEntity {
     @Column(name = "ban_type", nullable = false)
     private GalleryBanType banType;
 
-    @Column(name = "reason", nullable = false)
+    @Column(name = "reason", nullable = false, length = 500)
     private String reason;
 
     @Column(name = "banned_until")

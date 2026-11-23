@@ -14,6 +14,7 @@ public class ShortsCompositionExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handle(ShortsCompositionApplicationException e) {
         HttpStatus status = switch (e.getErrorCode()) {
             case SHORT_NOT_FOUND, PROJECT_NOT_LINKED -> HttpStatus.NOT_FOUND;
+            case INVALID_SEARCH_KEYWORD -> HttpStatus.BAD_REQUEST;
         };
         return ResponseEntity.status(status)
                 .body(ApiErrorResponse.of(e.getErrorCode().name(), e.getMessage()));

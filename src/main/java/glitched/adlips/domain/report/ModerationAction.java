@@ -48,7 +48,7 @@ public class ModerationAction extends BaseCreatedEntity {
     @Column(name = "action_type", nullable = false)
     private ModerationActionType actionType;
 
-    @Column(name = "reason")
+    @Column(name = "reason", length = 500)
     private String reason;
 
     protected ModerationAction() {

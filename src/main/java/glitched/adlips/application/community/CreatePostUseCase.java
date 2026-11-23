@@ -9,6 +9,7 @@ import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.community.port.out.GalleryBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.media.MediaFileStatus;
 import glitched.adlips.domain.media.MediaFileType;
@@ -84,8 +85,20 @@ public class CreatePostUseCase {
         if (title == null || title.isBlank()) {
             throw new PostApplicationException(PostErrorCode.VALIDATION_ERROR, "제목은 필수 입력 사항입니다.");
         }
+        String trimmedTitle = title.trim();
+        if (ContentLimits.exceeds(trimmedTitle, ContentLimits.POST_TITLE_MAX_LENGTH)) {
+            throw new PostApplicationException(
+                    PostErrorCode.VALIDATION_ERROR,
+                    "게시글 제목은 " + ContentLimits.POST_TITLE_MAX_LENGTH + "자 이내로 입력해 주세요.");
+        }
         if (content == null || content.isBlank()) {
             throw new PostApplicationException(PostErrorCode.VALIDATION_ERROR, "내용은 필수 입력 사항입니다.");
+        }
+        String trimmedContent = content.trim();
+        if (ContentLimits.exceeds(trimmedContent, ContentLimits.POST_CONTENT_MAX_LENGTH)) {
+            throw new PostApplicationException(
+                    PostErrorCode.VALIDATION_ERROR,
+                    "게시글 내용은 " + ContentLimits.POST_CONTENT_MAX_LENGTH + "자 이내로 입력해 주세요.");
         }
 
         return transactionRunner.required(() -> {

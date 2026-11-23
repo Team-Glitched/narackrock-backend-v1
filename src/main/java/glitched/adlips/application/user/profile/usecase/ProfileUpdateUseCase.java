@@ -7,6 +7,7 @@ import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
 import glitched.adlips.application.port.TransactionRunner;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.user.Profile;
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -46,6 +47,10 @@ public class ProfileUpdateUseCase {
         }
         Long userId = request.userId();
         String nickname = normalizeNickname(request.nickname());
+        validateOptionalLength(request.primaryInstrument(), ContentLimits.INSTRUMENT_MAX_LENGTH,
+                "주 악기는 " + ContentLimits.INSTRUMENT_MAX_LENGTH + "자 이내로 입력해 주세요.");
+        validateOptionalLength(request.explanation(), ContentLimits.PROFILE_BIO_MAX_LENGTH,
+                "자기소개는 " + ContentLimits.PROFILE_BIO_MAX_LENGTH + "자 이내로 입력해 주세요.");
         requireActiveUser(userId);
         Profile profile = requireProfile(userId);
         boolean nicknameChanged = nickname != null && !nickname.equals(profile.getNickname());
@@ -70,7 +75,17 @@ public class ProfileUpdateUseCase {
         if (nickname.isBlank()) {
             throw validation("닉네임이 입력되지 않았습니다.");
         }
-        return nickname.trim();
+        String trimmed = nickname.trim();
+        if (ContentLimits.exceeds(trimmed, ContentLimits.NICKNAME_MAX_LENGTH)) {
+            throw validation("닉네임은 " + ContentLimits.NICKNAME_MAX_LENGTH + "자 이내로 입력해 주세요.");
+        }
+        return trimmed;
+    }
+
+    private void validateOptionalLength(String value, int maxLength, String message) {
+        if (value != null && ContentLimits.exceeds(value.trim(), maxLength)) {
+            throw validation(message);
+        }
     }
 
     private void requireActiveUser(Long userId) {

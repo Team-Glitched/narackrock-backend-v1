@@ -34,7 +34,7 @@ public class UserBan extends BaseCreatedEntity {
     @JoinColumn(name = "admin_id", nullable = false)
     private User admin;
 
-    @Column(name = "reason", nullable = false)
+    @Column(name = "reason", nullable = false, length = 500)
     private String reason;
 
     @Column(name = "banned_until")

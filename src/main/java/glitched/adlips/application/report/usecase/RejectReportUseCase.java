@@ -6,6 +6,7 @@ import static glitched.adlips.domain.notification.NotificationType.*;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.report.port.out.ReportResolutionPort;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.report.ModerationAction;
 import glitched.adlips.domain.report.ModerationActionType;
 import glitched.adlips.domain.report.Report;
@@ -49,6 +50,11 @@ public class RejectReportUseCase {
         if (reason == null || reason.isBlank()) {
             throw new ReportResolutionApplicationException(
                     ReportResolutionErrorCode.VALIDATION_ERROR, "반려 사유를 입력해 주세요.");
+        }
+        if (ContentLimits.exceeds(reason.trim(), ContentLimits.MODERATION_REASON_MAX_LENGTH)) {
+            throw new ReportResolutionApplicationException(
+                    ReportResolutionErrorCode.VALIDATION_ERROR,
+                    "반려 사유는 " + ContentLimits.MODERATION_REASON_MAX_LENGTH + "자 이내로 입력해 주세요.");
         }
         return transactionRunner.required(() -> reject(reportId, admin, reason.trim()));
     }

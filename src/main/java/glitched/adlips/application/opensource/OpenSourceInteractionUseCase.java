@@ -5,6 +5,7 @@ import static glitched.adlips.domain.notification.NotificationType.*;
 
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.reaction.ReactionToggle;
 import glitched.adlips.domain.reaction.ReactionType;
 import java.time.Clock;
@@ -62,7 +63,7 @@ public class OpenSourceInteractionUseCase {
     }
     public Created create(Long userId, Long sourceId, String content, Long parentId) {
         writeAllowed(userId); validId(sourceId);
-        if(content==null || content.strip().isEmpty() || content.strip().codePointCount(0,content.strip().length())>1000) throw invalid();
+        if(content==null || content.strip().isEmpty() || ContentLimits.exceeds(content.strip(), ContentLimits.COMMENT_MAX_LENGTH)) throw invalid();
         String normalized=content.strip();
         return transactions.required(() -> {
             available(sourceId); parent(sourceId,parentId);
@@ -87,7 +88,7 @@ public class OpenSourceInteractionUseCase {
         writeAllowed(userId);
         validId(commentId);
         if (content == null || content.strip().isEmpty()
-                || content.strip().codePointCount(0, content.strip().length()) > 1000) {
+                || ContentLimits.exceeds(content.strip(), ContentLimits.COMMENT_MAX_LENGTH)) {
             throw invalid();
         }
         String normalized = content.strip();

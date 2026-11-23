@@ -10,7 +10,7 @@ public class OpenSourceCommentEntity {
     @Column(name="open_source_id",nullable=false) Long openSourceId;
     @Column(name="user_id",nullable=false) Long userId;
     @Column(name="parent_comment_id") Long parentCommentId;
-    @Column(nullable=false,length=1000) String content;
+    @Column(nullable=false,columnDefinition="TEXT") String content;
     @Column(name="created_at",nullable=false) Instant createdAt;
     @Column(name="deleted_at") Instant deletedAt;
     protected OpenSourceCommentEntity() {}

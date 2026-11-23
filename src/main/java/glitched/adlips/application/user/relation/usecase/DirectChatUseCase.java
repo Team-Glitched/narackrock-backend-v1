@@ -6,6 +6,7 @@ import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
 import glitched.adlips.application.user.relation.port.out.ChatMessagePort;
 import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.user.Profile;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,7 +24,8 @@ public class DirectChatUseCase {
         return transactions.required(() -> {
             requireChatAccess(senderId, recipientId);
             String message = content == null ? "" : content.trim();
-            if (message.isEmpty() || message.length() > 2000) throw new UserApplicationException(UserErrorCode.VALIDATION_ERROR, "메시지는 1~2000자로 입력해 주세요.");
+            if (message.isEmpty() || message.length() > ContentLimits.CHAT_MESSAGE_MAX_LENGTH)
+                throw new UserApplicationException(UserErrorCode.VALIDATION_ERROR, "메시지는 1~2000자로 입력해 주세요.");
             return messages.save(senderId, recipientId, message);
         });
     }

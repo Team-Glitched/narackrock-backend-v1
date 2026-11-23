@@ -15,6 +15,7 @@ import glitched.adlips.application.project.dto.response.ProjectContributionRevie
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.project.dto.response.ProjectVersionResponse;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.project.ContributionApprovalStatus;
 import glitched.adlips.domain.project.ContributionChangeType;
 import glitched.adlips.domain.project.ContributionTargetType;
@@ -102,6 +103,10 @@ public class ProjectContributionReviewUseCase {
         ProjectVersionResponse previousVersion = version(project.getMajorVersion(), project.getMinorVersion());
         LocalDateTime reviewedAt = LocalDateTime.now();
         String reviewComment = normalize(request.reviewComment());
+        if (ContentLimits.exceeds(reviewComment, ContentLimits.MODERATION_REASON_MAX_LENGTH)) {
+            throw error(ProjectErrorCode.VALIDATION_ERROR,
+                    "검토 의견은 " + ContentLimits.MODERATION_REASON_MAX_LENGTH + "자 이내로 입력해 주세요.");
+        }
         if (request.approvalStatus() == ContributionApprovalStatus.APPROVED) {
             approve(contribution, reviewer, reviewComment, reviewedAt);
             contribution.getItems().forEach(this::applyApprovedItem);

@@ -11,6 +11,7 @@ import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.domain.admin.UserBan;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.user.User;
 import glitched.adlips.domain.user.UserRole;
 import java.time.Clock;
@@ -117,6 +118,9 @@ public class UserBanCreateUseCase {
         if (request.banReason() == null
                 || request.banReason().isBlank()) {
             throw validation("차단 사유를 입력해 주세요.");
+        }
+        if (ContentLimits.exceeds(request.banReason().trim(), ContentLimits.MODERATION_REASON_MAX_LENGTH)) {
+            throw validation("차단 사유는 " + ContentLimits.MODERATION_REASON_MAX_LENGTH + "자 이내로 입력해 주세요.");
         }
     }
 

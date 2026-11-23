@@ -1,14 +1,15 @@
 package glitched.adlips.domain.community;
 
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.global.entity.BaseCreatedEntity;
 import jakarta.persistence.*;
 
 @Entity
 @Table(name = "galleries")
 public class Gallery extends BaseCreatedEntity {
-    static final int NAME_MIN_LENGTH = 2;
-    static final int NAME_MAX_LENGTH = 30;
-    static final int DESCRIPTION_MAX_LENGTH = 500;
+    static final int NAME_MIN_LENGTH = ContentLimits.COMMUNITY_NAME_MIN_LENGTH;
+    static final int NAME_MAX_LENGTH = ContentLimits.COMMUNITY_NAME_MAX_LENGTH;
+    static final int DESCRIPTION_MAX_LENGTH = ContentLimits.COMMUNITY_DESCRIPTION_MAX_LENGTH;
 
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY) @Column(name = "id")
     private Long id;
@@ -16,7 +17,7 @@ public class Gallery extends BaseCreatedEntity {
     @Column(name = "name", nullable = false)
     private String name;
 
-    @Column(name = "description")
+    @Column(name = "description", length = 500)
     private String description;
 
     @Column(name = "image_file_id")
@@ -65,16 +66,19 @@ public class Gallery extends BaseCreatedEntity {
 
     public static String normalizeName(String name) {
         String trimmed = name == null ? "" : name.trim();
-        if (trimmed.length() < NAME_MIN_LENGTH || trimmed.length() > NAME_MAX_LENGTH) {
-            throw new IllegalArgumentException("갤러리 이름은 2자 이상 30자 이하여야 합니다.");
+        int length = ContentLimits.codePointLength(trimmed);
+        if (length < NAME_MIN_LENGTH || length > NAME_MAX_LENGTH) {
+            throw new IllegalArgumentException(
+                    "갤러리 이름은 " + NAME_MIN_LENGTH + "자 이상 " + NAME_MAX_LENGTH + "자 이하여야 합니다.");
         }
         return trimmed;
     }
 
     public static String normalizeDescription(String description) {
         String trimmed = description == null ? "" : description.trim();
-        if (trimmed.isEmpty() || trimmed.length() > DESCRIPTION_MAX_LENGTH) {
-            throw new IllegalArgumentException("갤러리 소개는 1자 이상 500자 이하여야 합니다.");
+        int length = ContentLimits.codePointLength(trimmed);
+        if (trimmed.isEmpty() || length > DESCRIPTION_MAX_LENGTH) {
+            throw new IllegalArgumentException("갤러리 소개는 1자 이상 " + DESCRIPTION_MAX_LENGTH + "자 이하여야 합니다.");
         }
         return trimmed;
     }

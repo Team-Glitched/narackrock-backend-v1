@@ -9,6 +9,7 @@ import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.project.Project;
 import glitched.adlips.domain.project.ProjectStatus;
 import glitched.adlips.domain.project.InstrumentFamily;
@@ -42,7 +43,9 @@ public class TrackCreateUseCase {
     }
 
     private TrackCreateResponse executeInternal(TrackCreateRequest request) {
-        if (request == null || request.name() == null || request.name().isBlank() || request.sortOrder() < 0) {
+        if (request == null || request.name() == null || request.name().isBlank()
+                || ContentLimits.exceeds(request.name().trim(), ContentLimits.TRACK_NAME_MAX_LENGTH)
+                || request.sortOrder() < 0) {
             throw new ProjectApplicationException(ProjectErrorCode.VALIDATION_ERROR, "트랙 이름과 순서를 확인해 주세요.");
         }
         Project project = projects.findByIdAndDeletedAtIsNullForUpdate(request.projectId())

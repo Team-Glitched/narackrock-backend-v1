@@ -10,6 +10,7 @@ import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.project.dto.response.ProjectVersionResponse;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.media.MediaFileStatus;
 import glitched.adlips.domain.media.MediaFileType;
@@ -18,8 +19,8 @@ import glitched.adlips.domain.project.ProjectMember;
 import glitched.adlips.domain.project.ProjectMemberRole;
 import glitched.adlips.domain.user.User;
 public class ProjectCreateUseCase {
-    public static final int MAX_TITLE_LENGTH = 40;
-    public static final int MAX_DESCRIPTION_LENGTH = 500;
+    public static final int MAX_TITLE_LENGTH = ContentLimits.SONG_TITLE_MAX_LENGTH;
+    public static final int MAX_DESCRIPTION_LENGTH = ContentLimits.PROJECT_DESCRIPTION_MAX_LENGTH;
 
     private final UserRepositoryPort userRepository;
     private final MediaFileRepositoryPort mediaFileRepository;
@@ -56,11 +57,11 @@ public class ProjectCreateUseCase {
             throw error(ProjectErrorCode.VALIDATION_ERROR, "곡 이름을 확인해 주세요.");
         }
         String trimmedTitle = request.title() == null ? "" : request.title().strip();
-        if (trimmedTitle.isEmpty() || trimmedTitle.codePointCount(0, trimmedTitle.length()) > MAX_TITLE_LENGTH) {
+        if (trimmedTitle.isEmpty() || ContentLimits.exceeds(trimmedTitle, MAX_TITLE_LENGTH)) {
             throw error(ProjectErrorCode.VALIDATION_ERROR, "곡 이름은 1~40자 이내로 입력해 주세요.");
         }
         if (request.description() != null
-                && request.description().codePointCount(0, request.description().length()) > MAX_DESCRIPTION_LENGTH) {
+                && ContentLimits.exceeds(request.description(), MAX_DESCRIPTION_LENGTH)) {
             throw error(ProjectErrorCode.VALIDATION_ERROR, "곡 설명은 500자 이내로 입력해 주세요.");
         }
         User owner = userRepository.findById(request.ownerId()).filter(User::isActive)

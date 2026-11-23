@@ -6,6 +6,7 @@ import static glitched.adlips.domain.notification.NotificationType.*;
 import glitched.adlips.application.community.port.out.GalleryProposalPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.community.GalleryProposal;
 import glitched.adlips.domain.user.User;
 import java.time.Clock;
@@ -46,6 +47,11 @@ public class RejectGalleryProposalUseCase {
             if (reason == null || reason.isBlank()) {
                 throw new GalleryProposalApplicationException(
                         GalleryProposalErrorCode.VALIDATION_ERROR, "반려 사유를 입력해 주세요.");
+            }
+            if (ContentLimits.exceeds(reason.trim(), ContentLimits.MODERATION_REASON_MAX_LENGTH)) {
+                throw new GalleryProposalApplicationException(
+                        GalleryProposalErrorCode.VALIDATION_ERROR,
+                        "반려 사유는 " + ContentLimits.MODERATION_REASON_MAX_LENGTH + "자 이내로 입력해 주세요.");
             }
             GalleryProposal proposal = proposalPort.findByIdForUpdate(proposalId)
                     .orElseThrow(() -> new GalleryProposalApplicationException(

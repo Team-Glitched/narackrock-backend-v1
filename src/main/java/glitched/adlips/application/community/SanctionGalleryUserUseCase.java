@@ -10,6 +10,7 @@ import glitched.adlips.application.community.port.out.GalleryModerationLogPort;
 import glitched.adlips.application.community.port.out.GallerySubscriptionPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.community.Gallery;
 import glitched.adlips.domain.community.GalleryActor;
 import glitched.adlips.domain.community.GalleryBan;
@@ -113,6 +114,9 @@ public class SanctionGalleryUserUseCase {
         }
         if (reason == null || reason.isBlank()) {
             throw validationError("제재 사유를 입력해 주세요.");
+        }
+        if (ContentLimits.exceeds(reason.trim(), ContentLimits.MODERATION_REASON_MAX_LENGTH)) {
+            throw validationError("제재 사유는 " + ContentLimits.MODERATION_REASON_MAX_LENGTH + "자 이내로 입력해 주세요.");
         }
         if (type == GalleryBanType.SUSPEND && (durationDays == null
                 || durationDays < GalleryBan.MIN_SUSPEND_DAYS || durationDays > GalleryBan.MAX_SUSPEND_DAYS)) {

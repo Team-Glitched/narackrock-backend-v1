@@ -7,6 +7,7 @@ import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.port.out.PublishedShortPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.media.MediaFileStatus;
 import glitched.adlips.domain.media.MediaFileType;
@@ -40,7 +41,7 @@ public class ProjectMetadataUpdateUseCase {
             }
             String trimmedTitle = title == null ? "" : title.strip();
             if (trimmedTitle.isEmpty()
-                    || trimmedTitle.codePointCount(0, trimmedTitle.length()) > ProjectCreateUseCase.MAX_TITLE_LENGTH) {
+                    || ContentLimits.exceeds(trimmedTitle, ContentLimits.SONG_TITLE_MAX_LENGTH)) {
                 throw error(ProjectErrorCode.VALIDATION_ERROR, "곡 이름은 1~40자 이내로 입력해 주세요.");
             }
             var project = projects.findByIdAndDeletedAtIsNullForUpdate(projectId)

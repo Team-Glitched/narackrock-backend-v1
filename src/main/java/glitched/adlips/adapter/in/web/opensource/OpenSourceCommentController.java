@@ -25,7 +25,7 @@ import org.springframework.web.bind.annotation.RestController;
 @SecurityRequirement(name = "bearerAuth")
 public class OpenSourceCommentController {
     public record UpdateCommentRequest(
-            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minLength = 1, maxLength = 1000) String content) {}
+            @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minLength = 1, maxLength = 3000) String content) {}
 
     public record UpdatedComment(Long commentId) {}
 

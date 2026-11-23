@@ -4,6 +4,7 @@ import glitched.adlips.application.community.port.out.PostPort;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.community.port.out.GalleryBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.community.Post;
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -53,8 +54,18 @@ public class UpdatePostUseCase {
         if (title == null || title.isBlank()) {
             throw new PostApplicationException(PostErrorCode.INVALID_INPUT_VALUE, "게시글의 제목과 내용은 필수 입력 사항입니다.");
         }
+        if (ContentLimits.exceeds(title.trim(), ContentLimits.POST_TITLE_MAX_LENGTH)) {
+            throw new PostApplicationException(
+                    PostErrorCode.INVALID_INPUT_VALUE,
+                    "게시글 제목은 " + ContentLimits.POST_TITLE_MAX_LENGTH + "자 이내로 입력해 주세요.");
+        }
         if (content == null || content.isBlank()) {
             throw new PostApplicationException(PostErrorCode.INVALID_INPUT_VALUE, "게시글의 제목과 내용은 필수 입력 사항입니다.");
+        }
+        if (ContentLimits.exceeds(content.trim(), ContentLimits.POST_CONTENT_MAX_LENGTH)) {
+            throw new PostApplicationException(
+                    PostErrorCode.INVALID_INPUT_VALUE,
+                    "게시글 내용은 " + ContentLimits.POST_CONTENT_MAX_LENGTH + "자 이내로 입력해 주세요.");
         }
 
         return transactionRunner.required(() -> {

@@ -5,6 +5,7 @@ import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort
 import glitched.adlips.domain.media.*;
 import glitched.adlips.domain.opensource.OpenSourcePublication;
 import java.time.*;
+import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.*;
 import static org.assertj.core.api.Assertions.*;
@@ -94,6 +95,27 @@ class OpenSourcePublicationUseCaseTest {
         assertThat(useCase.delete(1L, 10L).deletedAt()).isEqualTo(deleted.deletedAt());
         assertCode(() -> useCase.get(1L, 10L), "OPEN_SOURCE_NOT_FOUND");
         assertCode(() -> useCase.visibility(1L, 10L, true), "OPEN_SOURCE_NOT_FOUND");
+    }
+    @Test void optionalMidiNotesAreValidatedAndSerializedOnCreation() {
+        var note = new OpenSourcePublicationUseCase.MidiNoteData(60, 0, 480, 100);
+        var created = useCase.create(1L, "midi riff", "desc", 20L, 30L, "piano", List.of(note), null, 120);
+        assertThat(created.hasMidiNotes()).isTrue();
+        assertThat(created.midiPpq()).isEqualTo(480);
+        assertThat(created.midiBpm()).isEqualTo(120);
+        assertThat(created.midiNotesJson()).contains("\"pitch\":60", "\"startTick\":0", "\"durationTick\":480", "\"velocity\":100");
+
+        var audioOnly = useCase.create(1L, "audio riff", "desc", 20L, null, "piano");
+        assertThat(audioOnly.hasMidiNotes()).isFalse();
+        assertThat(audioOnly.midiNotesJson()).isNull();
+
+        assertCode(() -> useCase.create(1L, "x", null, 20L, null, null, List.of(), 480, 120), "INVALID_REQUEST");
+        assertCode(() -> useCase.create(1L, "x", null, 20L, null, null, null, 480, 120), "INVALID_REQUEST");
+        assertCode(() -> useCase.create(1L, "x", null, 20L, null, null,
+                List.of(new OpenSourcePublicationUseCase.MidiNoteData(128, 0, 480, 100)), 480, 120), "INVALID_REQUEST");
+        assertCode(() -> useCase.create(1L, "x", null, 20L, null, null,
+                List.of(new OpenSourcePublicationUseCase.MidiNoteData(60, 0, 0, 100)), 480, 120), "INVALID_REQUEST");
+        assertCode(() -> useCase.create(1L, "x", null, 20L, null, null,
+                List.of(note), 480, 29), "INVALID_REQUEST");
     }
     static MediaFile file(long id, long owner, MediaFileType type, MediaFileStatus status) {
         return MediaFile.restore(id, owner, "http://local/file", "private/key", "test", type, "audio/wav", 100, status);

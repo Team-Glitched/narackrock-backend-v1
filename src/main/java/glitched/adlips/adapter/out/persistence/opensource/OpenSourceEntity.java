@@ -31,6 +31,12 @@ public class OpenSourceEntity {
     private Instant createdAt;
     @Column(name = "updated_at")
     private Instant updatedAt;
+    @Column(name = "midi_notes", columnDefinition = "TEXT")
+    private String midiNotesJson;
+    @Column(name = "midi_ppq")
+    private Integer midiPpq;
+    @Column(name = "midi_bpm")
+    private Integer midiBpm;
 
     protected OpenSourceEntity() {}
 
@@ -45,10 +51,14 @@ public class OpenSourceEntity {
         createdAt = source.createdAt();
         updatedAt = source.updatedAt();
         deletedAt = source.deletedAt();
+        midiNotesJson = source.midiNotesJson();
+        midiPpq = source.midiPpq();
+        midiBpm = source.midiBpm();
     }
 
     OpenSourcePublication toDomain() {
         return new OpenSourcePublication(id, ownerId, title, description, mediaFileId,
-                thumbnailMediaFileId, isPublic, createdAt, updatedAt, deletedAt, instrument);
+                thumbnailMediaFileId, isPublic, createdAt, updatedAt, deletedAt, instrument,
+                midiNotesJson, midiPpq, midiBpm);
     }
 }

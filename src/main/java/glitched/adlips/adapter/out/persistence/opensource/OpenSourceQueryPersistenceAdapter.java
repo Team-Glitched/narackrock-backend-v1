@@ -31,6 +31,7 @@ public class OpenSourceQueryPersistenceAdapter implements OpenSourceQueryPort {
             +"AND pt.is_deleted = false AND pt.approval_status <> 'REJECTED' AND pr.deleted_at IS NULL) AS usage_count, "
             +"""
             s.id, s.title, s.description, s.owner_id, s.created_at, s.instrument,
+                   CASE WHEN s.midi_notes IS NOT NULL AND s.midi_notes <> '' THEN true ELSE false END AS has_midi_notes,
                    thumb.file_url AS thumbnail_url, COALESCE(p.nickname, '사용자') AS nickname,
                    avatar.file_url AS profile_image_url,
                    EXISTS (SELECT 1 FROM open_source_saves saved
@@ -63,7 +64,7 @@ public class OpenSourceQueryPersistenceAdapter implements OpenSourceQueryPort {
         }
         return jdbc.query(SELECT + " WHERE " + PUBLIC + search
                         + " ORDER BY s.created_at DESC, s.id DESC LIMIT :limit OFFSET :offset",
-                parameters, (rs, row) -> item(rs));
+                parameters, (rs, row) -> item(rs, false));
     }
 
     @Override
@@ -73,13 +74,16 @@ public class OpenSourceQueryPersistenceAdapter implements OpenSourceQueryPort {
         return jdbc.query(SELECT + " WHERE " + PUBLIC
                         + " ORDER BY (" + score + ") DESC, s.id DESC LIMIT :limit",
                 Map.of("viewer", viewerId, "limit", limit, "likeWeight", LIKE_WEIGHT),
-                (rs, row) -> item(rs));
+                (rs, row) -> item(rs, false));
     }
 
     @Override
     public Optional<Item> detail(Long viewerId, Long openSourceId) {
-        return jdbc.query(SELECT + " WHERE " + PUBLIC + " AND s.id = :id",
-                Map.of("viewer", viewerId, "id", openSourceId), (rs, row) -> item(rs)).stream().findFirst();
+        String detailSelect = SELECT.replaceFirst(
+                "(?s)FROM open_sources s",
+                ", s.midi_notes, s.midi_ppq, s.midi_bpm FROM open_sources s");
+        return jdbc.query(detailSelect + " WHERE " + PUBLIC + " AND s.id = :id",
+                Map.of("viewer", viewerId, "id", openSourceId), (rs, row) -> item(rs, true)).stream().findFirst();
     }
 
     @Override
@@ -89,7 +93,7 @@ public class OpenSourceQueryPersistenceAdapter implements OpenSourceQueryPort {
                 + " WHERE b.user_id = :viewer ORDER BY b.saved_at DESC, b.open_source_id DESC LIMIT :limit OFFSET :offset";
         return jdbc.query(sql, parameters(viewerId, offset, limit), (rs, row) ->
                 new SavedItem(rs.getLong("saved_source_id"), instant(rs, "saved_at"),
-                        rs.getObject("id") == null ? null : item(rs)));
+                        rs.getObject("id") == null ? null : item(rs, false)));
     }
 
     @Override
@@ -99,17 +103,22 @@ public class OpenSourceQueryPersistenceAdapter implements OpenSourceQueryPort {
                 parameters(ownerId, offset, limit), (rs, row) -> new OpenSourcePublication(
                         rs.getLong("id"), rs.getLong("owner_id"), rs.getString("title"), rs.getString("description"),
                         rs.getLong("media_file_id"), rs.getObject("thumbnail_media_file_id", Long.class), rs.getBoolean("is_public"),
-                        instant(rs, "created_at"), instant(rs, "updated_at"), null, rs.getString("instrument")));
+                        instant(rs, "created_at"), instant(rs, "updated_at"), null, rs.getString("instrument"),
+                        rs.getString("midi_notes"), rs.getObject("midi_ppq", Integer.class), rs.getObject("midi_bpm", Integer.class)));
     }
 
     private MapSqlParameterSource parameters(Long viewerId, int offset, int limit) {
         return new MapSqlParameterSource("viewer", viewerId).addValue("offset", offset).addValue("limit", limit);
     }
-    private Item item(ResultSet rs) throws SQLException {
+    private Item item(ResultSet rs, boolean includeMidiData) throws SQLException {
         return new Item(rs.getLong("id"), rs.getString("title"), rs.getString("description"), rs.getString("thumbnail_url"),
                 new Writer(rs.getLong("owner_id"), rs.getString("nickname"), rs.getString("profile_image_url")),
                 rs.getBoolean("is_saved"), instant(rs, "created_at"), rs.getBoolean("can_preview"), rs.getBoolean("is_liked"), rs.getBoolean("is_disliked"),
-                rs.getLong("like_count"), rs.getLong("dislike_count"), rs.getLong("comment_count"), rs.getLong("usage_count"), rs.getString("instrument"));
+                rs.getLong("like_count"), rs.getLong("dislike_count"), rs.getLong("comment_count"), rs.getLong("usage_count"), rs.getString("instrument"),
+                rs.getBoolean("has_midi_notes"),
+                includeMidiData ? rs.getString("midi_notes") : null,
+                includeMidiData ? rs.getObject("midi_ppq", Integer.class) : null,
+                includeMidiData ? rs.getObject("midi_bpm", Integer.class) : null);
     }
     private Instant instant(ResultSet rs, String name) throws SQLException {
         return rs.getTimestamp(name).toInstant();

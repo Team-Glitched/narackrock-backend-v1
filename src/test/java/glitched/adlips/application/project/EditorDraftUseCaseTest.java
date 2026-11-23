@@ -85,6 +85,16 @@ class EditorDraftUseCaseTest {
                 && clip.getDurationTick() == 120 && clip.getMidiNotes().isEmpty()));
     }
 
+    @Test void committingEmptyContentNearTheEndCapsThePlaceholderInsteadOfMovingIt() {
+        var id = UUID.randomUUID();
+        int startTick = (int) project.getMaxTick() - 60;
+        useCase.save(10L, 20L, id, 1L, new EditorDraftSaveRequest(0, UUID.randomUUID(), null,
+                new EditorDraftSnapshot(startTick, 30, List.of()), null));
+        useCase.commit(10L, id, 1L, 1);
+        verify(clips).save(argThat(clip -> clip.getStartTick() == startTick
+                && clip.getDurationTick() == 60 && clip.getMidiNotes().isEmpty()));
+    }
+
     @Test void autosaveDoesNotCreateClipsOrIncrementTheProjectVersion() {
         int minor = project.getMinorVersion();
         var result = save(UUID.randomUUID(), 0, null, null);

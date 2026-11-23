@@ -225,7 +225,10 @@ public class ProcessPendingProjectExportsUseCase {
         }
         for (ProjectClip clip : approvedClips) {
             if (clip.getClipType() == ClipType.MIDI) {
-                long renderDurationMs = clip.getDurationMs();
+                // Note-free MIDI is an editing placeholder; tempo changes may leave it beyond the export limit.
+                if (clip.getMidiNotes().isEmpty()) continue;
+                // A short clip can floor to 0 ms after a tempo increase; the renderer needs a positive span.
+                long renderDurationMs = Math.max(1, clip.getDurationMs());
                 if (isDrumTrack(track.getInstrument())) {
                     long noteEndMs = clip.getMidiNotes().stream().mapToLong(note -> {
                         long startMs = Math.round(note.startTick() * 60_000d
@@ -233,7 +236,7 @@ public class ProcessPendingProjectExportsUseCase {
                         long durationMs = Math.round(note.durationTick() * 60_000d
                                 / (claimed.bpm() * (long) claimed.ppq()));
                         return startMs + Math.max(durationMs, 1_500);
-                    }).max().orElse(renderDurationMs);
+                    }).max().getAsLong();
                     renderDurationMs = Math.min(claimed.maxDurationMs() - clip.getStartTimeMs(), noteEndMs);
                 }
                 byte[] rendered = midiRenderer.render(track.getInstrument(), clip.getMidiNotes(),

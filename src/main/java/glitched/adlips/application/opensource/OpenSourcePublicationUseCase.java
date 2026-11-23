@@ -9,6 +9,7 @@ import glitched.adlips.domain.media.MediaFileStatus;
 import glitched.adlips.domain.media.MediaFileType;
 import glitched.adlips.domain.opensource.OpenSourcePublication;
 import java.time.Clock;
+import glitched.adlips.domain.project.InstrumentFamily;
 import static glitched.adlips.application.opensource.OpenSourceException.Code.*;
 
 public class OpenSourcePublicationUseCase {
@@ -17,7 +18,7 @@ public class OpenSourcePublicationUseCase {
 
     private final NotificationEvents notifications;
     public record Patch(boolean hasTitle, String title, boolean hasDescription, String description,
-                        boolean hasThumbnail, Long thumbnailMediaFileId) {}
+                        boolean hasThumbnail, Long thumbnailMediaFileId, boolean hasInstrument, String instrument) {}
     private final OpenSourcePublicationPort publications;
     private final MediaFileRepositoryPort media;
     private final TransactionRunner transactions;
@@ -38,16 +39,17 @@ public class OpenSourcePublicationUseCase {
         this.notifications = notifications;
     }
 
-    public OpenSourcePublication create(Long userId, String title, String description, Long mediaFileId, Long thumbnailMediaFileId) {
+    public OpenSourcePublication create(Long userId, String title, String description, Long mediaFileId, Long thumbnailMediaFileId, String instrument) {
         validId(userId);
         String normalizedTitle = title(title);
-        description(description);
+        String normalizedInstrument = instrument(instrument);
+        String normalizedDescription = description(description);
         return transactions.required(() -> {
             validateMedia(userId, mediaFileId, MediaFileType.AUDIO);
             if (thumbnailMediaFileId != null) validateMedia(userId, thumbnailMediaFileId, MediaFileType.IMAGE);
             var now = clock.instant();
-            return publications.save(new OpenSourcePublication(null, userId, normalizedTitle, description,
-                    mediaFileId, thumbnailMediaFileId, false, now, now, null));
+            return publications.save(new OpenSourcePublication(null, userId, normalizedTitle, normalizedDescription,
+                    mediaFileId, thumbnailMediaFileId, false, now, now, null, normalizedInstrument));
         });
     }
 
@@ -56,15 +58,15 @@ public class OpenSourcePublicationUseCase {
     }
 
     public OpenSourcePublication update(Long userId, Long id, Patch patch) {
-        if (patch == null || !(patch.hasTitle() || patch.hasDescription() || patch.hasThumbnail())) throw invalid();
+        if (patch == null || !(patch.hasTitle() || patch.hasDescription() || patch.hasThumbnail() || patch.hasInstrument())) throw invalid();
         return transactions.required(() -> {
             var current = owned(userId, id, true, false);
             String title = patch.hasTitle() ? title(patch.title()) : current.title();
-            String description = patch.hasDescription() ? patch.description() : current.description();
-            description(description);
+            String description = patch.hasDescription() ? description(patch.description()) : current.description();
             Long thumbnail = patch.hasThumbnail() ? patch.thumbnailMediaFileId() : current.thumbnailMediaFileId();
             if (patch.hasThumbnail() && thumbnail != null) validateMedia(userId, thumbnail, MediaFileType.IMAGE);
-            return publications.save(current.edit(title, description, thumbnail, clock.instant()));
+            String instrument = patch.hasInstrument() ? instrument(patch.instrument()) : current.instrument();
+            return publications.save(current.edit(title, description, thumbnail, instrument, clock.instant()));
         });
     }
 
@@ -103,6 +105,12 @@ public class OpenSourcePublicationUseCase {
         if (file.getStatus() != MediaFileStatus.READY) throw new OpenSourceException(MEDIA_FILE_NOT_READY, "업로드가 완료되지 않은 미디어입니다.");
         if (file.getFileType() != type) throw invalid();
     }
+    private String instrument(String value) {
+        if (value == null) return null;
+        String normalized = InstrumentFamily.normalize(value);
+        if (InstrumentFamily.of(normalized) == null) throw invalid();
+        return normalized;
+    }
     private String title(String title) {
         String stripped = title == null ? "" : title.strip();
         if (stripped.isEmpty() || stripped.codePointCount(0, stripped.length()) > MAX_TITLE_LENGTH) {
@@ -110,10 +118,11 @@ public class OpenSourcePublicationUseCase {
         }
         return stripped;
     }
-    private void description(String description) {
+    private String description(String description) {
         if (description != null && description.codePointCount(0, description.length()) > MAX_DESCRIPTION_LENGTH) {
             throw new OpenSourceException(INVALID_REQUEST, "샘플 설명은 500자 이내로 입력해 주세요.");
         }
+        return description;
     }
     private void validId(Long id) { if (id == null || id <= 0) throw invalid(); }
     private OpenSourceException invalid() { return new OpenSourceException(INVALID_REQUEST, "샘플 입력값이 올바르지 않습니다."); }

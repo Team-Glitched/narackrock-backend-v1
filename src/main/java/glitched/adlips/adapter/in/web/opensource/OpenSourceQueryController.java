@@ -21,12 +21,12 @@ public class OpenSourceQueryController {
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public record Summary(Long openSourceId, String title, String description, String thumbnailUrl, Writer writer,
             Long usageCount, boolean canPreview, boolean isSaved, boolean isLiked, boolean isDisliked,
-            long likeCount, long dislikeCount, long commentCount, Instant createdAt) {
+            long likeCount, long dislikeCount, long commentCount, Instant createdAt, String instrument) {
         static Summary from(OpenSourceQueryPort.Item item) {
             var writer = item.writer();
             return new Summary(item.openSourceId(), item.title(), item.description(), item.thumbnailUrl(),
                     new Writer(writer.userId(), writer.nickname(), writer.profileImageUrl()),
-                    item.usageCount(), item.canPreview(), item.isSaved(), item.isLiked(), item.isDisliked(), item.likeCount(), item.dislikeCount(), item.commentCount(), item.createdAt());
+                    item.usageCount(), item.canPreview(), item.isSaved(), item.isLiked(), item.isDisliked(), item.likeCount(), item.dislikeCount(), item.commentCount(), item.createdAt(), item.instrument());
         }
     }
     @JsonInclude(JsonInclude.Include.ALWAYS)

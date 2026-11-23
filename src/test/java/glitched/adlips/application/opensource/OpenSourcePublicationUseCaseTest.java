@@ -18,7 +18,7 @@ class OpenSourcePublicationUseCaseTest {
     OpenSourcePublication source;
 
     @BeforeEach void setup() {
-        source = new OpenSourcePublication(10L, 1L, "title", "description", 20L, 30L, false, clock.instant(), clock.instant(), null);
+        source = new OpenSourcePublication(10L, 1L, "title", "description", 20L, 30L, false, clock.instant(), clock.instant(), null, null);
         when(publications.findOwned(10L, 1L, true)).thenReturn(Optional.of(source));
         when(publications.findOwned(10L, 1L, false)).thenReturn(Optional.of(source));
         when(publications.save(any())).thenAnswer(call -> call.getArgument(0));
@@ -26,32 +26,32 @@ class OpenSourcePublicationUseCaseTest {
         when(media.findById(30L)).thenReturn(Optional.of(file(30L, 1L, MediaFileType.IMAGE, MediaFileStatus.READY)));
     }
     @Test void registrationIsPrivateAndTrimsTitle() {
-        var result = useCase.create(1L, " title ", "desc", 20L, 30L);
+        var result = useCase.create(1L, " title ", "desc", 20L, 30L, null);
         assertThat(result.isPublic()).isFalse();
         assertThat(result.title()).isEqualTo("title");
         assertThat(result.ownerId()).isEqualTo(1L);
     }
     @Test void foreignMediaIsNotFound() {
         when(media.findById(20L)).thenReturn(Optional.of(file(20L, 2L, MediaFileType.AUDIO, MediaFileStatus.READY)));
-        assertCode(() -> useCase.create(1L, "title", null, 20L, null), "MEDIA_FILE_NOT_FOUND");
+        assertCode(() -> useCase.create(1L, "title", null, 20L, null, null), "MEDIA_FILE_NOT_FOUND");
         verify(publications, never()).save(any());
     }
     @Test void unfinishedAndWrongTypeMediaAreRejected() {
         when(media.findById(20L)).thenReturn(Optional.of(file(20L, 1L, MediaFileType.AUDIO, MediaFileStatus.UPLOADING)));
-        assertCode(() -> useCase.create(1L, "title", null, 20L, null), "MEDIA_FILE_NOT_READY");
+        assertCode(() -> useCase.create(1L, "title", null, 20L, null, null), "MEDIA_FILE_NOT_READY");
         when(media.findById(20L)).thenReturn(Optional.of(file(20L, 1L, MediaFileType.IMAGE, MediaFileStatus.READY)));
-        assertCode(() -> useCase.create(1L, "title", null, 20L, null), "INVALID_REQUEST");
+        assertCode(() -> useCase.create(1L, "title", null, 20L, null, null), "INVALID_REQUEST");
     }
     @Test void invalidMetadataIsRejected() {
-        assertCode(() -> useCase.create(1L, " ", null, 20L, null), "INVALID_REQUEST");
-        assertCode(() -> useCase.create(1L, "x".repeat(41), null, 20L, null), "INVALID_REQUEST");
-        assertCode(() -> useCase.create(1L, "title", "x".repeat(501), 20L, null), "INVALID_REQUEST");
-        var boundary = useCase.create(1L, "x".repeat(40), "d".repeat(500), 20L, null);
+        assertCode(() -> useCase.create(1L, " ", null, 20L, null, null), "INVALID_REQUEST");
+        assertCode(() -> useCase.create(1L, "x".repeat(41), null, 20L, null, null), "INVALID_REQUEST");
+        assertCode(() -> useCase.create(1L, "title", "x".repeat(501), 20L, null, null), "INVALID_REQUEST");
+        var boundary = useCase.create(1L, "x".repeat(40), "d".repeat(500), 20L, null, null);
         assertThat(boundary.title()).hasSize(40);
         assertThat(boundary.description()).hasSize(500);
     }
     @Test void omittedFieldsArePreservedAndExplicitNullClearsOptionalFields() {
-        var patch = new OpenSourcePublicationUseCase.Patch(false, null, true, null, true, null);
+        var patch = new OpenSourcePublicationUseCase.Patch(false, null, true, null, true, null, false, null);
         var updated = useCase.update(1L, 10L, patch);
         assertThat(updated.title()).isEqualTo("title");
         assertThat(updated.description()).isNull();
@@ -59,12 +59,22 @@ class OpenSourcePublicationUseCaseTest {
         assertThat(updated.mediaFileId()).isEqualTo(20L);
     }
     @Test void emptyPatchAndNullTitleAreRejected() {
-        assertCode(() -> useCase.update(1L, 10L, new OpenSourcePublicationUseCase.Patch(false,null,false,null,false,null)), "INVALID_REQUEST");
-        assertCode(() -> useCase.update(1L, 10L, new OpenSourcePublicationUseCase.Patch(true,null,false,null,false,null)), "INVALID_REQUEST");
+        assertCode(() -> useCase.update(1L, 10L, new OpenSourcePublicationUseCase.Patch(false,null,false,null,false,null, false, null)), "INVALID_REQUEST");
+        assertCode(() -> useCase.update(1L, 10L, new OpenSourcePublicationUseCase.Patch(true,null,false,null,false,null, false, null)), "INVALID_REQUEST");
+    }
+    @Test void omittedLegacyTextIsPreservedButSuppliedTextIsStillLimited() {
+        var legacy = new OpenSourcePublication(11L, 1L, "t".repeat(80), "d".repeat(1200), 20L, 30L, false, clock.instant(), clock.instant(), null, null);
+        when(publications.findOwned(11L, 1L, true)).thenReturn(Optional.of(legacy));
+        var updated = useCase.update(1L, 11L, new OpenSourcePublicationUseCase.Patch(false, null, false, null, false, null, true, "violin"));
+        assertThat(updated.instrument()).isEqualTo("violin");
+        assertThat(updated.title()).isEqualTo("t".repeat(80));
+        assertThat(updated.description()).isEqualTo("d".repeat(1200));
+        assertCode(() -> useCase.update(1L, 11L, new OpenSourcePublicationUseCase.Patch(false, null, true, "x".repeat(501), false, null, false, null)), "INVALID_REQUEST");
+        assertThat(useCase.update(1L, 11L, new OpenSourcePublicationUseCase.Patch(false, null, true, "😀".repeat(500), false, null, false, null)).description()).isEqualTo("😀".repeat(500));
     }
     @Test void publishingRechecksMediaAndWithdrawalDoesNotRequireReadyMedia() {
         assertThat(useCase.visibility(1L, 10L, true).isPublic()).isTrue();
-        var legacy = new OpenSourcePublication(11L, 1L, "t".repeat(80), "d".repeat(1200), 20L, 30L, false, clock.instant(), clock.instant(), null);
+        var legacy = new OpenSourcePublication(11L, 1L, "t".repeat(80), "d".repeat(1200), 20L, 30L, false, clock.instant(), clock.instant(), null, null);
         when(publications.findOwned(11L, 1L, true)).thenReturn(Optional.of(legacy));
         assertThat(useCase.visibility(1L, 11L, true).isPublic()).isTrue();
         when(media.findById(20L)).thenReturn(Optional.empty());

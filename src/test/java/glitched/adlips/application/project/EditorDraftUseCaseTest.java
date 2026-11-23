@@ -63,6 +63,28 @@ class EditorDraftUseCaseTest {
                 new EditorDraftSaveRequest(revision, UUID.randomUUID(), clipId, content, base));
     }
 
+    @Test void oldEmptyDraftCanBeSavedAndCommittedAfterTempoChange() {
+        var id = UUID.randomUUID();
+        var empty = new EditorDraftSnapshot(40_000, 1000, List.of());
+        useCase.save(10L, 20L, id, 1L,
+                new EditorDraftSaveRequest(0, UUID.randomUUID(), null, empty, null));
+        project.updateTiming(60, 4, 4);
+        useCase.save(10L, 20L, id, 1L,
+                new EditorDraftSaveRequest(1, UUID.randomUUID(), null, empty, null));
+        useCase.commit(10L, id, 1L, 2);
+        verify(clips).save(argThat(clip -> clip.getStartTick() == 0
+                && clip.getDurationTick() == 120 && clip.getMidiNotes().isEmpty()));
+    }
+
+    @Test void committingEmptyContentPreservesItsPositionWhenWithinTheTimeline() {
+        var id = UUID.randomUUID();
+        useCase.save(10L, 20L, id, 1L, new EditorDraftSaveRequest(0, UUID.randomUUID(), null,
+                new EditorDraftSnapshot(960, 10_000, List.of()), null));
+        useCase.commit(10L, id, 1L, 1);
+        verify(clips).save(argThat(clip -> clip.getStartTick() == 960
+                && clip.getDurationTick() == 120 && clip.getMidiNotes().isEmpty()));
+    }
+
     @Test void autosaveDoesNotCreateClipsOrIncrementTheProjectVersion() {
         int minor = project.getMinorVersion();
         var result = save(UUID.randomUUID(), 0, null, null);

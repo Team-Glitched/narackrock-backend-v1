@@ -92,7 +92,14 @@ public class EditorDraftUseCase {
             draft.requireRevision(expectedRevision);
             validateTrack(project, draft.trackId(), userId);
             draft.content().validateMaxTick(project.getMaxTick());
+            // Old empty drafts can retain a range outside the new BPM's timeline.
             var content = draft.content();
+            if (content.midiNotes().isEmpty()) {
+                long placeholder = Math.max(1, (project.getPpq() + 3) / 4);
+                int startTick = placeholder <= project.getMaxTick() - content.startTick()
+                        ? content.startTick() : 0;
+                content = new EditorDraftSnapshot(startTick, placeholder, List.of());
+            }
             var notes = content.midiNotes().stream().map(n -> new MidiNoteRequest(n.pitch(), n.startTick(),
                     n.durationTick(), n.velocity(), n.effectType(), n.effectParams())).toList();
             Long clipId = draft.targetClipId();

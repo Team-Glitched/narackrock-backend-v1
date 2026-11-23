@@ -11,6 +11,7 @@ import static org.mockito.Mockito.when;
 import glitched.adlips.application.opensource.OpenSourceMediaPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.project.dto.request.OpenSourceClipCreateRequest;
+import glitched.adlips.application.project.dto.request.OpenSourceTrackCreateRequest;
 import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
@@ -81,6 +82,30 @@ class OpenSourceClipCreateUseCaseTest {
         assertThat(response.durationMs()).isEqualTo(project.tickToMilliseconds(1920));
         assertThat(response.clipOffsetMs()).isZero();
         assertThat(track.getMediaFileId()).isNull();
+        verify(clips).save(any(ProjectClip.class));
+    }
+
+    @Test
+    void createsDedicatedSampleTrackAtBottomEvenWhenCallerAlreadyHasALayer() {
+        when(openSources.findAvailable(55L)).thenReturn(
+                Optional.of(new OpenSourceMediaPort.Source(sourceOwnerId, 777L, "펑키\u200B 드럼 샘플", "DRUM")));
+        when(tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(10L)).thenReturn(List.of(track));
+        when(tracks.save(any(ProjectTrack.class))).thenAnswer(invocation -> {
+            ProjectTrack saved = invocation.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", 88L);
+            return saved;
+        });
+
+        var response = useCase.createTrack(new OpenSourceTrackCreateRequest(10L, 1L, 55L, 240, 960));
+
+        assertThat(response.trackId()).isEqualTo(88L);
+        assertThat(response.sourceType()).isEqualTo(ClipSourceType.IMPORTED);
+        verify(tracks).save(org.mockito.ArgumentMatchers.argThat(saved ->
+                saved.isSampleTrack()
+                        && Long.valueOf(55L).equals(saved.getOriginOpenSourceId())
+                        && saved.getSortOrder() == 1
+                        && "펑키 드럼 샘플".equals(saved.getName())
+                        && "drum-kit".equals(saved.getInstrument())));
         verify(clips).save(any(ProjectClip.class));
     }
 

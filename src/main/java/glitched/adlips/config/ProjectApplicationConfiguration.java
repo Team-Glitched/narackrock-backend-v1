@@ -233,9 +233,11 @@ public class ProjectApplicationConfiguration {
             MediaFileRepositoryPort mediaFiles,
             ProfileRepositoryPort profiles,
             ProjectContributionRepositoryPort contributions,
-            TransactionRunner transactionRunner
+            TransactionRunner transactionRunner,
+            OpenSourceMediaPort openSources
     ) {
-        return new TrackGetListUseCase(projects, members, tracks, clips, mediaFiles, profiles, contributions, transactionRunner);
+        return new TrackGetListUseCase(projects, members, tracks, clips, mediaFiles, profiles, contributions,
+                transactionRunner, openSources);
     }
 
     @Bean

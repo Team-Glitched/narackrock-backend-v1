@@ -60,7 +60,7 @@ class TrackCreateUseCaseTest {
         when(members.findByProjectIdAndUserId(10L, 1L))
                 .thenReturn(Optional.of(new ProjectMember(project, owner, ProjectMemberRole.OWNER)));
         when(users.findById(1L)).thenReturn(Optional.of(owner));
-        when(tracks.existsByProjectIdAndOwnerIdAndIsDeletedFalse(10L, 1L)).thenReturn(true);
+        when(tracks.existsByProjectIdAndOwnerIdAndOriginOpenSourceIdIsNullAndIsDeletedFalse(10L, 1L)).thenReturn(true);
 
         assertThatThrownBy(() -> new TrackCreateUseCase(projects, members, tracks, users)
                 .execute(new TrackCreateRequest(10L, 1L, "두 번째 레이어", "PIANO", 1)))

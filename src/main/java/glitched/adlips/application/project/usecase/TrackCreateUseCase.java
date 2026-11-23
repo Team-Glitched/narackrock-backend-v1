@@ -57,7 +57,8 @@ public class TrackCreateUseCase {
                 .orElseThrow(() -> new ProjectApplicationException(ProjectErrorCode.PROJECT_ACCESS_DENIED, "트랙을 생성할 권한이 없습니다."));
         User user = users.findById(request.userId()).filter(User::isActive)
                 .orElseThrow(() -> new ProjectApplicationException(ProjectErrorCode.PROJECT_ACCESS_DENIED, "트랙을 생성할 권한이 없습니다."));
-        if (tracks.existsByProjectIdAndOwnerIdAndIsDeletedFalse(request.projectId(), request.userId())) {
+        if (tracks.existsByProjectIdAndOwnerIdAndOriginOpenSourceIdIsNullAndIsDeletedFalse(
+                request.projectId(), request.userId())) {
             throw new ProjectApplicationException(ProjectErrorCode.TRACK_LIMIT_EXCEEDED,
                     "한 곡에는 사용자당 하나의 레이어만 만들 수 있습니다.");
         }

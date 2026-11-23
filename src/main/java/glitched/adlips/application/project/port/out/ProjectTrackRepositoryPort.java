@@ -16,5 +16,7 @@ public interface ProjectTrackRepositoryPort {
 
     boolean existsByProjectIdAndOwnerIdAndIsDeletedFalse(Long projectId, Long ownerId);
 
+    boolean existsByProjectIdAndOwnerIdAndOriginOpenSourceIdIsNullAndIsDeletedFalse(Long projectId, Long ownerId);
+
     ProjectTrack save(ProjectTrack track);
 }

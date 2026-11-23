@@ -1,5 +1,6 @@
 package glitched.adlips.application.project.usecase;
 
+import glitched.adlips.application.opensource.OpenSourceMediaPort;
 import glitched.adlips.application.project.ProjectApplicationException;
 import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.dto.request.TrackGetListRequest;
@@ -18,6 +19,7 @@ import glitched.adlips.domain.project.ProjectContribution;
 import glitched.adlips.domain.project.ApprovalStatus;
 import glitched.adlips.domain.project.ContributionChangeType;
 import glitched.adlips.domain.project.ContributionTargetType;
+import java.util.Comparator;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.ArrayList;
@@ -31,23 +33,33 @@ public class TrackGetListUseCase {
     private final MediaFileRepositoryPort mediaFiles;
     private final ProfileRepositoryPort profiles;
     private final ProjectContributionRepositoryPort contributions;
+    private final OpenSourceMediaPort openSources;
     private final TransactionRunner transactionRunner;
 
     public TrackGetListUseCase(ProjectRepositoryPort projects, ProjectMemberRepositoryPort members,
                                ProjectTrackRepositoryPort tracks, ProjectClipRepositoryPort clips,
                                MediaFileRepositoryPort mediaFiles, ProfileRepositoryPort profiles,
                                ProjectContributionRepositoryPort contributions) {
-        this(projects, members, tracks, clips, mediaFiles, profiles, contributions, TransactionRunner.direct());
+        this(projects, members, tracks, clips, mediaFiles, profiles, contributions, TransactionRunner.direct(), null);
     }
 
     public TrackGetListUseCase(ProjectRepositoryPort projects, ProjectMemberRepositoryPort members,
                                ProjectTrackRepositoryPort tracks, ProjectClipRepositoryPort clips,
                                MediaFileRepositoryPort mediaFiles, ProfileRepositoryPort profiles,
                                ProjectContributionRepositoryPort contributions, TransactionRunner transactionRunner) {
+        this(projects, members, tracks, clips, mediaFiles, profiles, contributions, transactionRunner, null);
+    }
+
+    public TrackGetListUseCase(ProjectRepositoryPort projects, ProjectMemberRepositoryPort members,
+                               ProjectTrackRepositoryPort tracks, ProjectClipRepositoryPort clips,
+                               MediaFileRepositoryPort mediaFiles, ProfileRepositoryPort profiles,
+                               ProjectContributionRepositoryPort contributions, TransactionRunner transactionRunner,
+                               OpenSourceMediaPort openSources) {
         this.projects = projects; this.members = members; this.tracks = tracks;
         this.clips = clips; this.mediaFiles = mediaFiles; this.profiles = profiles;
         this.contributions = contributions;
         this.transactionRunner = transactionRunner;
+        this.openSources = openSources;
     }
 
     public TrackGetListResponse execute(TrackGetListRequest request) {
@@ -88,7 +100,11 @@ public class TrackGetListUseCase {
                 project.getStatus(), project.isPublic());
         var ownerIdentities = new HashMap<Long, OwnerIdentity>();
         var summaries = new ArrayList<TrackGetListResponse.TrackSummary>();
-        for (var track : tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(request.projectId())) {
+        var orderedTracks = tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(request.projectId())
+                .stream()
+                .sorted(Comparator.comparing(track -> track.getOriginOpenSourceId() != null))
+                .toList();
+        for (var track : orderedTracks) {
             Long ownerId = track.getOwner().getId();
             boolean approvedTrack = track.getApprovalStatus() == ApprovalStatus.APPROVED;
             boolean ownWorking = working && editable && ownerId.equals(request.userId())
@@ -111,14 +127,19 @@ public class TrackGetListUseCase {
                             clip.getStartTimeMs(), clip.getDurationMs(), clip.getClipOffsetMs(),
                             clip.getApprovalStatus(), clip.getMidiNotes(), clip.getAudioAnalysis()))
                     .toList();
-            var ownerIdentity = ownerIdentities.computeIfAbsent(ownerId, id ->
+            Long originOpenSourceId = track.getOriginOpenSourceId();
+            Long displayUserId = (originOpenSourceId != null && openSources != null)
+                    ? openSources.findOwnerId(originOpenSourceId).orElse(ownerId)
+                    : ownerId;
+            var ownerIdentity = ownerIdentities.computeIfAbsent(displayUserId, id ->
                     profiles.findByUserId(id)
                             .map(profile -> new OwnerIdentity(profile.getNickname(), url(profile.getProfileImageFileId())))
                             .orElseGet(() -> new OwnerIdentity("사용자", null)));
             summaries.add(new TrackGetListResponse.TrackSummary(track.getId(), ownerId,
                     track.getName(), track.getInstrument(), track.getMediaFileId(), url(track.getMediaFileId()),
                     track.getVolume(), track.getPan(), track.getSortOrder(), track.isMuted(), track.isSolo(),
-                    track.getApprovalStatus(), clipSummaries, ownerIdentity.profileImageUrl(), ownerIdentity.nickname()));
+                    track.getApprovalStatus(), clipSummaries, ownerIdentity.profileImageUrl(), ownerIdentity.nickname(),
+                    originOpenSourceId));
         }
         return new TrackGetListResponse(permission, projectSummary, List.copyOf(summaries));
     }

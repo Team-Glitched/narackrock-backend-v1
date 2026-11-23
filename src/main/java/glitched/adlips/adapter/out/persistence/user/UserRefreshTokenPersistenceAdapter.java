@@ -20,6 +20,11 @@ public class UserRefreshTokenPersistenceAdapter implements UserRefreshTokenRepos
     }
 
     @Override
+    public Optional<UserRefreshToken> findByIdForUpdate(Long id) {
+        return repository.findByIdForUpdate(id);
+    }
+
+    @Override
     public List<UserRefreshToken> findActiveByUserId(Long userId) {
         return repository.findAllByUserIdAndRevokedAtIsNull(userId);
     }

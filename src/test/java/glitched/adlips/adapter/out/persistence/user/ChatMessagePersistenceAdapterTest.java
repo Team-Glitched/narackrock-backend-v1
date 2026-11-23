@@ -3,6 +3,7 @@ package glitched.adlips.adapter.out.persistence.user;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import glitched.adlips.application.user.relation.port.out.ChatMessagePort.UnreadBySender;
+import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -49,5 +50,28 @@ class ChatMessagePersistenceAdapterTest {
         assertThat(adapter.unreadBySender(1L)).containsExactlyInAnyOrder(
                 new UnreadBySender(2L, 1), new UnreadBySender(3L, 1));
         assertThat(adapter.unreadBySender(2L)).containsExactly(new UnreadBySender(1L, 1));
+    }
+
+    @Test
+    void editUpdatesContentAndSoftDeleteClearsContentAndUnreadCount() {
+        var adapter = new ChatMessagePersistenceAdapter(repository);
+        var saved = adapter.save(2L, 1L, "initial");
+        assertThat(adapter.unreadBySender(1L)).containsExactly(new UnreadBySender(2L, 1));
+
+        LocalDateTime editTime = LocalDateTime.of(2026, 11, 24, 1, 5);
+        var edited = adapter.updateContent(saved.id(), "edited text", editTime);
+        assertThat(edited.content()).isEqualTo("edited text");
+        assertThat(edited.editedAt()).isEqualTo(editTime);
+        assertThat(edited.deleted()).isFalse();
+
+        LocalDateTime deleteTime = LocalDateTime.of(2026, 11, 24, 1, 10);
+        var deleted = adapter.softDelete(saved.id(), deleteTime);
+        assertThat(deleted.deleted()).isTrue();
+        assertThat(deleted.content()).isEmpty();
+        assertThat(adapter.unreadBySender(1L)).isEmpty();
+        assertThat(adapter.findById(saved.id())).get().satisfies(found -> {
+            assertThat(found.deleted()).isTrue();
+            assertThat(found.content()).isEmpty();
+        });
     }
 }

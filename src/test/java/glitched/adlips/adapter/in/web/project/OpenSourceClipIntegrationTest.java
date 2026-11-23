@@ -44,7 +44,8 @@ class OpenSourceClipIntegrationTest {
         jdbc.update("INSERT INTO open_sources(id,owner_id,title,description,instrument,media_file_id,is_public,created_at,updated_at,deleted_at) VALUES"
                 + "(97201,97001,'공개 리프','riff','drum-kit',97101,true,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL),"
                 + "(97202,97001,'비공개 리프','riff','drum-kit',97101,false,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL),"
-                + "(97203,97001,'삭제된 리프','riff','drum-kit',97101,true,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+                + "(97203,97001,'삭제된 리프','riff','drum-kit',97101,true,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),"
+                + "(97204,97001,'공개 베이스','bass','electric-bass',97101,true,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL)");
         jdbc.update("INSERT INTO projects(id,owner_id,title,album_image_file_id,bpm,time_signature_numerator,time_signature_denominator,ppq,max_duration_ms,major_version,minor_version,status,is_public,created_at,updated_at) VALUES(97301,97002,'곡',97999,120,4,4,480,60000,1,1,'IN_PROGRESS',true,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
         jdbc.update("INSERT INTO project_members(id,project_id,user_id,role,joined_at) VALUES(97351,97301,97002,'OWNER',CURRENT_TIMESTAMP),(97352,97301,97003,'EDITOR',CURRENT_TIMESTAMP),(97353,97301,97004,'EDITOR',CURRENT_TIMESTAMP)");
         jdbc.update("INSERT INTO project_tracks(id,project_id,owner_id,name,instrument,volume,pan,sort_order,is_muted,is_solo,approval_status,is_deleted,created_at,updated_at) VALUES"
@@ -106,14 +107,21 @@ class OpenSourceClipIntegrationTest {
     }
 
     @Test void createsDedicatedBottomSampleTracksWithoutBlockingRegularLayerCreation() throws Exception {
-        // User 97004 first imports two open-source samples as standalone bottom tracks.
+        // User 97004 first imports sample 97201 as a standalone bottom track.
         var sampleOne = call("POST", "/api/v1/projects/97301/tracks/source",
                 "{\"openSourceId\":97201,\"startTick\":0,\"durationTick\":960}", 97004L);
         assertThat(sampleOne.status()).isEqualTo(201);
         long sampleTrackOne = sampleOne.body().at("/data/trackId").asLong();
 
-        var sampleTwo = call("POST", "/api/v1/projects/97301/tracks/source",
+        // Adding the exact same sample 97201 a second time is rejected (at most 1 per project).
+        var duplicate = call("POST", "/api/v1/projects/97301/tracks/source",
                 "{\"openSourceId\":97201,\"startTick\":480,\"durationTick\":960}", 97004L);
+        assertThat(duplicate.status()).isEqualTo(409);
+        assertThat(duplicate.body().at("/errorCode").asText()).isEqualTo("TRACK_LIMIT_EXCEEDED");
+
+        // Adding a different sample 97204 succeeds and creates another bottom track.
+        var sampleTwo = call("POST", "/api/v1/projects/97301/tracks/source",
+                "{\"openSourceId\":97204,\"startTick\":480,\"durationTick\":960}", 97004L);
         assertThat(sampleTwo.status()).isEqualTo(201);
         long sampleTrackTwo = sampleTwo.body().at("/data/trackId").asLong();
         assertThat(sampleTrackTwo).isNotEqualTo(sampleTrackOne);
@@ -136,7 +144,7 @@ class OpenSourceClipIntegrationTest {
         assertThat(listed.get(1).at("/ownerId").asLong()).isEqualTo(97004L);
         assertThat(listed.get(1).at("/ownerNickname").asText()).isEqualTo("샘플원작자");
         assertThat(listed.get(2).at("/trackId").asLong()).isEqualTo(sampleTrackTwo);
-        assertThat(listed.get(2).at("/originOpenSourceId").asLong()).isEqualTo(97201L);
+        assertThat(listed.get(2).at("/originOpenSourceId").asLong()).isEqualTo(97204L);
     }
 
     @Test void rejectsAnotherMembersLayerAndCompletedProject() throws Exception {

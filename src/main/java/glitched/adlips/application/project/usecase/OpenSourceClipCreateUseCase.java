@@ -20,12 +20,14 @@ import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.common.TextSanitizer;
 import glitched.adlips.domain.media.MediaFileStatus;
 import glitched.adlips.domain.media.MediaFileType;
+import glitched.adlips.domain.project.ApprovalStatus;
 import glitched.adlips.domain.project.ClipSourceType;
 import glitched.adlips.domain.project.InstrumentFamily;
 import glitched.adlips.domain.project.ProjectClip;
 import glitched.adlips.domain.project.ProjectMemberRole;
 import glitched.adlips.domain.project.ProjectStatus;
 import glitched.adlips.domain.project.ProjectTrack;
+import java.util.Objects;
 
 /** Places a public open source's audio on the caller's own layer; the media stays owned by the source owner. */
 public class OpenSourceClipCreateUseCase {
@@ -94,8 +96,16 @@ public class OpenSourceClipCreateUseCase {
                         && file.getFileType() == MediaFileType.AUDIO
                         && file.getStatus() == MediaFileStatus.READY)
                 .orElseThrow(() -> error(ProjectErrorCode.MEDIA_FILE_NOT_READY, "음원이 준비되지 않았습니다."));
-        int nextSortOrder = tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(request.projectId())
-                .stream()
+        var existingTracks = tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(request.projectId());
+        boolean alreadyAdded = existingTracks.stream().anyMatch(existing ->
+                Objects.equals(existing.getOriginOpenSourceId(), request.openSourceId())
+                        && (existing.getApprovalStatus() == ApprovalStatus.APPROVED
+                            || (existing.getOwner().getId().equals(request.userId())
+                                && existing.getApprovalStatus() != ApprovalStatus.REJECTED)));
+        if (alreadyAdded) {
+            throw error(ProjectErrorCode.TRACK_LIMIT_EXCEEDED, "이미 이 곡에 추가된 샘플입니다.");
+        }
+        int nextSortOrder = existingTracks.stream()
                 .mapToInt(ProjectTrack::getSortOrder)
                 .max()
                 .orElse(-1) + 1;

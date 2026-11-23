@@ -110,6 +110,22 @@ class OpenSourceClipCreateUseCaseTest {
     }
 
     @Test
+    void rejectsDuplicateOpenSourceSampleInSameProject() {
+        var existingSampleTrack = new ProjectTrack(project, caller, "펑키 드럼", "drum-kit", 1, 55L);
+        when(openSources.findAvailable(55L)).thenReturn(
+                Optional.of(new OpenSourceMediaPort.Source(sourceOwnerId, 777L, "펑키 드럼", "drum-kit")));
+        when(tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(10L))
+                .thenReturn(List.of(track, existingSampleTrack));
+
+        assertThatThrownBy(() -> useCase.createTrack(new OpenSourceTrackCreateRequest(10L, 1L, 55L, 0, 960)))
+                .isInstanceOf(ProjectApplicationException.class)
+                .extracting("errorCode")
+                .isEqualTo(ProjectErrorCode.TRACK_LIMIT_EXCEEDED);
+        verify(tracks, never()).save(any(ProjectTrack.class));
+        verify(clips, never()).save(any(ProjectClip.class));
+    }
+
+    @Test
     void rejectsAnotherMembersLayer() {
         track = new ProjectTrack(project, other, "Piano", "PIANO", 1);
         when(tracks.findTrackByIdAndIsDeletedFalse(21L)).thenReturn(Optional.of(track));

@@ -164,6 +164,8 @@ public class ProcessPendingProjectExportsUseCase {
         List<AudioLayer> audioLayers = new ArrayList<>();
         List<Layer> archiveLayers = new ArrayList<>();
         Map<Long, StoredAudio> sourceCache = new HashMap<>();
+        ProjectTrack silentTrack = null;
+        long silentEndMs = 0;
 
         for (ProjectTrack track : approvedTracks) {
             List<ProjectClip> approvedClips = transactionRunner.readOnly(() ->
@@ -173,10 +175,21 @@ public class ProcessPendingProjectExportsUseCase {
             if (track.isMuted() || (hasSoloTrack && !track.isSolo())) {
                 continue;
             }
-            addAudioLayers(claimed, track, approvedClips, audioLayers, sourceCache);
+            long emptyMidiEndMs = addAudioLayers(claimed, track, approvedClips, audioLayers, sourceCache);
+            if (emptyMidiEndMs > silentEndMs) {
+                silentTrack = track;
+                silentEndMs = emptyMidiEndMs;
+            }
         }
         if (archiveLayers.isEmpty()) {
             throw new IllegalStateException("압축할 승인된 프로젝트 레이어가 없습니다.");
+        }
+        if (audioLayers.isEmpty() && silentTrack != null) {
+            // Only note-free MIDI is active: publish its silence, bounded by the export limit.
+            byte[] silence = midiRenderer.render(silentTrack.getInstrument(), List.of(),
+                    claimed.bpm(), claimed.ppq(), silentEndMs);
+            audioLayers.add(new AudioLayer(silence, 0, 0, silentEndMs,
+                    silentTrack.getVolume(), silentTrack.getPan()));
         }
         if (audioLayers.isEmpty()) {
             throw new IllegalStateException("믹싱할 활성 오디오 레이어가 없습니다.");
@@ -208,7 +221,8 @@ public class ProcessPendingProjectExportsUseCase {
         }
     }
 
-    private void addAudioLayers(
+    /** Returns the export-bounded end of skipped note-free MIDI clips, or 0 when there are none. */
+    private long addAudioLayers(
             ClaimedExport claimed,
             ProjectTrack track,
             List<ProjectClip> approvedClips,
@@ -221,12 +235,18 @@ public class ProcessPendingProjectExportsUseCase {
             audioLayers.add(new AudioLayer(
                     renderedTrack.content(), 0, 0, claimed.maxDurationMs(),
                     track.getVolume(), track.getPan()));
-            return;
+            return 0;
         }
+        long emptyMidiEndMs = 0;
         for (ProjectClip clip : approvedClips) {
             if (clip.getClipType() == ClipType.MIDI) {
                 // Note-free MIDI is an editing placeholder; tempo changes may leave it beyond the export limit.
-                if (clip.getMidiNotes().isEmpty()) continue;
+                if (clip.getMidiNotes().isEmpty()) {
+                    long endMs = Math.min(claimed.maxDurationMs(),
+                            (long) clip.getStartTimeMs() + clip.getDurationMs());
+                    emptyMidiEndMs = Math.max(emptyMidiEndMs, Math.max(1, endMs));
+                    continue;
+                }
                 // A short clip can floor to 0 ms after a tempo increase; the renderer needs a positive span.
                 long renderDurationMs = Math.max(1, clip.getDurationMs());
                 if (isDrumTrack(track.getInstrument())) {
@@ -249,6 +269,7 @@ public class ProcessPendingProjectExportsUseCase {
                         clip.getDurationMs(), track.getVolume(), track.getPan()));
             }
         }
+        return emptyMidiEndMs;
     }
 
     private boolean isDrumTrack(String instrument) {

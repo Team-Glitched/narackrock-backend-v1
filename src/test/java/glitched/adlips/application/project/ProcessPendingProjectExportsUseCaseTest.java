@@ -221,6 +221,56 @@ class ProcessPendingProjectExportsUseCaseTest {
     }
 
     @Test
+    void publishesSilenceWhenNoteFreeMidiIsTheOnlyActiveInput() {
+        ProjectTrack piano = approvedTrack(13L, "piano");
+        ProjectClip empty = ProjectClip.createMidi(project, piano, owner, 0, 120, List.of(), 0);
+        empty.approve();
+        ReflectionTestUtils.setField(empty, "id", 26L);
+        when(tracks.findByProjectIdAndApprovalStatusAndIsDeletedFalse(10L, ApprovalStatus.APPROVED))
+                .thenReturn(List.of(piano));
+        when(clips.findByTrackIdAndApprovalStatusAndIsDeletedFalseOrderByStartTickAscIdAsc(
+                13L, ApprovalStatus.APPROVED)).thenReturn(List.of(empty));
+
+        assertSilentMix(piano, 125);
+    }
+
+    @Test
+    void boundsSilenceOfNoteFreeMidiLeftBeyondTheExportLimit() {
+        ProjectTrack piano = approvedTrack(13L, "piano");
+        ProjectClip late = emptyMidiClip(24L, 83_333);
+        when(tracks.findByProjectIdAndApprovalStatusAndIsDeletedFalse(10L, ApprovalStatus.APPROVED))
+                .thenReturn(List.of(piano));
+        when(clips.findByTrackIdAndApprovalStatusAndIsDeletedFalseOrderByStartTickAscIdAsc(
+                13L, ApprovalStatus.APPROVED)).thenReturn(List.of(late));
+
+        assertSilentMix(piano, 60_000);
+    }
+
+    private void assertSilentMix(ProjectTrack track, long durationMs) {
+        when(midiRenderer.render(track.getInstrument(), List.of(), project.getBpm(), project.getPpq(), durationMs))
+                .thenReturn(new byte[]{0});
+        when(mixer.mix(any())).thenReturn(new ProjectAudioMixerPort.MixedAudio(new byte[]{4, 5}, (int) durationMs));
+        when(archiver.archive(any())).thenReturn(new byte[]{6});
+        when(storage.publicUrl(any())).thenAnswer(invocation -> "/files/" + invocation.getArgument(0));
+        AtomicLong generatedId = new AtomicLong(800L);
+        when(mediaFiles.save(any(MediaFile.class)))
+                .thenAnswer(invocation -> invocation.<MediaFile>getArgument(0).withId(generatedId.incrementAndGet()));
+        when(publishedShorts.publish(project, 20L, 801L)).thenReturn(901L);
+
+        var result = useCase().execute();
+
+        assertThat(result.completedCount()).isEqualTo(1);
+        assertThat(export.getStatus()).isEqualTo(ExportStatus.COMPLETED);
+        verify(midiRenderer).render(track.getInstrument(), List.of(), project.getBpm(), project.getPpq(), durationMs);
+        ArgumentCaptor<List<ProjectAudioMixerPort.AudioLayer>> layers = ArgumentCaptor.captor();
+        verify(mixer).mix(layers.capture());
+        assertThat(layers.getValue()).singleElement().satisfies(layer -> {
+            assertThat(layer.timelineStartMs()).isZero();
+            assertThat(layer.durationMs()).isEqualTo(durationMs);
+        });
+    }
+
+    @Test
     void refreshingAnExistingPublicSongDoesNotAnnounceANewPublication() {
         project.publish(java.time.LocalDateTime.now(clock));
         mixesApprovedAudioAndStoresWaveAndLayerArchive();

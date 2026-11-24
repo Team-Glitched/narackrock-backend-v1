@@ -27,6 +27,8 @@ public class DirectChatMessage extends BaseCreatedEntity {
     private boolean deleted = false;
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;
+    @Column(name = "revision", nullable = false, columnDefinition = "bigint default 0")
+    private long revision;
 
     protected DirectChatMessage() {}
 
@@ -37,18 +39,6 @@ public class DirectChatMessage extends BaseCreatedEntity {
         this.unread = true;
     }
 
-    public void edit(String content, LocalDateTime editedAt) {
-        this.content = content;
-        this.editedAt = editedAt;
-    }
-
-    public void softDelete(LocalDateTime deletedAt) {
-        this.deleted = true;
-        this.deletedAt = deletedAt;
-        this.content = "";
-        this.unread = false;
-    }
-
     public Long getId() { return id; }
     public Long getSenderId() { return senderId; }
     public Long getRecipientId() { return recipientId; }
@@ -56,4 +46,5 @@ public class DirectChatMessage extends BaseCreatedEntity {
     public LocalDateTime getEditedAt() { return editedAt; }
     public boolean isDeleted() { return deleted; }
     public LocalDateTime getDeletedAt() { return deletedAt; }
+    public long getRevision() { return revision; }
 }

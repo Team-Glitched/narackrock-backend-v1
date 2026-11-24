@@ -5,10 +5,11 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ChatMessagePort {
+    /** {@code revision} increases with every committed edit or deletion; clients order updates by it. */
     record Message(Long id, Long senderId, Long recipientId, String content, LocalDateTime createdAt,
-                   LocalDateTime editedAt, boolean deleted) {
+                   LocalDateTime editedAt, boolean deleted, long revision) {
         public Message(Long id, Long senderId, Long recipientId, String content, LocalDateTime createdAt) {
-            this(id, senderId, recipientId, content, createdAt, null, false);
+            this(id, senderId, recipientId, content, createdAt, null, false, 0L);
         }
     }
     record UnreadBySender(Long senderId, long count) {}

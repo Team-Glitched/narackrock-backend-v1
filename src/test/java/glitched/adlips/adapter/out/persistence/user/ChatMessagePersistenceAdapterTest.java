@@ -104,4 +104,30 @@ class ChatMessagePersistenceAdapterTest {
         assertThat(edited.content()).isEqualTo("edited after read");
         assertThat(adapter.unreadBySender(1L)).isEmpty();
     }
+
+    @Test
+    void committedEditsAndDeletionIncrementRevisionRegardlessOfEditTimestamps() {
+        jdbc.update("INSERT INTO direct_chat_messages (id,sender_id,recipient_id,content,created_at) "
+                + "VALUES (200,2,1,'legacy',CURRENT_TIMESTAMP)");
+        var adapter = new ChatMessagePersistenceAdapter(repository);
+        assertThat(adapter.findById(200L)).get().extracting(message -> message.revision()).isEqualTo(0L);
+        var saved = adapter.save(2L, 1L, "initial");
+        assertThat(saved.revision()).isZero();
+
+        // Edit B is committed first with the later timestamp; edit A commits afterwards with an earlier one.
+        var editB = adapter.updateContent(saved.id(), "B", LocalDateTime.of(2026, 11, 24, 1, 6)).orElseThrow();
+        var editA = adapter.updateContent(saved.id(), "A", LocalDateTime.of(2026, 11, 24, 1, 5)).orElseThrow();
+
+        assertThat(editB.revision()).isEqualTo(1L);
+        assertThat(editA.revision()).isEqualTo(2L);
+        assertThat(adapter.findById(saved.id())).get().satisfies(found -> {
+            assertThat(found.content()).isEqualTo("A");
+            assertThat(found.revision()).isEqualTo(2L);
+        });
+
+        var deleted = adapter.softDelete(saved.id(), LocalDateTime.of(2026, 11, 24, 1, 10));
+        assertThat(deleted.revision()).isEqualTo(3L);
+        assertThat(adapter.updateContent(saved.id(), "late", LocalDateTime.of(2026, 11, 24, 1, 11))).isEmpty();
+        assertThat(adapter.softDelete(saved.id(), LocalDateTime.of(2026, 11, 24, 1, 12)).revision()).isEqualTo(3L);
+    }
 }

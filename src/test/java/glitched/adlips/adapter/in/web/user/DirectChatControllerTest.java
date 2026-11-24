@@ -54,8 +54,8 @@ class DirectChatControllerTest {
         when(users.requireUserId("Bearer test")).thenReturn(1L);
         when(profiles.findByUserId(2L)).thenReturn(Optional.of(Profile.create(2L, "friend")));
 
-        var edited = new ChatMessagePort.Message(7L, 1L, 2L, "updated", sentAt, updatedAt, false);
-        var deleted = new ChatMessagePort.Message(7L, 1L, 2L, "", sentAt, updatedAt, true);
+        var edited = new ChatMessagePort.Message(7L, 1L, 2L, "updated", sentAt, updatedAt, false, 1L);
+        var deleted = new ChatMessagePort.Message(7L, 1L, 2L, "", sentAt, updatedAt, true, 2L);
         when(chat.edit(1L, 2L, 7L, "updated")).thenReturn(edited);
         when(chat.delete(1L, 2L, 7L)).thenReturn(deleted);
         when(chat.latestConversations(1L)).thenReturn(List.of(
@@ -66,11 +66,13 @@ class DirectChatControllerTest {
         var editResponse = controller.edit("Bearer test", 2L, 7L, new DirectChatController.EditMessageRequest("updated"));
         assertThat(editResponse.data().content()).isEqualTo("updated");
         assertThat(editResponse.data().editedAt()).isEqualTo(updatedAt);
+        assertThat(editResponse.data().revision()).isEqualTo(1L);
         verify(realtime).publish(edited);
 
         var deleteResponse = controller.delete("Bearer test", 2L, 7L);
         assertThat(deleteResponse.data().deleted()).isTrue();
         assertThat(deleteResponse.data().content()).isEmpty();
+        assertThat(deleteResponse.data().revision()).isEqualTo(2L);
         verify(realtime).publish(deleted);
 
         var threadsResponse = controller.threads("Bearer test");

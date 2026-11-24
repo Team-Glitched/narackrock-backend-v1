@@ -46,6 +46,7 @@ public class DirectChatUseCase {
                 throw new UserApplicationException(UserErrorCode.VALIDATION_ERROR, "삭제된 메시지는 수정할 수 없습니다.");
             }
             String message = validateMessageContent(content);
+            // editedAt is read before the row lock; concurrent edits are ordered by the returned revision instead.
             return messages.updateContent(messageId, message, LocalDateTime.now(clock))
                     .orElseThrow(() -> new UserApplicationException(
                             UserErrorCode.VALIDATION_ERROR, "삭제된 메시지는 수정할 수 없습니다."));

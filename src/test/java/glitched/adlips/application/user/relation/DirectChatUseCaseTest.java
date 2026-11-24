@@ -176,8 +176,8 @@ class DirectChatUseCaseTest {
         LocalDateTime sentAt = LocalDateTime.of(2026, 11, 24, 0, 0);
         LocalDateTime now = LocalDateTime.now(FIXED_CLOCK);
         var original = new ChatMessagePort.Message(10L, 1L, 2L, "hello", sentAt);
-        var updated = new ChatMessagePort.Message(10L, 1L, 2L, "edited!", sentAt, now, false);
-        var deleted = new ChatMessagePort.Message(10L, 1L, 2L, "", sentAt, now, true);
+        var updated = new ChatMessagePort.Message(10L, 1L, 2L, "edited!", sentAt, now, false, 1L);
+        var deleted = new ChatMessagePort.Message(10L, 1L, 2L, "", sentAt, now, true, 2L);
         when(messages.findById(10L)).thenReturn(Optional.of(original));
         when(messages.updateContent(10L, "edited!", now)).thenReturn(Optional.of(updated));
         when(messages.softDelete(10L, now)).thenReturn(deleted);
@@ -185,6 +185,7 @@ class DirectChatUseCaseTest {
         var editedResult = chat.edit(1L, 2L, 10L, "\u3164edited!\u200B");
         assertEquals("edited!", editedResult.content());
         assertEquals(now, editedResult.editedAt());
+        assertEquals(1L, editedResult.revision());
 
         assertThrows(UserApplicationException.class, () -> chat.edit(1L, 2L, 10L, "\u3164\u2800"));
         assertThrows(UserApplicationException.class, () -> chat.edit(1L, 2L, 10L, "a".repeat(2001)));

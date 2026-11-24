@@ -56,7 +56,8 @@ interface SpringDataDirectChatMessageRepository extends JpaRepository<DirectChat
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
-            UPDATE DirectChatMessage m SET m.content = :content, m.editedAt = :editedAt
+            UPDATE DirectChatMessage m SET m.content = :content, m.editedAt = :editedAt,
+              m.revision = m.revision + 1
             WHERE m.id = :id AND m.deleted = false
             """)
     int updateContentIfNotDeleted(@Param("id") Long id, @Param("content") String content,
@@ -65,7 +66,7 @@ interface SpringDataDirectChatMessageRepository extends JpaRepository<DirectChat
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("""
             UPDATE DirectChatMessage m SET m.deleted = true, m.deletedAt = :deletedAt,
-              m.content = '', m.unread = false
+              m.content = '', m.unread = false, m.revision = m.revision + 1
             WHERE m.id = :id AND m.deleted = false
             """)
     int softDeleteIfNotDeleted(@Param("id") Long id, @Param("deletedAt") LocalDateTime deletedAt);
@@ -121,6 +122,6 @@ public class ChatMessagePersistenceAdapter implements ChatMessagePort {
     private Message map(DirectChatMessage message) {
         return new Message(message.getId(), message.getSenderId(), message.getRecipientId(),
                 message.isDeleted() ? "" : message.getContent(), message.getCreatedAt(),
-                message.getEditedAt(), message.isDeleted());
+                message.getEditedAt(), message.isDeleted(), message.getRevision());
     }
 }

@@ -15,7 +15,7 @@ public interface ChatMessagePort {
 
     Message save(Long senderId, Long recipientId, String content);
     Optional<Message> findById(Long messageId);
-    Message updateContent(Long messageId, String content, LocalDateTime editedAt);
+    Optional<Message> updateContent(Long messageId, String content, LocalDateTime editedAt);
     Message softDelete(Long messageId, LocalDateTime deletedAt);
     List<Message> conversation(Long firstId, Long secondId, Long beforeId, int size);
     List<Message> latestConversations(Long userId, int limit);

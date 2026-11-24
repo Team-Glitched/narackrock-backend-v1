@@ -60,6 +60,9 @@ public class MidiClipCreateUseCase {
         if (!track.belongsTo(project)) {
             throw error(ProjectErrorCode.TRACK_NOT_IN_PROJECT, "해당 프로젝트에 속한 트랙이 아닙니다.");
         }
+        if (track.isSampleTrack()) {
+            throw error(ProjectErrorCode.TRACK_EDIT_DENIED, "샘플 전용 트랙에는 MIDI 클립을 추가할 수 없습니다.");
+        }
         if (track.getInstrument() == null || track.getInstrument().isBlank() || InstrumentFamily.audioOnly(track.getInstrument())) {
             throw error(ProjectErrorCode.TRACK_INSTRUMENT_NOT_SET,
                     "MIDI 클립을 생성하려면 트랙의 악기가 먼저 설정되어야 합니다.");

@@ -7,6 +7,7 @@ import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectContributionRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectExportRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.project.ProjectApplicationException;
 import glitched.adlips.application.project.ProjectErrorCode;
@@ -16,6 +17,7 @@ import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.project.dto.response.ProjectVersionResponse;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.domain.common.ContentLimits;
+import glitched.adlips.domain.project.ApprovalStatus;
 import glitched.adlips.domain.project.ContributionApprovalStatus;
 import glitched.adlips.domain.project.ContributionChangeType;
 import glitched.adlips.domain.project.ContributionTargetType;
@@ -25,11 +27,17 @@ import glitched.adlips.domain.project.ProjectContributionItem;
 import glitched.adlips.domain.project.ProjectExport;
 import glitched.adlips.domain.project.ProjectMemberRole;
 import glitched.adlips.domain.project.ProjectStatus;
+import glitched.adlips.domain.project.ProjectTrack;
 import glitched.adlips.domain.project.Project;
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 public class ProjectContributionReviewUseCase {
     private final NotificationEvents notifications;
+    private final ProjectRepositoryPort projects;
     private final ProjectContributionRepositoryPort contributions;
     private final ProjectMemberRepositoryPort members;
     private final ProjectTrackRepositoryPort tracks;
@@ -66,6 +74,18 @@ public class ProjectContributionReviewUseCase {
             UserRepositoryPort users,
             ProjectExportRepositoryPort exports,
             TransactionRunner transactionRunner, NotificationEvents notifications) {
+        this(null, contributions, members, tracks, clips, users, exports, transactionRunner, notifications);
+    }
+
+    public ProjectContributionReviewUseCase(ProjectRepositoryPort projects,
+            ProjectContributionRepositoryPort contributions,
+            ProjectMemberRepositoryPort members,
+            ProjectTrackRepositoryPort tracks,
+            ProjectClipRepositoryPort clips,
+            UserRepositoryPort users,
+            ProjectExportRepositoryPort exports,
+            TransactionRunner transactionRunner, NotificationEvents notifications) {
+        this.projects = projects;
         this.contributions = contributions;
         this.members = members;
         this.tracks = tracks;
@@ -73,7 +93,6 @@ public class ProjectContributionReviewUseCase {
         this.users = users;
         this.exports = exports;
         this.transactionRunner = transactionRunner;
-    
         this.notifications = notifications;
     }
 
@@ -83,6 +102,11 @@ public class ProjectContributionReviewUseCase {
 
     private ProjectContributionReviewResponse executeInternal(ProjectContributionReviewRequest request) {
         validateRequest(request);
+        if (projects != null) {
+            projects.findByIdAndDeletedAtIsNullForUpdate(request.projectId())
+                    .orElseThrow(() -> error(ProjectErrorCode.PROJECT_NOT_FOUND,
+                            "존재하지 않는 프로젝트입니다."));
+        }
         ProjectContribution contribution = contributions
                 .findByIdAndProjectId(request.contributionId(), request.projectId())
                 .orElseThrow(() -> error(ProjectErrorCode.CONTRIBUTION_NOT_FOUND,
@@ -108,6 +132,7 @@ public class ProjectContributionReviewUseCase {
                     "검토 의견은 " + ContentLimits.MODERATION_REASON_MAX_LENGTH + "자 이내로 입력해 주세요.");
         }
         if (request.approvalStatus() == ContributionApprovalStatus.APPROVED) {
+            validateUniqueSampleTracksForApproval(request.projectId(), contribution.getItems());
             approve(contribution, reviewer, reviewComment, reviewedAt);
             contribution.getItems().forEach(this::applyApprovedItem);
             queuePublishedProjectRefresh(project);
@@ -142,6 +167,36 @@ public class ProjectContributionReviewUseCase {
                                     exception.getBaseMinorVersion()),
                             "currentProjectVersion", version(exception.getCurrentMajorVersion(),
                                     exception.getCurrentMinorVersion())));
+        }
+    }
+
+    private void validateUniqueSampleTracksForApproval(Long projectId, List<ProjectContributionItem> items) {
+        var sampleAdds = items.stream()
+                .filter(item -> item.getTargetType() == ContributionTargetType.TRACK
+                        && item.getChangeType() == ContributionChangeType.ADD)
+                .map(item -> tracks.findTrackByIdAndIsDeletedFalse(item.getTargetId())
+                        .orElseThrow(this::invalidItem))
+                .filter(ProjectTrack::isSampleTrack)
+                .toList();
+        if (sampleAdds.isEmpty()) {
+            return;
+        }
+        Set<Long> approvingOpenSourceIds = new HashSet<>();
+        for (ProjectTrack track : sampleAdds) {
+            if (!approvingOpenSourceIds.add(track.getOriginOpenSourceId())) {
+                throw error(ProjectErrorCode.TRACK_LIMIT_EXCEEDED, "이미 이 곡에 승인된 동일한 샘플 트랙이 존재합니다.");
+            }
+        }
+        var approvedTracks = tracks.findByProjectIdAndApprovalStatusAndIsDeletedFalse(
+                projectId, ApprovalStatus.APPROVED);
+        for (ProjectTrack track : sampleAdds) {
+            boolean duplicate = approvedTracks.stream().anyMatch(existing ->
+                    existing != track
+                            && (track.getId() == null || !Objects.equals(existing.getId(), track.getId()))
+                            && Objects.equals(existing.getOriginOpenSourceId(), track.getOriginOpenSourceId()));
+            if (duplicate) {
+                throw error(ProjectErrorCode.TRACK_LIMIT_EXCEEDED, "이미 이 곡에 승인된 동일한 샘플 트랙이 존재합니다.");
+            }
         }
     }
 

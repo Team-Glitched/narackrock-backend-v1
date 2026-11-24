@@ -1,16 +1,22 @@
 package glitched.adlips.application.project;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
+import glitched.adlips.application.notification.NotificationEvents;
+import glitched.adlips.application.port.TransactionRunner;
+import glitched.adlips.application.project.ProjectApplicationException;
+import glitched.adlips.application.project.ProjectErrorCode;
 import glitched.adlips.application.project.port.out.ProjectClipRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectContributionRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectExportRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectMemberRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.application.project.dto.request.ProjectContributionReviewRequest;
 import glitched.adlips.application.project.usecase.ProjectContributionReviewUseCase;
@@ -27,9 +33,11 @@ import glitched.adlips.domain.project.ProjectMember;
 import glitched.adlips.domain.project.ProjectMemberRole;
 import glitched.adlips.domain.project.ProjectTrack;
 import glitched.adlips.domain.user.User;
+import java.util.List;
 import java.util.Optional;
 import java.time.LocalDateTime;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class ProjectContributionReviewUseCaseTest {
     @Test
@@ -56,6 +64,61 @@ class ProjectContributionReviewUseCaseTest {
         assertThat(response.projectVersion().display()).isEqualTo("v1.1");
         assertThat(fixture.track.getApprovalStatus()).isEqualTo(ApprovalStatus.REJECTED);
         verifyNoInteractions(fixture.exports);
+    }
+
+    @Test
+    void rejectsApprovingDuplicateSampleTrackAndLocksProject() {
+        User reviewer = User.create("owner@example.com").withId(1L);
+        User contributor = User.create("contributor@example.com").withId(2L);
+        Project project = new Project(reviewer, "곡", null, 701L);
+        project.startPublishing();
+        project.publish(LocalDateTime.of(2026, 9, 29, 23, 0));
+
+        ProjectTrack existingApprovedSample = new ProjectTrack(project, reviewer, "Sample", "drum-kit", 0, 55L);
+        ReflectionTestUtils.setField(existingApprovedSample, "id", 100L);
+        existingApprovedSample.approve();
+
+        ProjectTrack pendingDuplicateSample = new ProjectTrack(project, contributor, "Sample", "drum-kit", 1, 55L);
+        ReflectionTestUtils.setField(pendingDuplicateSample, "id", 102L);
+        pendingDuplicateSample.submitForReview();
+
+        ProjectContribution contribution = new ProjectContribution(project, contributor, "샘플 추가");
+        new ProjectContributionItem(contribution, ContributionChangeType.ADD,
+                ContributionTargetType.TRACK, 102L);
+
+        ProjectRepositoryPort projects = mock(ProjectRepositoryPort.class);
+        ProjectContributionRepositoryPort contributions = mock(ProjectContributionRepositoryPort.class);
+        ProjectMemberRepositoryPort members = mock(ProjectMemberRepositoryPort.class);
+        ProjectTrackRepositoryPort tracks = mock(ProjectTrackRepositoryPort.class);
+        ProjectClipRepositoryPort clips = mock(ProjectClipRepositoryPort.class);
+        UserRepositoryPort users = mock(UserRepositoryPort.class);
+        ProjectExportRepositoryPort exports = mock(ProjectExportRepositoryPort.class);
+
+        when(projects.findByIdAndDeletedAtIsNullForUpdate(1L)).thenReturn(Optional.of(project));
+        when(contributions.findByIdAndProjectId(10L, 1L)).thenReturn(Optional.of(contribution));
+        when(members.findByProjectIdAndUserId(1L, 1L))
+                .thenReturn(Optional.of(new ProjectMember(project, reviewer, ProjectMemberRole.OWNER)));
+        when(users.findById(1L)).thenReturn(Optional.of(reviewer));
+        when(tracks.findTrackByIdAndIsDeletedFalse(102L)).thenReturn(Optional.of(pendingDuplicateSample));
+        when(tracks.findByProjectIdAndApprovalStatusAndIsDeletedFalse(1L, ApprovalStatus.APPROVED))
+                .thenReturn(List.of(existingApprovedSample));
+
+        ProjectContributionReviewUseCase useCase = new ProjectContributionReviewUseCase(
+                projects, contributions, members, tracks, clips, users, exports,
+                TransactionRunner.direct(), NotificationEvents.none());
+
+        assertThatThrownBy(() -> useCase.execute(new ProjectContributionReviewRequest(
+                1L, 10L, 1L, ContributionApprovalStatus.APPROVED, "승인 시도")))
+                .isInstanceOf(ProjectApplicationException.class)
+                .extracting("errorCode")
+                .isEqualTo(ProjectErrorCode.TRACK_LIMIT_EXCEEDED);
+
+        verify(projects).findByIdAndDeletedAtIsNullForUpdate(1L);
+        assertThat(project.getMajorVersion()).isEqualTo(1);
+        assertThat(project.getMinorVersion()).isEqualTo(1);
+        assertThat(contribution.getApprovalStatus()).isEqualTo(ContributionApprovalStatus.PENDING);
+        assertThat(pendingDuplicateSample.getApprovalStatus()).isEqualTo(ApprovalStatus.PENDING);
+        verifyNoInteractions(exports);
     }
 
     private static class Fixture {

@@ -46,7 +46,9 @@ public class DirectChatUseCase {
                 throw new UserApplicationException(UserErrorCode.VALIDATION_ERROR, "삭제된 메시지는 수정할 수 없습니다.");
             }
             String message = validateMessageContent(content);
-            return messages.updateContent(messageId, message, LocalDateTime.now(clock));
+            return messages.updateContent(messageId, message, LocalDateTime.now(clock))
+                    .orElseThrow(() -> new UserApplicationException(
+                            UserErrorCode.VALIDATION_ERROR, "삭제된 메시지는 수정할 수 없습니다."));
         });
     }
     public ChatMessagePort.Message delete(Long userId, Long friendId, Long messageId) {

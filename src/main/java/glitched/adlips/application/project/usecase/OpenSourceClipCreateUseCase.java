@@ -99,9 +99,7 @@ public class OpenSourceClipCreateUseCase {
         var existingTracks = tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(request.projectId());
         boolean alreadyAdded = existingTracks.stream().anyMatch(existing ->
                 Objects.equals(existing.getOriginOpenSourceId(), request.openSourceId())
-                        && (existing.getApprovalStatus() == ApprovalStatus.APPROVED
-                            || (existing.getOwner().getId().equals(request.userId())
-                                && existing.getApprovalStatus() != ApprovalStatus.REJECTED)));
+                        && existing.getApprovalStatus() != ApprovalStatus.REJECTED);
         if (alreadyAdded) {
             throw error(ProjectErrorCode.TRACK_LIMIT_EXCEEDED, "이미 이 곡에 추가된 샘플입니다.");
         }
@@ -159,6 +157,9 @@ public class OpenSourceClipCreateUseCase {
         }
         if (!request.userId().equals(track.getOwner().getId())) {
             throw error(ProjectErrorCode.TRACK_EDIT_DENIED, "본인의 레이어에만 샘플을 추가할 수 있습니다.");
+        }
+        if (track.isSampleTrack()) {
+            throw error(ProjectErrorCode.TRACK_EDIT_DENIED, "샘플 전용 트랙에는 클립을 추가할 수 없습니다.");
         }
         if (InstrumentFamily.of(track.getInstrument()) == null) {
             throw error(ProjectErrorCode.TRACK_INSTRUMENT_NOT_SET, "오디오를 저장하기 전에 악기나 보컬 역할을 선택해 주세요.");

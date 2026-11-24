@@ -179,7 +179,7 @@ class DirectChatUseCaseTest {
         var updated = new ChatMessagePort.Message(10L, 1L, 2L, "edited!", sentAt, now, false);
         var deleted = new ChatMessagePort.Message(10L, 1L, 2L, "", sentAt, now, true);
         when(messages.findById(10L)).thenReturn(Optional.of(original));
-        when(messages.updateContent(10L, "edited!", now)).thenReturn(updated);
+        when(messages.updateContent(10L, "edited!", now)).thenReturn(Optional.of(updated));
         when(messages.softDelete(10L, now)).thenReturn(deleted);
 
         var editedResult = chat.edit(1L, 2L, 10L, "\u3164edited!\u200B");
@@ -201,6 +201,13 @@ class DirectChatUseCaseTest {
         UserApplicationException editDeleted = assertThrows(UserApplicationException.class,
                 () -> chat.edit(1L, 2L, 10L, "retry"));
         assertEquals(UserErrorCode.VALIDATION_ERROR, editDeleted.getErrorCode());
+
+        // Concurrent delete between read and conditional update fails cleanly instead of resurrecting
+        when(messages.findById(10L)).thenReturn(Optional.of(original));
+        when(messages.updateContent(10L, "race", now)).thenReturn(Optional.empty());
+        UserApplicationException concurrentDelete = assertThrows(UserApplicationException.class,
+                () -> chat.edit(1L, 2L, 10L, "race"));
+        assertEquals(UserErrorCode.VALIDATION_ERROR, concurrentDelete.getErrorCode());
     }
 
     @Test

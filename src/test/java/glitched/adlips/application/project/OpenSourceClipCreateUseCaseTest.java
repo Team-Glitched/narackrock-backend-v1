@@ -22,6 +22,7 @@ import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort
 import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.media.MediaFileStatus;
 import glitched.adlips.domain.media.MediaFileType;
+import glitched.adlips.domain.project.ApprovalStatus;
 import glitched.adlips.domain.project.ClipSourceType;
 import glitched.adlips.domain.project.ClipType;
 import glitched.adlips.domain.project.Project;
@@ -123,6 +124,50 @@ class OpenSourceClipCreateUseCaseTest {
                 .isEqualTo(ProjectErrorCode.TRACK_LIMIT_EXCEEDED);
         verify(tracks, never()).save(any(ProjectTrack.class));
         verify(clips, never()).save(any(ProjectClip.class));
+    }
+
+    @Test
+    void rejectsDuplicateOpenSourceSampleWhenAnotherEditorHasDraftOrPendingTrack() {
+        var pendingSampleByOther = new ProjectTrack(project, other, "펑키 드럼", "drum-kit", 1, 55L);
+        pendingSampleByOther.submitForReview();
+        when(openSources.findAvailable(55L)).thenReturn(
+                Optional.of(new OpenSourceMediaPort.Source(sourceOwnerId, 777L, "펑키 드럼", "drum-kit")));
+        when(tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(10L))
+                .thenReturn(List.of(track, pendingSampleByOther));
+
+        assertThatThrownBy(() -> useCase.createTrack(new OpenSourceTrackCreateRequest(10L, 1L, 55L, 0, 960)))
+                .isInstanceOf(ProjectApplicationException.class)
+                .extracting("errorCode")
+                .isEqualTo(ProjectErrorCode.TRACK_LIMIT_EXCEEDED);
+        verify(tracks, never()).save(any(ProjectTrack.class));
+    }
+
+    @Test
+    void allowsAddingSampleWhenPreviousAttemptWasRejected() {
+        var rejectedSampleTrack = new ProjectTrack(project, other, "펑키 드럼", "drum-kit", 1, 55L);
+        ReflectionTestUtils.setField(rejectedSampleTrack, "approvalStatus", ApprovalStatus.REJECTED);
+        when(openSources.findAvailable(55L)).thenReturn(
+                Optional.of(new OpenSourceMediaPort.Source(sourceOwnerId, 777L, "펑키 드럼", "drum-kit")));
+        when(tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(10L))
+                .thenReturn(List.of(track, rejectedSampleTrack));
+        when(tracks.save(any(ProjectTrack.class))).thenAnswer(invocation -> {
+            ProjectTrack saved = invocation.getArgument(0);
+            ReflectionTestUtils.setField(saved, "id", 89L);
+            return saved;
+        });
+
+        var response = useCase.createTrack(new OpenSourceTrackCreateRequest(10L, 1L, 55L, 0, 960));
+
+        assertThat(response.trackId()).isEqualTo(89L);
+        verify(tracks).save(any(ProjectTrack.class));
+    }
+
+    @Test
+    void rejectsLegacyClipCreationOnDedicatedSampleTrack() {
+        var sampleTrack = new ProjectTrack(project, caller, "Sample", "drum-kit", 1, 55L);
+        when(tracks.findTrackByIdAndIsDeletedFalse(21L)).thenReturn(Optional.of(sampleTrack));
+
+        assertError(request(55L, 0, 480), ProjectErrorCode.TRACK_EDIT_DENIED);
     }
 
     @Test

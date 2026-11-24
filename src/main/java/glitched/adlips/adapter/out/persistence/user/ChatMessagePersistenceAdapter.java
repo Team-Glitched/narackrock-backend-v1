@@ -53,6 +53,22 @@ interface SpringDataDirectChatMessageRepository extends JpaRepository<DirectChat
             """)
     void markRead(@Param("recipientId") Long recipientId, @Param("senderId") Long senderId,
                   @Param("throughId") Long throughId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            UPDATE DirectChatMessage m SET m.content = :content, m.editedAt = :editedAt
+            WHERE m.id = :id AND m.deleted = false
+            """)
+    int updateContentIfNotDeleted(@Param("id") Long id, @Param("content") String content,
+                                  @Param("editedAt") LocalDateTime editedAt);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            UPDATE DirectChatMessage m SET m.deleted = true, m.deletedAt = :deletedAt,
+              m.content = '', m.unread = false
+            WHERE m.id = :id AND m.deleted = false
+            """)
+    int softDeleteIfNotDeleted(@Param("id") Long id, @Param("deletedAt") LocalDateTime deletedAt);
 }
 
 @Repository
@@ -67,17 +83,20 @@ public class ChatMessagePersistenceAdapter implements ChatMessagePort {
     }
 
     @Override
-    public Message updateContent(Long messageId, String content, LocalDateTime editedAt) {
-        DirectChatMessage entity = repository.findById(messageId).orElseThrow();
-        entity.edit(content, editedAt);
-        return map(repository.saveAndFlush(entity));
+    public Optional<Message> updateContent(Long messageId, String content, LocalDateTime editedAt) {
+        int updated = repository.updateContentIfNotDeleted(messageId, content, editedAt);
+        if (updated == 0) {
+            return Optional.empty();
+        }
+        return repository.findById(messageId)
+                .filter(entity -> !entity.isDeleted())
+                .map(this::map);
     }
 
     @Override
     public Message softDelete(Long messageId, LocalDateTime deletedAt) {
-        DirectChatMessage entity = repository.findById(messageId).orElseThrow();
-        entity.softDelete(deletedAt);
-        return map(repository.saveAndFlush(entity));
+        repository.softDeleteIfNotDeleted(messageId, deletedAt);
+        return repository.findById(messageId).map(this::map).orElseThrow();
     }
 
     public List<Message> conversation(Long firstId, Long secondId, Long beforeId, int size) {

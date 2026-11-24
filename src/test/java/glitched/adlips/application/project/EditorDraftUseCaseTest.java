@@ -165,4 +165,17 @@ class EditorDraftUseCaseTest {
         assertThatThrownBy(() -> useCase.commit(10L, result.draftId(), 1L, 1))
                 .isInstanceOf(ProjectApplicationException.class);
     }
+
+    @Test void rejectsSavingDraftOnDedicatedSampleTrack() {
+        ProjectTrack sampleTrack = new ProjectTrack(project, user, "Sample", "piano", 1, 55L);
+        ReflectionTestUtils.setField(sampleTrack, "id", 21L);
+        when(tracks.findTrackByIdAndIsDeletedFalse(21L)).thenReturn(Optional.of(sampleTrack));
+
+        assertThatThrownBy(() -> useCase.save(10L, 21L, UUID.randomUUID(), 1L,
+                new EditorDraftSaveRequest(0, UUID.randomUUID(), null, content, null)))
+                .isInstanceOf(ProjectApplicationException.class)
+                .extracting("errorCode")
+                .isEqualTo(ProjectErrorCode.PROJECT_ACCESS_DENIED);
+        verify(drafts, never()).save(any());
+    }
 }

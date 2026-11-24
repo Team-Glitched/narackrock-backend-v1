@@ -59,7 +59,7 @@ class ChatMessagePersistenceAdapterTest {
         assertThat(adapter.unreadBySender(1L)).containsExactly(new UnreadBySender(2L, 1));
 
         LocalDateTime editTime = LocalDateTime.of(2026, 11, 24, 1, 5);
-        var edited = adapter.updateContent(saved.id(), "edited text", editTime);
+        var edited = adapter.updateContent(saved.id(), "edited text", editTime).orElseThrow();
         assertThat(edited.content()).isEqualTo("edited text");
         assertThat(edited.editedAt()).isEqualTo(editTime);
         assertThat(edited.deleted()).isFalse();
@@ -73,5 +73,35 @@ class ChatMessagePersistenceAdapterTest {
             assertThat(found.deleted()).isTrue();
             assertThat(found.content()).isEmpty();
         });
+    }
+
+    @Test
+    void updateContentReturnsEmptyAfterSoftDeleteWithoutRevertingDeletion() {
+        var adapter = new ChatMessagePersistenceAdapter(repository);
+        var saved = adapter.save(2L, 1L, "initial");
+        adapter.softDelete(saved.id(), LocalDateTime.of(2026, 11, 24, 1, 10));
+
+        var lateEdit = adapter.updateContent(saved.id(), "resurrect?", LocalDateTime.of(2026, 11, 24, 1, 11));
+
+        assertThat(lateEdit).isEmpty();
+        assertThat(adapter.findById(saved.id())).get().satisfies(found -> {
+            assertThat(found.deleted()).isTrue();
+            assertThat(found.content()).isEmpty();
+        });
+        assertThat(adapter.unreadBySender(1L)).isEmpty();
+    }
+
+    @Test
+    void updateContentPreservesReadStatusMarkedByMarkRead() {
+        var adapter = new ChatMessagePersistenceAdapter(repository);
+        var saved = adapter.save(2L, 1L, "initial");
+        adapter.markRead(1L, 2L, saved.id());
+        assertThat(adapter.unreadBySender(1L)).isEmpty();
+
+        var edited = adapter.updateContent(saved.id(), "edited after read", LocalDateTime.of(2026, 11, 24, 1, 5))
+                .orElseThrow();
+
+        assertThat(edited.content()).isEqualTo("edited after read");
+        assertThat(adapter.unreadBySender(1L)).isEmpty();
     }
 }

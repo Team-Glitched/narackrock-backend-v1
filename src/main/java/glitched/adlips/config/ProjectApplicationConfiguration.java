@@ -359,6 +359,7 @@ public class ProjectApplicationConfiguration {
 
     @Bean
     ProjectContributionReviewUseCase projectContributionReviewUseCase(
+            ProjectRepositoryPort projects,
             ProjectContributionRepositoryPort contributions,
             ProjectMemberRepositoryPort members,
             ProjectTrackRepositoryPort tracks,
@@ -368,6 +369,6 @@ public class ProjectApplicationConfiguration {
             TransactionRunner transactionRunner
     , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new ProjectContributionReviewUseCase(
-                contributions, members, tracks, clips, users, exports, transactionRunner, notificationEvents);
+                projects, contributions, members, tracks, clips, users, exports, transactionRunner, notificationEvents);
     }
 }

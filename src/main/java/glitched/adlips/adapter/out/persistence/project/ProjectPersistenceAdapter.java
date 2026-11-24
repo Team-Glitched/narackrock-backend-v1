@@ -91,6 +91,11 @@ public class ProjectPersistenceAdapter implements
     }
 
     @Override
+    public Optional<Long> findProjectIdByTrackIdAndIsDeletedFalse(Long trackId) {
+        return tracks.findProjectIdByIdAndIsDeletedFalse(trackId);
+    }
+
+    @Override
     public List<ProjectTrack> findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(Long projectId) {
         return tracks.findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(projectId);
     }

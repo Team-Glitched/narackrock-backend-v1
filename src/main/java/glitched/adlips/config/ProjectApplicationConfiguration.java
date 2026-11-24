@@ -250,19 +250,21 @@ public class ProjectApplicationConfiguration {
 
     @Bean
     TrackDeleteUseCase trackDeleteUseCase(
+            ProjectRepositoryPort projects,
             ProjectTrackRepositoryPort tracks,
             ProjectContributionItemRepositoryPort contributionItems,
             TransactionRunner transactionRunner
     ) {
-        return new TrackDeleteUseCase(tracks, contributionItems, transactionRunner);
+        return new TrackDeleteUseCase(projects, tracks, contributionItems, transactionRunner);
     }
 
     @Bean
     TrackVolumeUpdateUseCase trackVolumeUpdateUseCase(
+            ProjectRepositoryPort projects,
             ProjectTrackRepositoryPort tracks,
             TransactionRunner transactionRunner
     ) {
-        return new TrackVolumeUpdateUseCase(tracks, transactionRunner);
+        return new TrackVolumeUpdateUseCase(projects, tracks, transactionRunner);
     }
 
     @Bean

@@ -7,23 +7,25 @@ import glitched.adlips.application.project.dto.response.ProjectVersionResponse;
 import glitched.adlips.application.project.dto.response.TrackDeleteResponse;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.project.port.out.ProjectContributionItemRepositoryPort;
+import glitched.adlips.application.project.port.out.ProjectRepositoryPort;
 import glitched.adlips.application.project.port.out.ProjectTrackRepositoryPort;
 import glitched.adlips.domain.project.ContributionApprovalStatus;
 import glitched.adlips.domain.project.ContributionTargetType;
 public class TrackDeleteUseCase {
+    private final ProjectRepositoryPort projects;
     private final ProjectTrackRepositoryPort tracks;
     private final ProjectContributionItemRepositoryPort contributionItems;
     private final TransactionRunner transactionRunner;
 
-    public TrackDeleteUseCase(ProjectTrackRepositoryPort tracks,
+    public TrackDeleteUseCase(ProjectRepositoryPort projects, ProjectTrackRepositoryPort tracks,
                               ProjectContributionItemRepositoryPort contributionItems) {
-        this(tracks, contributionItems, TransactionRunner.direct());
+        this(projects, tracks, contributionItems, TransactionRunner.direct());
     }
 
-    public TrackDeleteUseCase(ProjectTrackRepositoryPort tracks,
+    public TrackDeleteUseCase(ProjectRepositoryPort projects, ProjectTrackRepositoryPort tracks,
                               ProjectContributionItemRepositoryPort contributionItems,
                               TransactionRunner transactionRunner) {
-        this.tracks = tracks; this.contributionItems = contributionItems;
+        this.projects = projects; this.tracks = tracks; this.contributionItems = contributionItems;
         this.transactionRunner = transactionRunner;
     }
 
@@ -32,6 +34,11 @@ public class TrackDeleteUseCase {
     }
 
     private TrackDeleteResponse executeInternal(TrackDeleteRequest request) {
+        // Serialize with sample insertion, review, and volume writes before loading the track.
+        Long projectId = tracks.findProjectIdByTrackIdAndIsDeletedFalse(request.trackId())
+                .orElseThrow(() -> error(ProjectErrorCode.TRACK_NOT_FOUND, "존재하지 않는 트랙입니다."));
+        projects.findByIdAndDeletedAtIsNullForUpdate(projectId)
+                .orElseThrow(() -> error(ProjectErrorCode.PROJECT_NOT_FOUND, "존재하지 않는 프로젝트입니다."));
         var track = tracks.findTrackByIdAndIsDeletedFalse(request.trackId())
                 .orElseThrow(() -> error(ProjectErrorCode.TRACK_NOT_FOUND, "존재하지 않는 트랙입니다."));
         Long projectOwnerId = track.getProject().getOwner().getId();

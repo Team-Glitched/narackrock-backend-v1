@@ -5,6 +5,7 @@ import static glitched.adlips.domain.notification.NotificationType.*;
 
 import glitched.adlips.application.shorts.port.out.ShortCommentPort;
 import glitched.adlips.application.shorts.port.out.ShortCommentReportPort;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.shorts.ShortComment;
 
 public class SubmitShortCommentReportUseCase {
@@ -45,9 +46,21 @@ public class SubmitShortCommentReportUseCase {
     private ShortCommentReportResult executeInternal(
             Long shortId, Long commentId, Long reporterId, String reason, String description
     ) {
-        if (reason == null || reason.isBlank()) {
+        String trimmedReason = glitched.adlips.domain.common.TextSanitizer.sanitizeSingleLine(reason);
+        if (trimmedReason.isEmpty()) {
             throw new ShortCommentApplicationException(
                     ShortCommentErrorCode.INVALID_INPUT_VALUE, "신고 사유를 입력해 주세요.");
+        }
+        if (ContentLimits.exceeds(trimmedReason, ContentLimits.REPORT_REASON_MAX_LENGTH)) {
+            throw new ShortCommentApplicationException(
+                    ShortCommentErrorCode.INVALID_INPUT_VALUE,
+                    "신고 사유는 " + ContentLimits.REPORT_REASON_MAX_LENGTH + "자 이내로 입력해 주세요.");
+        }
+        String normalizedDescription = normalize(description);
+        if (ContentLimits.exceeds(normalizedDescription, ContentLimits.REPORT_DESCRIPTION_MAX_LENGTH)) {
+            throw new ShortCommentApplicationException(
+                    ShortCommentErrorCode.INVALID_INPUT_VALUE,
+                    "신고 상세 내용은 " + ContentLimits.REPORT_DESCRIPTION_MAX_LENGTH + "자 이내로 입력해 주세요.");
         }
         ShortComment comment = shortCommentPort.findActiveComment(commentId, shortId)
                 .orElseThrow(() -> new ShortCommentApplicationException(
@@ -61,7 +74,7 @@ public class SubmitShortCommentReportUseCase {
             throw new ShortCommentApplicationException(
                     ShortCommentErrorCode.ALREADY_REPORTED, "이미 신고한 댓글입니다.");
         }
-        Long reportId = reportPort.save(reporterId, commentId, reason.trim(), normalize(description))
+        Long reportId = reportPort.save(reporterId, commentId, trimmedReason, normalizedDescription)
                 .orElseThrow(() -> new ShortCommentApplicationException(
                         ShortCommentErrorCode.ALREADY_REPORTED, "이미 신고한 댓글입니다."));
         notifications.record(REPORT_CREATED,reporterId,reportId);
@@ -72,7 +85,7 @@ public class SubmitShortCommentReportUseCase {
         if (value == null) {
             return null;
         }
-        String trimmed = value.trim();
+        String trimmed = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(value);
         return trimmed.isEmpty() ? null : trimmed;
     }
 }

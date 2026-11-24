@@ -9,12 +9,17 @@ public interface ProjectTrackRepositoryPort {
 
     Optional<ProjectTrack> findTrackByIdAndIsDeletedFalse(Long id);
 
+    /** Reads only the owning project ID so callers can take the project lock before loading the track. */
+    Optional<Long> findProjectIdByTrackIdAndIsDeletedFalse(Long trackId);
+
     List<ProjectTrack> findByProjectIdAndIsDeletedFalseOrderBySortOrderAscIdAsc(Long projectId);
 
     List<ProjectTrack> findByProjectIdAndApprovalStatusAndIsDeletedFalse(
             Long projectId, ApprovalStatus status);
 
     boolean existsByProjectIdAndOwnerIdAndIsDeletedFalse(Long projectId, Long ownerId);
+
+    boolean existsByProjectIdAndOwnerIdAndOriginOpenSourceIdIsNullAndIsDeletedFalse(Long projectId, Long ownerId);
 
     ProjectTrack save(ProjectTrack track);
 }

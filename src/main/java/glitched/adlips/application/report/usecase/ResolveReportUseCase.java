@@ -9,6 +9,7 @@ import glitched.adlips.application.report.port.out.ReportResolutionPort;
 import glitched.adlips.application.user.admin.port.out.UserBanRepositoryPort;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.domain.admin.UserBan;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.report.ModerationAction;
 import glitched.adlips.domain.report.ModerationActionType;
 import glitched.adlips.domain.report.Report;
@@ -66,15 +67,19 @@ public class ResolveReportUseCase {
     ) {
         User admin = requireAdmin(adminUserId);
 
-        if (reason == null || reason.isBlank()) {
+        String sanitizedReason = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(reason);
+        if (sanitizedReason.isEmpty()) {
             throw validationError("차단 원인을 입력해 주세요.");
+        }
+        if (ContentLimits.exceeds(sanitizedReason, ContentLimits.MODERATION_REASON_MAX_LENGTH)) {
+            throw validationError("처리 사유는 " + ContentLimits.MODERATION_REASON_MAX_LENGTH + "자 이내로 입력해 주세요.");
         }
         ModerationActionType actionType = parseActionType(actionTypeValue);
         if (actionType == ModerationActionType.BAN_USER && banDurationDays != null && banDurationDays < 1) {
             throw validationError("정지 기간은 1일 이상이어야 합니다.");
         }
 
-        return transactionRunner.required(() -> resolve(reportId, admin, actionType, reason.trim(), banDurationDays));
+        return transactionRunner.required(() -> resolve(reportId, admin, actionType, sanitizedReason, banDurationDays));
     }
 
     private ReportResolutionResult resolve(

@@ -4,6 +4,8 @@ import glitched.adlips.application.shorts.port.out.ShortsParticipantQueryItem;
 import glitched.adlips.application.shorts.port.out.ShortsQueryItem;
 import glitched.adlips.application.shorts.port.out.ShortsQueryPort;
 import glitched.adlips.application.shorts.port.out.ShortReactionCountCachePort;
+import glitched.adlips.domain.common.ContentLimits;
+import glitched.adlips.domain.common.TextSanitizer;
 import glitched.adlips.domain.shorts.ShortStatus;
 import java.util.List;
 import java.util.Map;
@@ -34,7 +36,12 @@ public class GetShortsUseCase {
     }
 
     public ShortsPage search(String keyword, Long cursor, int size, Long currentUserId) {
-        String term = keyword.strip();
+        String term = TextSanitizer.sanitizeSingleLine(keyword);
+        if (ContentLimits.exceeds(term, ContentLimits.SEARCH_QUERY_MAX_LENGTH)) {
+            throw new ShortsCompositionApplicationException(
+                    ShortsCompositionErrorCode.INVALID_SEARCH_KEYWORD,
+                    "검색어는 " + ContentLimits.SEARCH_QUERY_MAX_LENGTH + "자 이내로 입력해 주세요.");
+        }
         if (term.isEmpty()) return new ShortsPage(List.of(), null, false, size);
         return toPage(shortsQueryPort.searchByCursor(term, cursor, size + 1, currentUserId), size);
     }

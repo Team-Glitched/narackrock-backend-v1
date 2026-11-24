@@ -1,6 +1,7 @@
 package glitched.adlips.application.project;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -52,5 +53,27 @@ class MidiClipCreateUseCaseTest {
         assertThat(response.midiNotes()).containsExactly(
                 new MidiNote(60, 0, 480, 100, "DELAY", Map.of("delayMs", 250)));
         assertThat(response.durationMs()).isEqualTo(2000);
+    }
+
+    @Test
+    void rejectsCreatingMidiClipOnDedicatedSampleTrack() {
+        User owner = User.create("owner@example.com").withId(1L);
+        Project project = new Project(owner, "곡", null, 701L);
+        ProjectTrack sampleTrack = new ProjectTrack(project, owner, "Sample", "piano", 1, 55L);
+        ProjectRepositoryPort projects = mock(ProjectRepositoryPort.class);
+        ProjectMemberRepositoryPort members = mock(ProjectMemberRepositoryPort.class);
+        ProjectTrackRepositoryPort tracks = mock(ProjectTrackRepositoryPort.class);
+        when(projects.findByIdAndDeletedAtIsNullForUpdate(10L)).thenReturn(Optional.of(project));
+        when(members.findByProjectIdAndUserId(10L, 1L))
+                .thenReturn(Optional.of(new ProjectMember(project, owner, ProjectMemberRole.OWNER)));
+        when(tracks.findTrackByIdAndIsDeletedFalse(103L)).thenReturn(Optional.of(sampleTrack));
+        MidiNoteRequest note = new MidiNoteRequest(60, 0, 480, 100, null, Map.of());
+
+        assertThatThrownBy(() -> new MidiClipCreateUseCase(
+                projects, members, tracks, mock(ProjectClipRepositoryPort.class), mock(UserRepositoryPort.class))
+                .execute(new MidiClipCreateRequest(10L, 103L, 1L, 0, 480, List.of(note))))
+                .isInstanceOf(ProjectApplicationException.class)
+                .extracting("errorCode")
+                .isEqualTo(ProjectErrorCode.TRACK_EDIT_DENIED);
     }
 }

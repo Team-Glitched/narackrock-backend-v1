@@ -74,11 +74,12 @@ public class GalleryProposal extends BaseTimeEntity {
 
     public void reject(User reviewer, String reason, LocalDateTime reviewedAt) {
         requirePending();
-        if (reason == null || reason.isBlank()) {
+        String sanitized = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(reason);
+        if (sanitized.isEmpty()) {
             throw new IllegalArgumentException("반려 사유는 필수입니다.");
         }
         markReviewed(reviewer, reviewedAt);
-        this.rejectionReason = reason.trim();
+        this.rejectionReason = sanitized;
         this.status = GalleryProposalStatus.REJECTED;
     }
 

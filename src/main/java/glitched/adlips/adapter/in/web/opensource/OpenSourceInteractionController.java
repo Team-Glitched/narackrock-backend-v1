@@ -26,7 +26,7 @@ import static glitched.adlips.application.opensource.OpenSourceInteractionPort.*
 public class OpenSourceInteractionController {
     public record SourceReaction(Long openSourceId,boolean isLiked,boolean isDisliked,long likeCount,long dislikeCount) {}
     public record CommentReaction(Long commentId,boolean isLiked,boolean isDisliked,long likeCount,long dislikeCount) {}
-    public record CreateRequest(@Schema(requiredMode=Schema.RequiredMode.REQUIRED,minLength=1,maxLength=1000) String content,Long parentCommentId) {}
+    public record CreateRequest(@Schema(requiredMode=Schema.RequiredMode.REQUIRED,minLength=1,maxLength=3000) String content,Long parentCommentId) {}
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public record CommentResponse(Long commentId,Long parentCommentId,OpenSourceQueryController.Writer writer,String content,
             long replyCount,boolean isLiked,boolean isDisliked,long likeCount,long dislikeCount,Instant createdAt) {

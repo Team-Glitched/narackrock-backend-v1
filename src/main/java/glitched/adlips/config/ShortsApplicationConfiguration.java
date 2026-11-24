@@ -222,17 +222,23 @@ public class ShortsApplicationConfiguration {
     @Bean
     ToggleShortCommentLikeUseCase toggleShortCommentLikeUseCase(
             ShortCommentReactionPort shortCommentReactionPort,
-            TransactionRunner transactionRunner
-    , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
-        return new ToggleShortCommentLikeUseCase(shortCommentReactionPort, transactionRunner, notificationEvents);
+            UserBanQueryPort userBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock,
+            glitched.adlips.application.notification.NotificationEvents notificationEvents) {
+        return new ToggleShortCommentLikeUseCase(
+                shortCommentReactionPort, transactionRunner, notificationEvents, userBanQueryPort, clock);
     }
 
     @Bean
     ToggleShortCommentDislikeUseCase toggleShortCommentDislikeUseCase(
             ShortCommentReactionPort shortCommentReactionPort,
-            TransactionRunner transactionRunner
+            UserBanQueryPort userBanQueryPort,
+            TransactionRunner transactionRunner,
+            Clock clock
     ) {
-        return new ToggleShortCommentDislikeUseCase(shortCommentReactionPort, transactionRunner);
+        return new ToggleShortCommentDislikeUseCase(
+                shortCommentReactionPort, transactionRunner, userBanQueryPort, clock);
     }
 
     @Bean

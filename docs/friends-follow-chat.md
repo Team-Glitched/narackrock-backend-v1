@@ -10,4 +10,6 @@
 
 `/ws/chat` 연결 후 STOMP `CONNECT`의 `Authorization` 헤더로 기존 액세스 토큰을 검증한다. 브라우저의 URL 쿼리 문자열에 토큰을 넣지 않는다. 클라이언트는 인증된 사용자 전용 `/user/queue/chat`만 구독하며, 메시지 전송은 현재 `DirectChatUseCase.send`를 호출하는 REST API에서 처리한다. 클라이언트는 메시지 ID로 중복을 제거하고 재연결 시 REST 이력을 다시 조회한다. 현재 내장 브로커는 백엔드 단일 인스턴스용이며, 서버를 여러 대 운영할 경우 서버 간 전달을 추가해야 한다.
 
+REST 메시지 응답과 STOMP 생성·수정·삭제 이벤트에는 메시지별 `revision`이 포함된다. 새 메시지는 0에서 시작하고, 수정이나 삭제가 조건부 UPDATE로 반영될 때마다 같은 문장 안에서 1씩 증가한다. `editedAt`은 행 잠금 전에 정해지므로 동시 수정의 순서를 나타내지 않는다. 클라이언트는 삭제 상태를 최종으로 유지하고, 그 외에는 더 큰 `revision`을 채택한다. 기존 DB에는 `docs/direct-chat-edit-delete.sql`을 먼저 적용한다.
+
 배포 환경에서는 `wss://<API 도메인>/ws/chat`이 백엔드 8080 포트로 전달되어야 한다. Nginx를 쓴다면 이 경로에 HTTP/1.1 `Upgrade`와 `Connection: upgrade` 헤더 전달 및 유휴 연결 제한 시간을 설정한다. `ADLIPS_CORS_ALLOWED_ORIGINS`에는 프론트의 정확한 출처(예: `https://narackrock.com`, 로컬 개발 시 `http://127.0.0.1:5173`)를 포함한다. Proxmox 자체 설정 변경은 필요하지 않지만, 실제 역방향 프록시 구성은 별도로 확인해야 한다.

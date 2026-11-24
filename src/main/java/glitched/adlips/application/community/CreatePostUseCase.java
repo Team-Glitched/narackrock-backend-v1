@@ -9,6 +9,8 @@ import glitched.adlips.application.community.port.out.UserBanQueryPort;
 import glitched.adlips.application.community.port.out.GalleryBanQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
+import glitched.adlips.domain.common.ContentLimits;
+import glitched.adlips.domain.common.TextSanitizer;
 import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.media.MediaFileStatus;
 import glitched.adlips.domain.media.MediaFileType;
@@ -81,11 +83,23 @@ public class CreatePostUseCase {
                     PostErrorCode.BANNED_USER_ACCESS,
                     "현재 서비스 이용 정지 상태이므로 게시글을 생성할 수 없습니다.");
         }
-        if (title == null || title.isBlank()) {
+        String trimmedTitle = TextSanitizer.sanitizeSingleLine(title);
+        if (trimmedTitle.isEmpty()) {
             throw new PostApplicationException(PostErrorCode.VALIDATION_ERROR, "제목은 필수 입력 사항입니다.");
         }
-        if (content == null || content.isBlank()) {
+        if (ContentLimits.exceeds(trimmedTitle, ContentLimits.POST_TITLE_MAX_LENGTH)) {
+            throw new PostApplicationException(
+                    PostErrorCode.VALIDATION_ERROR,
+                    "게시글 제목은 " + ContentLimits.POST_TITLE_MAX_LENGTH + "자 이내로 입력해 주세요.");
+        }
+        String trimmedContent = TextSanitizer.sanitizeMultiline(content);
+        if (trimmedContent.isEmpty()) {
             throw new PostApplicationException(PostErrorCode.VALIDATION_ERROR, "내용은 필수 입력 사항입니다.");
+        }
+        if (ContentLimits.exceeds(trimmedContent, ContentLimits.POST_CONTENT_MAX_LENGTH)) {
+            throw new PostApplicationException(
+                    PostErrorCode.VALIDATION_ERROR,
+                    "게시글 내용은 " + ContentLimits.POST_CONTENT_MAX_LENGTH + "자 이내로 입력해 주세요.");
         }
 
         return transactionRunner.required(() -> {
@@ -102,7 +116,7 @@ public class CreatePostUseCase {
                         "커뮤니티에 가입한 후 게시글을 작성할 수 있습니다.");
             }
             validateImage(imageFileId, userId);
-            Long postId = port.save(galleryId, userId, title.trim(), content.trim(), imageFileId);
+            Long postId = port.save(galleryId, userId, trimmedTitle, trimmedContent, imageFileId);
             notifications.record(GALLERY_POST_PUBLISHED,userId,postId);
             return new PostResult(postId, galleryId);
         });

@@ -4,6 +4,7 @@ import glitched.adlips.application.notification.NotificationEvents;
 import static glitched.adlips.domain.notification.NotificationType.*;
 
 import glitched.adlips.application.shorts.port.out.ShortReportPort;
+import glitched.adlips.domain.common.ContentLimits;
 
 public class SubmitShortReportUseCase {
     private final NotificationEvents notifications;
@@ -29,9 +30,21 @@ public class SubmitShortReportUseCase {
     public ShortReportResult execute(Long shortId, Long reporterId, String reason, String description) {return transactionRunner.required(()->executeInternal(shortId, reporterId, reason, description));}
 
     private ShortReportResult executeInternal(Long shortId, Long reporterId, String reason, String description) {
-        if (reason == null || reason.isBlank()) {
+        String trimmedReason = glitched.adlips.domain.common.TextSanitizer.sanitizeSingleLine(reason);
+        if (trimmedReason.isEmpty()) {
             throw new ShortReportApplicationException(
                     ShortReportErrorCode.VALIDATION_ERROR, "신고 사유를 입력해 주세요.");
+        }
+        if (ContentLimits.exceeds(trimmedReason, ContentLimits.REPORT_REASON_MAX_LENGTH)) {
+            throw new ShortReportApplicationException(
+                    ShortReportErrorCode.VALIDATION_ERROR,
+                    "신고 사유는 " + ContentLimits.REPORT_REASON_MAX_LENGTH + "자 이내로 입력해 주세요.");
+        }
+        String normalizedDescription = normalize(description);
+        if (ContentLimits.exceeds(normalizedDescription, ContentLimits.REPORT_DESCRIPTION_MAX_LENGTH)) {
+            throw new ShortReportApplicationException(
+                    ShortReportErrorCode.VALIDATION_ERROR,
+                    "신고 상세 내용은 " + ContentLimits.REPORT_DESCRIPTION_MAX_LENGTH + "자 이내로 입력해 주세요.");
         }
         Long ownerId = port.findActiveShortOwnerId(shortId)
                 .orElseThrow(() -> new ShortReportApplicationException(
@@ -44,7 +57,7 @@ public class SubmitShortReportUseCase {
             throw new ShortReportApplicationException(
                     ShortReportErrorCode.ALREADY_REPORTED, "이미 신고한 숏폼입니다.");
         }
-        Long reportId = port.save(reporterId, shortId, reason.trim(), normalize(description))
+        Long reportId = port.save(reporterId, shortId, trimmedReason, normalizedDescription)
                 .orElseThrow(() -> new ShortReportApplicationException(
                         ShortReportErrorCode.ALREADY_REPORTED, "이미 신고한 숏폼입니다."));
         notifications.record(REPORT_CREATED,reporterId,reportId);
@@ -55,7 +68,7 @@ public class SubmitShortReportUseCase {
         if (value == null) {
             return null;
         }
-        String trimmed = value.trim();
+        String trimmed = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(value);
         return trimmed.isEmpty() ? null : trimmed;
     }
 }

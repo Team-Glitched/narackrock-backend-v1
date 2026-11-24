@@ -72,12 +72,25 @@ public class ProjectTrack extends BaseTimeEntity {
     @Column(name = "is_deleted", nullable = false)
     private boolean isDeleted;
 
+    @Column(name = "origin_open_source_id")
+    private Long originOpenSourceId;
+
     public ProjectTrack(Project project, User owner, String name, String instrument, int sortOrder) {
         this.project = Objects.requireNonNull(project, "project must not be null");
         this.owner = Objects.requireNonNull(owner, "owner must not be null");
         this.name = name;
         this.instrument = instrument;
         this.sortOrder = sortOrder;
+    }
+
+    public ProjectTrack(Project project, User owner, String name, String instrument, int sortOrder,
+                        Long originOpenSourceId) {
+        this(project, owner, name, instrument, sortOrder);
+        this.originOpenSourceId = originOpenSourceId;
+    }
+
+    public boolean isSampleTrack() {
+        return originOpenSourceId != null;
     }
 
     public boolean belongsTo(Project project) {

@@ -11,7 +11,11 @@ import static org.mockito.Mockito.when;
 
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.shorts.port.out.ShortCommentReactionPort;
+import glitched.adlips.application.shorts.port.out.UserBanQueryPort;
 import glitched.adlips.domain.reaction.ReactionType;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Optional;
 import java.util.function.Supplier;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,11 +41,14 @@ class ToggleShortCommentLikeUseCaseTest {
     void 좋아요가_없으면_LIKE를_저장하고_likeCount를_증가시킨다() {
         when(reactionPort.findReaction(1L, 7721L)).thenReturn(Optional.empty());
         when(reactionPort.getLikeCount(7721L)).thenReturn(5);
+        when(reactionPort.getDislikeCount(7721L)).thenReturn(2);
 
         ShortCommentLikeResult result = useCase.toggle(1L, 15L, 7721L);
 
         assertThat(result.isLiked()).isTrue();
+        assertThat(result.isDisliked()).isFalse();
         assertThat(result.likeCount()).isEqualTo(5);
+        assertThat(result.dislikeCount()).isEqualTo(2);
         verify(reactionPort).saveReaction(1L, 7721L, ReactionType.LIKE);
         verify(reactionPort).adjustLikeCount(7721L, 1);
         verify(reactionPort, never()).deleteReaction(any(), any());
@@ -52,11 +59,14 @@ class ToggleShortCommentLikeUseCaseTest {
     void 이미_좋아요_상태면_취소한다() {
         when(reactionPort.findReaction(1L, 7721L)).thenReturn(Optional.of(ReactionType.LIKE));
         when(reactionPort.getLikeCount(7721L)).thenReturn(4);
+        when(reactionPort.getDislikeCount(7721L)).thenReturn(1);
 
         ShortCommentLikeResult result = useCase.toggle(1L, 15L, 7721L);
 
         assertThat(result.isLiked()).isFalse();
+        assertThat(result.isDisliked()).isFalse();
         assertThat(result.likeCount()).isEqualTo(4);
+        assertThat(result.dislikeCount()).isEqualTo(1);
         verify(reactionPort).deleteReaction(1L, 7721L);
         verify(reactionPort).adjustLikeCount(7721L, -1);
         verify(reactionPort, never()).saveReaction(any(), any(), any());
@@ -66,14 +76,32 @@ class ToggleShortCommentLikeUseCaseTest {
     void 싫어요_상태면_좋아요로_전환한다() {
         when(reactionPort.findReaction(1L, 7721L)).thenReturn(Optional.of(ReactionType.DISLIKE));
         when(reactionPort.getLikeCount(7721L)).thenReturn(6);
+        when(reactionPort.getDislikeCount(7721L)).thenReturn(0);
 
         ShortCommentLikeResult result = useCase.toggle(1L, 15L, 7721L);
 
         assertThat(result.isLiked()).isTrue();
+        assertThat(result.isDisliked()).isFalse();
         assertThat(result.likeCount()).isEqualTo(6);
+        assertThat(result.dislikeCount()).isEqualTo(0);
         verify(reactionPort).saveReaction(1L, 7721L, ReactionType.LIKE);
         verify(reactionPort).adjustDislikeCount(7721L, -1);
         verify(reactionPort).adjustLikeCount(7721L, 1);
+    }
+
+    @Test
+    void 정지된_사용자는_좋아요를_토글할_수_없다() {
+        UserBanQueryPort banPort = mock(UserBanQueryPort.class);
+        Clock fixed = Clock.fixed(Instant.parse("2026-11-24T00:00:00Z"), ZoneOffset.UTC);
+        when(banPort.isBanned(any(), any())).thenReturn(true);
+        var restrictedUseCase = new ToggleShortCommentLikeUseCase(
+                reactionPort, transactionRunner, glitched.adlips.application.notification.NotificationEvents.none(), banPort, fixed);
+
+        assertThatThrownBy(() -> restrictedUseCase.toggle(1L, 15L, 7721L))
+                .isInstanceOf(ShortCommentApplicationException.class)
+                .extracting("errorCode")
+                .isEqualTo(ShortCommentErrorCode.BANNED_USER_ACCESS);
+        verify(reactionPort, never()).lockActiveComment(any(), any());
     }
 
     @Test

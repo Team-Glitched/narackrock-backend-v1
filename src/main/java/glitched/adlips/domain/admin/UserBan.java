@@ -34,7 +34,7 @@ public class UserBan extends BaseCreatedEntity {
     @JoinColumn(name = "admin_id", nullable = false)
     private User admin;
 
-    @Column(name = "reason", nullable = false)
+    @Column(name = "reason", nullable = false, length = 500)
     private String reason;
 
     @Column(name = "banned_until")
@@ -106,9 +106,10 @@ public class UserBan extends BaseCreatedEntity {
     }
 
     private static String requireReason(String reason) {
-        if (reason == null || reason.isBlank()) {
+        String sanitized = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(reason);
+        if (sanitized.isEmpty()) {
             throw new IllegalArgumentException("차단 사유는 필수입니다.");
         }
-        return reason.trim();
+        return sanitized;
     }
 }

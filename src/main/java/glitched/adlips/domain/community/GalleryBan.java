@@ -47,7 +47,7 @@ public class GalleryBan extends BaseCreatedEntity {
     @Column(name = "ban_type", nullable = false)
     private GalleryBanType banType;
 
-    @Column(name = "reason", nullable = false)
+    @Column(name = "reason", nullable = false, length = 500)
     private String reason;
 
     @Column(name = "banned_until")
@@ -101,10 +101,11 @@ public class GalleryBan extends BaseCreatedEntity {
     }
 
     private static String requireReason(String reason) {
-        if (reason == null || reason.isBlank()) {
+        String sanitized = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(reason);
+        if (sanitized.isEmpty()) {
             throw new IllegalArgumentException("제재 사유는 필수입니다.");
         }
-        return reason.trim();
+        return sanitized;
     }
 
     public Long getId() {

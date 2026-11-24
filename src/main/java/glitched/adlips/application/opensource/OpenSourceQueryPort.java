@@ -8,7 +8,15 @@ import java.util.Optional;
 public interface OpenSourceQueryPort {
     record Writer(Long userId, String nickname, String profileImageUrl) {}
     record Item(Long openSourceId, String title, String description, String thumbnailUrl,
-                Writer writer, boolean isSaved, Instant createdAt, boolean canPreview, boolean isLiked, boolean isDisliked, long likeCount, long dislikeCount, long commentCount, long usageCount, String instrument) {}
+                Writer writer, boolean isSaved, Instant createdAt, boolean canPreview, boolean isLiked, boolean isDisliked, long likeCount, long dislikeCount, long commentCount, long usageCount, String instrument,
+                boolean hasMidiNotes, String midiNotesJson, Integer midiPpq, Integer midiBpm) {
+        public Item(Long openSourceId, String title, String description, String thumbnailUrl,
+                    Writer writer, boolean isSaved, Instant createdAt, boolean canPreview, boolean isLiked, boolean isDisliked, long likeCount, long dislikeCount, long commentCount, long usageCount, String instrument) {
+            this(openSourceId, title, description, thumbnailUrl, writer, isSaved, createdAt, canPreview,
+                    isLiked, isDisliked, likeCount, dislikeCount, commentCount, usageCount, instrument,
+                    false, null, null, null);
+        }
+    }
     record SavedItem(Long openSourceId, Instant savedAt, Item source) {}
 
     List<Item> list(Long viewerId, String keyword, int offset, int limit);

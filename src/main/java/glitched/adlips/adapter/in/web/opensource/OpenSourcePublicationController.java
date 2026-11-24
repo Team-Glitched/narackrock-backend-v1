@@ -12,6 +12,8 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Instant;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.springframework.http.ResponseEntity;
@@ -27,7 +29,10 @@ public class OpenSourcePublicationController {
             @Schema(maxLength = 500) String description,
             @Schema(requiredMode = Schema.RequiredMode.REQUIRED, minimum = "1") Long mediaFileId,
             @Schema(minimum = "1") Long thumbnailMediaFileId,
-            @Schema(description = "작곡 악기/녹음 파트 ID. 생략/null은 미지정", example = "acoustic-guitar", nullable = true) String instrument) {}
+            @Schema(description = "작곡 악기/녹음 파트 ID. 생략/null은 미지정", example = "acoustic-guitar", nullable = true) String instrument,
+            @Schema(description = "선택 MIDI 노트 목록", nullable = true) List<OpenSourcePublicationUseCase.MidiNoteData> midiNotes,
+            @Schema(description = "선택 MIDI PPQ (기본 480)", nullable = true) Integer midiPpq,
+            @Schema(description = "선택 MIDI BPM", nullable = true) Integer midiBpm) {}
     @Schema(description = "한 개 이상의 필드가 필요합니다. 생략은 유지, 설명/썸네일의 null은 제거합니다. 음원/소유자는 변경할 수 없습니다.")
     public record UpdateRequest(
             @Schema(minLength = 1, maxLength = 40) String title,
@@ -39,15 +44,17 @@ public class OpenSourcePublicationController {
 
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public record PublicationResponse(Long openSourceId, Long ownerId, String title, String description,
-            Long mediaFileId, Long thumbnailMediaFileId, String visibility, Instant createdAt, Instant updatedAt, String instrument) {
+            Long mediaFileId, Long thumbnailMediaFileId, String visibility, Instant createdAt, Instant updatedAt,
+            String instrument, boolean hasMidiNotes) {
         static PublicationResponse from(OpenSourcePublication source) {
             return new PublicationResponse(source.id(), source.ownerId(), source.title(), source.description(),
                     source.mediaFileId(), source.thumbnailMediaFileId(), source.isPublic() ? "PUBLIC" : "PRIVATE",
-                    source.createdAt(), source.updatedAt(), source.instrument());
+                    source.createdAt(), source.updatedAt(), source.instrument(), source.hasMidiNotes());
         }
     }
     public record VisibilityResponse(Long openSourceId, String visibility) {}
     public record DeleteResponse(Long openSourceId, boolean isDeleted) {}
+    private static final Set<String> NOTE_KEYS = Set.of("pitch", "startTick", "durationTick", "velocity");
     private final OpenSourcePublicationUseCase useCase;
     private final AuthenticatedUserResolver users;
 
@@ -62,9 +69,11 @@ public class OpenSourcePublicationController {
     public ResponseEntity<ApiResponse<PublicationResponse>> create(
             @RequestHeader("Authorization") String authorization, @RequestBody Map<String, Object> body) {
         Long userId = users.requireUserId(authorization);
-        fields(body, Set.of("title", "description", "mediaFileId", "thumbnailMediaFileId", "instrument"));
+        fields(body, Set.of("title", "description", "mediaFileId", "thumbnailMediaFileId", "instrument",
+                "midiNotes", "midiPpq", "midiBpm"));
         var source = useCase.create(userId, text(body, "title"), text(body, "description"),
-                id(body, "mediaFileId"), id(body, "thumbnailMediaFileId"), text(body, "instrument"));
+                id(body, "mediaFileId"), id(body, "thumbnailMediaFileId"), text(body, "instrument"),
+                midiNotes(body.get("midiNotes")), optionalInt(body.get("midiPpq")), optionalInt(body.get("midiBpm")));
         return ResponseEntity.status(201).body(ApiResponse.success("샘플을 비공개로 등록했습니다.", PublicationResponse.from(source)));
     }
 
@@ -120,6 +129,34 @@ public class OpenSourcePublicationController {
         if (value == null) return null;
         if (value instanceof Integer number) return number.longValue();
         if (value instanceof Long number) return number;
+        throw invalid();
+    }
+    private List<OpenSourcePublicationUseCase.MidiNoteData> midiNotes(Object raw) {
+        if (raw == null) return null;
+        if (!(raw instanceof List<?> list)) throw invalid();
+        List<OpenSourcePublicationUseCase.MidiNoteData> result = new ArrayList<>(list.size());
+        for (Object item : list) {
+            if (!(item instanceof Map<?, ?> map) || !NOTE_KEYS.containsAll(map.keySet()) || map.size() != NOTE_KEYS.size()) {
+                throw invalid();
+            }
+            result.add(new OpenSourcePublicationUseCase.MidiNoteData(
+                    requiredInt(map.get("pitch")),
+                    requiredInt(map.get("startTick")),
+                    requiredInt(map.get("durationTick")),
+                    requiredInt(map.get("velocity"))));
+        }
+        return result;
+    }
+    private Integer optionalInt(Object value) {
+        if (value == null) return null;
+        return requiredInt(value);
+    }
+    private int requiredInt(Object value) {
+        if (value instanceof Integer number) return number;
+        if (value instanceof Long number) {
+            if (number < Integer.MIN_VALUE || number > Integer.MAX_VALUE) throw invalid();
+            return number.intValue();
+        }
         throw invalid();
     }
     private OpenSourceException invalid() {

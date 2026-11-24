@@ -2,7 +2,9 @@ package glitched.adlips.adapter.out.persistence.user;
 
 import glitched.adlips.application.user.relation.port.out.ChatMessagePort;
 import glitched.adlips.domain.user.DirectChatMessage;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
@@ -38,7 +40,7 @@ interface SpringDataDirectChatMessageRepository extends JpaRepository<DirectChat
 
     @Query("""
             SELECT m.senderId AS senderId, COUNT(m) AS messageCount FROM DirectChatMessage m
-            WHERE m.recipientId = :recipientId AND m.unread = true
+            WHERE m.recipientId = :recipientId AND m.unread = true AND m.deleted = false
             GROUP BY m.senderId
             """)
     List<UnreadSender> unreadBySender(@Param("recipientId") Long recipientId);
@@ -51,6 +53,23 @@ interface SpringDataDirectChatMessageRepository extends JpaRepository<DirectChat
             """)
     void markRead(@Param("recipientId") Long recipientId, @Param("senderId") Long senderId,
                   @Param("throughId") Long throughId);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            UPDATE DirectChatMessage m SET m.content = :content, m.editedAt = :editedAt,
+              m.revision = m.revision + 1
+            WHERE m.id = :id AND m.deleted = false
+            """)
+    int updateContentIfNotDeleted(@Param("id") Long id, @Param("content") String content,
+                                  @Param("editedAt") LocalDateTime editedAt);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            UPDATE DirectChatMessage m SET m.deleted = true, m.deletedAt = :deletedAt,
+              m.content = '', m.unread = false, m.revision = m.revision + 1
+            WHERE m.id = :id AND m.deleted = false
+            """)
+    int softDeleteIfNotDeleted(@Param("id") Long id, @Param("deletedAt") LocalDateTime deletedAt);
 }
 
 @Repository
@@ -58,6 +77,29 @@ public class ChatMessagePersistenceAdapter implements ChatMessagePort {
     private final SpringDataDirectChatMessageRepository repository;
     public ChatMessagePersistenceAdapter(SpringDataDirectChatMessageRepository repository) { this.repository = repository; }
     public Message save(Long senderId, Long recipientId, String content) { return map(repository.save(new DirectChatMessage(senderId, recipientId, content))); }
+
+    @Override
+    public Optional<Message> findById(Long messageId) {
+        return repository.findById(messageId).map(this::map);
+    }
+
+    @Override
+    public Optional<Message> updateContent(Long messageId, String content, LocalDateTime editedAt) {
+        int updated = repository.updateContentIfNotDeleted(messageId, content, editedAt);
+        if (updated == 0) {
+            return Optional.empty();
+        }
+        return repository.findById(messageId)
+                .filter(entity -> !entity.isDeleted())
+                .map(this::map);
+    }
+
+    @Override
+    public Message softDelete(Long messageId, LocalDateTime deletedAt) {
+        repository.softDeleteIfNotDeleted(messageId, deletedAt);
+        return repository.findById(messageId).map(this::map).orElseThrow();
+    }
+
     public List<Message> conversation(Long firstId, Long secondId, Long beforeId, int size) {
         var descending = repository.conversation(firstId, secondId, beforeId, PageRequest.of(0, size));
         return descending.reversed().stream().map(this::map).toList();
@@ -77,5 +119,9 @@ public class ChatMessagePersistenceAdapter implements ChatMessagePort {
     public void markRead(Long recipientId, Long senderId, Long throughId) {
         repository.markRead(recipientId, senderId, throughId);
     }
-    private Message map(DirectChatMessage message) { return new Message(message.getId(), message.getSenderId(), message.getRecipientId(), message.getContent(), message.getCreatedAt()); }
+    private Message map(DirectChatMessage message) {
+        return new Message(message.getId(), message.getSenderId(), message.getRecipientId(),
+                message.isDeleted() ? "" : message.getContent(), message.getCreatedAt(),
+                message.getEditedAt(), message.isDeleted(), message.getRevision());
+    }
 }

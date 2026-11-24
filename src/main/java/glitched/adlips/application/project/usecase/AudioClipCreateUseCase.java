@@ -61,6 +61,9 @@ public class AudioClipCreateUseCase {
         if (!track.belongsTo(project)) {
             throw error(ProjectErrorCode.TRACK_NOT_IN_PROJECT, "해당 프로젝트에 속한 트랙이 아닙니다.");
         }
+        if (track.isSampleTrack()) {
+            throw error(ProjectErrorCode.TRACK_EDIT_DENIED, "샘플 전용 트랙에는 일반 오디오 클립을 추가할 수 없습니다.");
+        }
         if (InstrumentFamily.of(track.getInstrument()) == null) {
             throw error(ProjectErrorCode.TRACK_INSTRUMENT_NOT_SET,"오디오를 저장하기 전에 악기나 보컬 역할을 선택해 주세요.");
         }

@@ -115,8 +115,8 @@ class OpenSourceInteractionIntegrationTest {
         assertThat(postComment(96201,"depth",reply).status()).isEqualTo(400);
         assertThat(postComment(96201,"missing",99999L).status()).isEqualTo(404);
         assertThat(postComment(96201,"   ",null).status()).isEqualTo(400);
-        assertThat(postComment(96201,"a".repeat(1001),null).status()).isEqualTo(400);
-        assertThat(postComment(96201,"a".repeat(1000),null).status()).isEqualTo(201);
+        assertThat(postComment(96201,"a".repeat(3001),null).status()).isEqualTo(400);
+        assertThat(postComment(96201,"a".repeat(3000),null).status()).isEqualTo(201);
         assertThat(call("POST","/api/v1/open-sources/96201/comments","{\"content\":\"test\",\"userId\":96001}",96002L).status()).isEqualTo(400);
         assertThat(call("GET","/api/v1/open-sources/96201/comments?parentCommentId="+reply,null,96002L).status()).isEqualTo(400);
         for(String query:List.of("?page=-1","?size=0","?size=101","?page=2147483647&size=100"))

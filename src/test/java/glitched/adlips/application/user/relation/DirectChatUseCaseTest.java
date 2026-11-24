@@ -1,9 +1,12 @@
 package glitched.adlips.application.user.relation;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.*;
 
+import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.common.UserApplicationException;
 import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
@@ -11,16 +14,21 @@ import glitched.adlips.application.user.relation.port.out.ChatMessagePort;
 import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
 import glitched.adlips.application.user.relation.usecase.DirectChatUseCase;
 import glitched.adlips.domain.user.Profile;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 
 class DirectChatUseCaseTest {
+    private static final Clock FIXED_CLOCK = Clock.fixed(Instant.parse("2026-11-24T01:00:00Z"), ZoneOffset.UTC);
     private final FollowRepositoryPort follows = mock(FollowRepositoryPort.class);
     private final ProfileRepositoryPort profiles = mock(ProfileRepositoryPort.class);
     private final ChatMessagePort messages = mock(ChatMessagePort.class);
-    private final DirectChatUseCase chat = new DirectChatUseCase(follows, profiles, messages);
+    private final DirectChatUseCase chat = new DirectChatUseCase(
+            follows, profiles, messages, TransactionRunner.direct(), FIXED_CLOCK);
 
     private void privacy(boolean senderPrivate, boolean recipientPrivate) {
         Profile sender = mock(Profile.class);
@@ -160,5 +168,72 @@ class DirectChatUseCaseTest {
         chat.markRead(1L, 2L, 5L);
 
         verify(messages).markRead(1L, 2L, 5L);
+    }
+
+    @Test
+    void senderCanEditAndSoftDeleteOwnMessageWithSanitizationAndLimits() {
+        privacy(false, false);
+        LocalDateTime sentAt = LocalDateTime.of(2026, 11, 24, 0, 0);
+        LocalDateTime now = LocalDateTime.now(FIXED_CLOCK);
+        var original = new ChatMessagePort.Message(10L, 1L, 2L, "hello", sentAt);
+        var updated = new ChatMessagePort.Message(10L, 1L, 2L, "edited!", sentAt, now, false, 1L);
+        var deleted = new ChatMessagePort.Message(10L, 1L, 2L, "", sentAt, now, true, 2L);
+        when(messages.findById(10L)).thenReturn(Optional.of(original));
+        when(messages.updateContent(10L, "edited!", now)).thenReturn(Optional.of(updated));
+        when(messages.softDelete(10L, now)).thenReturn(deleted);
+
+        var editedResult = chat.edit(1L, 2L, 10L, "\u3164edited!\u200B");
+        assertEquals("edited!", editedResult.content());
+        assertEquals(now, editedResult.editedAt());
+        assertEquals(1L, editedResult.revision());
+
+        assertThrows(UserApplicationException.class, () -> chat.edit(1L, 2L, 10L, "\u3164\u2800"));
+        assertThrows(UserApplicationException.class, () -> chat.edit(1L, 2L, 10L, "a".repeat(2001)));
+
+        var deletedResult = chat.delete(1L, 2L, 10L);
+        assertTrue(deletedResult.deleted());
+        assertEquals("", deletedResult.content());
+
+        // Idempotent delete and rejected edit on already deleted message
+        when(messages.findById(10L)).thenReturn(Optional.of(deleted));
+        assertSame(deleted, chat.delete(1L, 2L, 10L));
+        verify(messages, times(1)).softDelete(10L, now);
+
+        UserApplicationException editDeleted = assertThrows(UserApplicationException.class,
+                () -> chat.edit(1L, 2L, 10L, "retry"));
+        assertEquals(UserErrorCode.VALIDATION_ERROR, editDeleted.getErrorCode());
+
+        // Concurrent delete between read and conditional update fails cleanly instead of resurrecting
+        when(messages.findById(10L)).thenReturn(Optional.of(original));
+        when(messages.updateContent(10L, "race", now)).thenReturn(Optional.empty());
+        UserApplicationException concurrentDelete = assertThrows(UserApplicationException.class,
+                () -> chat.edit(1L, 2L, 10L, "race"));
+        assertEquals(UserErrorCode.VALIDATION_ERROR, concurrentDelete.getErrorCode());
+    }
+
+    @Test
+    void nonSenderOrWrongConversationCannotEditOrDelete() {
+        privacy(false, false);
+        var sentByFriend = new ChatMessagePort.Message(11L, 2L, 1L, "theirs", LocalDateTime.now(FIXED_CLOCK));
+        var wrongConversation = new ChatMessagePort.Message(12L, 1L, 3L, "other", LocalDateTime.now(FIXED_CLOCK));
+        when(messages.findById(11L)).thenReturn(Optional.of(sentByFriend));
+        when(messages.findById(12L)).thenReturn(Optional.of(wrongConversation));
+        when(messages.findById(99L)).thenReturn(Optional.empty());
+
+        UserApplicationException forbiddenEdit = assertThrows(UserApplicationException.class,
+                () -> chat.edit(1L, 2L, 11L, "hack"));
+        assertEquals(UserErrorCode.CHAT_FORBIDDEN, forbiddenEdit.getErrorCode());
+
+        UserApplicationException forbiddenDelete = assertThrows(UserApplicationException.class,
+                () -> chat.delete(1L, 2L, 11L));
+        assertEquals(UserErrorCode.CHAT_FORBIDDEN, forbiddenDelete.getErrorCode());
+
+        UserApplicationException wrongConv = assertThrows(UserApplicationException.class,
+                () -> chat.edit(1L, 2L, 12L, "hack"));
+        assertEquals(UserErrorCode.CHAT_MESSAGE_NOT_FOUND, wrongConv.getErrorCode());
+
+        UserApplicationException missing = assertThrows(UserApplicationException.class,
+                () -> chat.delete(1L, 2L, 99L));
+        assertEquals(UserErrorCode.CHAT_MESSAGE_NOT_FOUND, missing.getErrorCode());
     }
 }

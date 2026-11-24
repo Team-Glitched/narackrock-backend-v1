@@ -66,10 +66,11 @@ public class ShortComment extends BaseTimeEntity {
 
     private static String requireContent(String content) {
         Objects.requireNonNull(content, "content must not be null");
-        if (content.isBlank()) {
+        String sanitized = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(content);
+        if (sanitized.isEmpty()) {
             throw new IllegalArgumentException("content must not be blank");
         }
-        return content;
+        return sanitized;
     }
 
     public Long getId() {

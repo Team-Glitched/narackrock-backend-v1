@@ -2,19 +2,36 @@ package glitched.adlips.application.shorts;
 
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.shorts.port.out.ShortCommentReactionPort;
+import glitched.adlips.application.shorts.port.out.UserBanQueryPort;
 import glitched.adlips.domain.reaction.ReactionType;
+import java.time.Clock;
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 public class ToggleShortCommentDislikeUseCase {
     private final ShortCommentReactionPort reactionPort;
     private final TransactionRunner transactionRunner;
+    private final UserBanQueryPort userBanQueryPort;
+    private final Clock clock;
 
     public ToggleShortCommentDislikeUseCase(ShortCommentReactionPort reactionPort, TransactionRunner transactionRunner) {
+        this(reactionPort, transactionRunner, null, Clock.systemDefaultZone());
+    }
+
+    public ToggleShortCommentDislikeUseCase(ShortCommentReactionPort reactionPort, TransactionRunner transactionRunner,
+                                            UserBanQueryPort userBanQueryPort, Clock clock) {
         this.reactionPort = reactionPort;
         this.transactionRunner = transactionRunner;
+        this.userBanQueryPort = userBanQueryPort;
+        this.clock = clock;
     }
 
     public ShortCommentDislikeResult toggle(Long userId, Long shortId, Long commentId) {
+        if (userBanQueryPort != null && userBanQueryPort.isBanned(userId, LocalDateTime.now(clock))) {
+            throw new ShortCommentApplicationException(
+                    ShortCommentErrorCode.BANNED_USER_ACCESS,
+                    "현재 서비스 이용 정지 상태이므로 댓글 반응을 남길 수 없습니다.");
+        }
         return transactionRunner.required(() -> {
             if (!reactionPort.lockActiveComment(commentId, shortId)) {
                 throw new ShortCommentApplicationException(ShortCommentErrorCode.COMMENT_NOT_FOUND,
@@ -36,7 +53,8 @@ public class ToggleShortCommentDislikeUseCase {
                 reactionPort.adjustDislikeCount(commentId, 1);
                 isDisliked = true;
             }
-            return new ShortCommentDislikeResult(commentId, isDisliked, reactionPort.getDislikeCount(commentId));
+            return new ShortCommentDislikeResult(commentId, false, isDisliked,
+                    reactionPort.getLikeCount(commentId), reactionPort.getDislikeCount(commentId));
         });
     }
 }

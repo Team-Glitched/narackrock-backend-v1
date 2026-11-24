@@ -2,5 +2,6 @@ package glitched.adlips.application.shorts;
 
 public enum ShortsCompositionErrorCode {
     SHORT_NOT_FOUND,
-    PROJECT_NOT_LINKED
+    PROJECT_NOT_LINKED,
+    INVALID_SEARCH_KEYWORD
 }

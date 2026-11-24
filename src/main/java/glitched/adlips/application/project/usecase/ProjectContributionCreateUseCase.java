@@ -174,6 +174,11 @@ public class ProjectContributionCreateUseCase {
                         && item.targetType() == ContributionTargetType.CLIP)
                 .map(ProjectContributionCreateRequest.Item::targetId)
                 .collect(java.util.stream.Collectors.toSet());
+        Set<Long> submittedTrackIds = items.stream()
+                .filter(item -> item.changeType() == ContributionChangeType.ADD
+                        && item.targetType() == ContributionTargetType.TRACK)
+                .map(ProjectContributionCreateRequest.Item::targetId)
+                .collect(java.util.stream.Collectors.toSet());
 
         for (var item : items) {
             if (item.targetType() == ContributionTargetType.TRACK) {
@@ -192,6 +197,12 @@ public class ProjectContributionCreateUseCase {
                 ProjectClip clip = clips.findClipByIdAndIsDeletedFalse(item.targetId())
                         .orElseThrow(() -> invalidItem());
                 validateClip(project, userId, item, clip);
+                // A dedicated sample track and its source clip are approved together; a split approval strands the track.
+                if (item.changeType() == ContributionChangeType.ADD && clip.getTrack().isSampleTrack()
+                        && !submittedTrackIds.contains(clip.getTrack().getId())) {
+                    throw error(ProjectErrorCode.INVALID_CONTRIBUTION_ITEM,
+                            "샘플 트랙과 샘플 클립은 함께 제출해야 합니다.");
+                }
             }
         }
     }

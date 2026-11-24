@@ -98,13 +98,14 @@ import glitched.adlips.domain.project.Project;
 import glitched.adlips.domain.project.ProjectClip;
 import glitched.adlips.domain.project.ProjectMember;
 import glitched.adlips.domain.project.ProjectMemberRole;
+import glitched.adlips.domain.project.ProjectTrack;
 import glitched.adlips.domain.report.ReportTargetType;
 import glitched.adlips.domain.user.Profile;
 import glitched.adlips.domain.user.User;
 import glitched.adlips.domain.user.UserRole;
 import java.time.Clock;
-import java.time.Instant;
 import java.time.Duration;
+import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -235,6 +236,7 @@ class ContentLimitsValidationTest {
         ProjectClip clip = mock(ProjectClip.class);
         when(clip.getProject()).thenReturn(project);
         when(clip.getOwner()).thenReturn(owner);
+        when(clip.getTrack()).thenReturn(new ProjectTrack(project, owner, "Guitar", "GUITAR", 0));
         when(clip.getApprovalStatus()).thenReturn(glitched.adlips.domain.project.ApprovalStatus.DRAFT);
         when(clips.findClipByIdAndIsDeletedFalse(20L)).thenReturn(Optional.of(clip));
 
@@ -352,7 +354,6 @@ class ContentLimitsValidationTest {
         assertThat(TextSanitizer.sanitizeSingleLine("안녕하세요 " + family + " " + rainbowFlag + " " + heartOnFire))
                 .isEqualTo("안녕하세요 " + family + " " + rainbowFlag + " " + heartOnFire);
     }
-}
 
     @Test
     void textSanitizerHandlesLongMarkAndJoinerRunsWithoutRescanning() {
@@ -368,3 +369,4 @@ class ContentLimitsValidationTest {
                     .isEqualTo(smile + "\uFE0F".repeat(50_000) + "x");
         });
     }
+}

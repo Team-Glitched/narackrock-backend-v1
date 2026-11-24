@@ -22,10 +22,12 @@ import glitched.adlips.application.project.dto.request.ProjectContributionReview
 import glitched.adlips.application.project.usecase.ProjectContributionReviewUseCase;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.domain.project.ApprovalStatus;
+import glitched.adlips.domain.project.ClipSourceType;
 import glitched.adlips.domain.project.ContributionApprovalStatus;
 import glitched.adlips.domain.project.ContributionChangeType;
 import glitched.adlips.domain.project.ContributionTargetType;
 import glitched.adlips.domain.project.Project;
+import glitched.adlips.domain.project.ProjectClip;
 import glitched.adlips.domain.project.ProjectContribution;
 import glitched.adlips.domain.project.ProjectContributionItem;
 import glitched.adlips.domain.project.ProjectExport;
@@ -119,6 +121,97 @@ class ProjectContributionReviewUseCaseTest {
         assertThat(contribution.getApprovalStatus()).isEqualTo(ContributionApprovalStatus.PENDING);
         assertThat(pendingDuplicateSample.getApprovalStatus()).isEqualTo(ApprovalStatus.PENDING);
         verifyNoInteractions(exports);
+    }
+
+    @Test
+    void rejectsApprovingASampleClipOrSampleTrackWithoutItsPair() {
+        SampleFixture clipOnly = new SampleFixture();
+        clipOnly.item(ContributionChangeType.ADD, ContributionTargetType.CLIP, 202L);
+
+        assertThatThrownBy(clipOnly::approve)
+                .isInstanceOf(ProjectApplicationException.class)
+                .extracting("errorCode")
+                .isEqualTo(ProjectErrorCode.INVALID_CONTRIBUTION_ITEM);
+        assertThat(clipOnly.clip.getApprovalStatus()).isEqualTo(ApprovalStatus.PENDING);
+        assertThat(clipOnly.contribution.getApprovalStatus()).isEqualTo(ContributionApprovalStatus.PENDING);
+
+        SampleFixture trackOnly = new SampleFixture();
+        trackOnly.item(ContributionChangeType.ADD, ContributionTargetType.TRACK, 102L);
+
+        assertThatThrownBy(trackOnly::approve)
+                .isInstanceOf(ProjectApplicationException.class)
+                .extracting("errorCode")
+                .isEqualTo(ProjectErrorCode.INVALID_CONTRIBUTION_ITEM);
+        assertThat(trackOnly.track.getApprovalStatus()).isEqualTo(ApprovalStatus.PENDING);
+        assertThat(trackOnly.contribution.getApprovalStatus()).isEqualTo(ContributionApprovalStatus.PENDING);
+    }
+
+    @Test
+    void approvesASampleTrackTogetherWithItsSourceClip() {
+        SampleFixture fixture = new SampleFixture();
+        fixture.item(ContributionChangeType.ADD, ContributionTargetType.TRACK, 102L);
+        fixture.item(ContributionChangeType.ADD, ContributionTargetType.CLIP, 202L);
+
+        fixture.approve();
+
+        assertThat(fixture.track.getApprovalStatus()).isEqualTo(ApprovalStatus.APPROVED);
+        assertThat(fixture.clip.getApprovalStatus()).isEqualTo(ApprovalStatus.APPROVED);
+    }
+
+    @Test
+    void approvingSourceClipDeletionAlsoDeletesTheDedicatedSampleTrack() {
+        SampleFixture fixture = new SampleFixture();
+        fixture.track.approve();
+        fixture.clip.approve();
+        fixture.item(ContributionChangeType.DELETE, ContributionTargetType.CLIP, 202L);
+
+        fixture.approve();
+
+        assertThat(fixture.clip.isDeleted()).isTrue();
+        assertThat(fixture.track.isDeleted()).isTrue();
+    }
+
+    private static class SampleFixture {
+        private final User reviewer = User.create("owner@example.com").withId(1L);
+        private final User contributor = User.create("contributor@example.com").withId(2L);
+        private final Project project = new Project(reviewer, "곡", null, 701L);
+        private final ProjectTrack track = new ProjectTrack(project, contributor, "Sample", "drum-kit", 1, 55L);
+        private final ProjectClip clip = ProjectClip.createAudio(
+                project, track, contributor, ClipSourceType.IMPORTED, 21L, null, 0, 960, 0, 500, 0);
+        private final ProjectContribution contribution = new ProjectContribution(project, contributor, "샘플");
+        private final ProjectContributionReviewUseCase useCase;
+
+        private SampleFixture() {
+            ReflectionTestUtils.setField(track, "id", 102L);
+            ReflectionTestUtils.setField(clip, "id", 202L);
+            track.submitForReview();
+            clip.submitForReview();
+            ProjectRepositoryPort projects = mock(ProjectRepositoryPort.class);
+            ProjectContributionRepositoryPort contributions = mock(ProjectContributionRepositoryPort.class);
+            ProjectMemberRepositoryPort members = mock(ProjectMemberRepositoryPort.class);
+            ProjectTrackRepositoryPort tracks = mock(ProjectTrackRepositoryPort.class);
+            ProjectClipRepositoryPort clips = mock(ProjectClipRepositoryPort.class);
+            UserRepositoryPort users = mock(UserRepositoryPort.class);
+            when(projects.findByIdAndDeletedAtIsNullForUpdate(1L)).thenReturn(Optional.of(project));
+            when(contributions.findByIdAndProjectId(10L, 1L)).thenReturn(Optional.of(contribution));
+            when(members.findByProjectIdAndUserId(1L, 1L))
+                    .thenReturn(Optional.of(new ProjectMember(project, reviewer, ProjectMemberRole.OWNER)));
+            when(users.findById(1L)).thenReturn(Optional.of(reviewer));
+            when(tracks.findTrackByIdAndIsDeletedFalse(102L)).thenReturn(Optional.of(track));
+            when(clips.findClipByIdAndIsDeletedFalse(202L)).thenReturn(Optional.of(clip));
+            when(clips.findByTrackIdAndIsDeletedFalseOrderByStartTickAscIdAsc(102L)).thenReturn(List.of(clip));
+            useCase = new ProjectContributionReviewUseCase(projects, contributions, members, tracks, clips, users,
+                    mock(ProjectExportRepositoryPort.class), TransactionRunner.direct(), NotificationEvents.none());
+        }
+
+        private void item(ContributionChangeType changeType, ContributionTargetType targetType, Long targetId) {
+            new ProjectContributionItem(contribution, changeType, targetType, targetId);
+        }
+
+        private void approve() {
+            useCase.execute(new ProjectContributionReviewRequest(
+                    1L, 10L, 1L, ContributionApprovalStatus.APPROVED, null));
+        }
     }
 
     private static class Fixture {

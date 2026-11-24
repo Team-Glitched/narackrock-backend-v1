@@ -73,20 +73,30 @@ public final class TextSanitizer {
         }
 
         // Second pass: strip orphaned/repeated ZWJ, orphaned variation selectors, tag chars outside flags,
-        // and orphaned combining marks at blank boundaries.
+        // and orphaned combining marks at blank boundaries. Context is tracked incrementally so long runs of
+        // marks or joiners stay linear before length validation.
         List<Integer> stage2 = new ArrayList<>(stage1.size());
         boolean inFlagTag = false;
+        // Last emitted code point that is neither a variation selector nor a combining mark; -1 when none.
+        int previousBase = -1;
+        // Last emitted code point other than a variation selector, tag char, or keycap mark; -1 when none.
+        int previousAnchorCandidate = -1;
+        // First index after the current position that is not a ZWJ or variation selector; reused across a run.
+        int lookahead = 0;
         for (int idx = 0; idx < stage1.size(); idx++) {
             int cp = stage1.get(idx);
 
             if (cp == 0x1F3F4) {
                 inFlagTag = true;
                 stage2.add(cp);
+                previousBase = cp;
+                previousAnchorCandidate = cp;
                 continue;
             }
             if (isTagChar(cp)) {
                 if (inFlagTag) {
                     stage2.add(cp);
+                    previousBase = cp;
                     if (cp == 0xE007F) {
                         inFlagTag = false;
                     }
@@ -96,31 +106,43 @@ public final class TextSanitizer {
             inFlagTag = false;
 
             if (isVariationSelector(cp)) {
-                int prevBase = previousNonCombining(stage2);
-                if (prevBase >= 0 && !isWhitespaceAscii(prevBase) && prevBase != 0x200D) {
+                if (previousBase >= 0 && !isWhitespaceAscii(previousBase) && previousBase != 0x200D) {
                     stage2.add(cp);
                 }
                 continue;
             }
 
             if (isCombiningMark(cp)) {
-                int prevBase = previousNonCombining(stage2);
-                if (prevBase >= 0 && !isWhitespaceAscii(prevBase) && prevBase != 0x200D) {
+                if (previousBase >= 0 && !isWhitespaceAscii(previousBase) && previousBase != 0x200D) {
                     stage2.add(cp);
+                    if (cp != 0x20E3) {
+                        previousAnchorCandidate = cp;
+                    }
                 }
                 continue;
             }
 
             if (cp == 0x200D) {
-                int prevAnchor = previousEmojiAnchor(stage2);
-                int nextAnchor = nextEmojiAnchor(stage1, idx + 1);
-                if (prevAnchor >= 0 && nextAnchor >= 0 && (stage2.isEmpty() || stage2.getLast() != 0x200D)) {
+                if (lookahead <= idx) {
+                    lookahead = idx + 1;
+                    while (lookahead < stage1.size()
+                            && (stage1.get(lookahead) == 0x200D || isVariationSelector(stage1.get(lookahead)))) {
+                        lookahead++;
+                    }
+                }
+                boolean nextIsAnchor = lookahead < stage1.size() && isEmojiAnchor(stage1.get(lookahead));
+                if (isEmojiAnchor(previousAnchorCandidate) && nextIsAnchor
+                        && (stage2.isEmpty() || stage2.getLast() != 0x200D)) {
                     stage2.add(cp);
+                    previousBase = cp;
+                    previousAnchorCandidate = cp;
                 }
                 continue;
             }
 
             stage2.add(cp);
+            previousBase = cp;
+            previousAnchorCandidate = cp;
         }
 
         // Trim leading and trailing ASCII whitespace / newlines.
@@ -214,37 +236,5 @@ public final class TextSanitizer {
             return false;
         }
         return Character.isEmoji(cp) || Character.getType(cp) == Character.OTHER_SYMBOL;
-    }
-
-    private static int previousNonCombining(List<Integer> emitted) {
-        for (int i = emitted.size() - 1; i >= 0; i--) {
-            int cp = emitted.get(i);
-            if (!isVariationSelector(cp) && !isCombiningMark(cp)) {
-                return cp;
-            }
-        }
-        return -1;
-    }
-
-    private static int previousEmojiAnchor(List<Integer> emitted) {
-        for (int i = emitted.size() - 1; i >= 0; i--) {
-            int cp = emitted.get(i);
-            if (isVariationSelector(cp) || isTagChar(cp) || cp == 0x20E3) {
-                continue;
-            }
-            return isEmojiAnchor(cp) ? cp : -1;
-        }
-        return -1;
-    }
-
-    private static int nextEmojiAnchor(List<Integer> cps, int fromIdx) {
-        for (int i = fromIdx; i < cps.size(); i++) {
-            int cp = cps.get(i);
-            if (cp == 0x200D || isVariationSelector(cp)) {
-                continue;
-            }
-            return isEmojiAnchor(cp) ? cp : -1;
-        }
-        return -1;
     }
 }

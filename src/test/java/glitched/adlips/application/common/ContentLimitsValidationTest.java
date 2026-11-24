@@ -2,6 +2,7 @@ package glitched.adlips.application.common;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -103,6 +104,7 @@ import glitched.adlips.domain.user.User;
 import glitched.adlips.domain.user.UserRole;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.Duration;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
@@ -351,3 +353,18 @@ class ContentLimitsValidationTest {
                 .isEqualTo("안녕하세요 " + family + " " + rainbowFlag + " " + heartOnFire);
     }
 }
+
+    @Test
+    void textSanitizerHandlesLongMarkAndJoinerRunsWithoutRescanning() {
+        String marks = "\u0301".repeat(100_000);
+        String smile = "\uD83D\uDE00";
+        String joiners = "\u200D".repeat(100_000);
+
+        assertTimeoutPreemptively(Duration.ofSeconds(2), () -> {
+            assertThat(TextSanitizer.sanitizeMultiline("a" + marks)).isEqualTo("a" + marks);
+            assertThat(TextSanitizer.sanitizeMultiline(" " + marks)).isEmpty();
+            assertThat(TextSanitizer.sanitizeSingleLine(smile + joiners + smile)).isEqualTo(smile + "\u200D" + smile);
+            assertThat(TextSanitizer.sanitizeSingleLine(smile + "\uFE0F".repeat(50_000) + joiners + "x"))
+                    .isEqualTo(smile + "\uFE0F".repeat(50_000) + "x");
+        });
+    }

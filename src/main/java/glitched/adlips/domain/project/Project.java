@@ -129,8 +129,8 @@ public class Project extends BaseTimeEntity {
         if (deletedAt != null || (status != ProjectStatus.DRAFT && status != ProjectStatus.IN_PROGRESS)) {
             throw new IllegalStateException("only an editable project can change timing");
         }
-        if (bpm < 30 || bpm > 300 || numerator < 1 || numerator > 12
-                || (denominator != 2 && denominator != 4 && denominator != 8 && denominator != 16)) {
+        if (bpm < 30 || bpm > 300 || numerator < 1 || numerator > 16
+                || (denominator != 1 && denominator != 2 && denominator != 4 && denominator != 8 && denominator != 16)) {
             throw new IllegalArgumentException("invalid tempo or time signature");
         }
         if (this.bpm == bpm && timeSignatureNumerator == numerator && timeSignatureDenominator == denominator) return false;

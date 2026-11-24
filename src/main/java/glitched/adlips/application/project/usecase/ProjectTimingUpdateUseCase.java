@@ -37,8 +37,8 @@ public class ProjectTimingUpdateUseCase {
             if (project.getStatus()!=ProjectStatus.DRAFT && project.getStatus()!=ProjectStatus.IN_PROGRESS) {
                 throw error(ProjectErrorCode.PROJECT_ACCESS_DENIED,"완료된 곡의 설정은 변경할 수 없습니다.");
             }
-            if (bpm<30 || bpm>300 || numerator<1 || numerator>12
-                    || (denominator!=2 && denominator!=4 && denominator!=8 && denominator!=16)) {
+            if (bpm<30 || bpm>300 || numerator<1 || numerator>16
+                    || (denominator!=1 && denominator!=2 && denominator!=4 && denominator!=8 && denominator!=16)) {
                 throw error(ProjectErrorCode.VALIDATION_ERROR,"BPM은 30~300, 박자표는 올바른 값을 입력해 주세요.");
             }
             boolean tempoChanged=project.getBpm()!=bpm;

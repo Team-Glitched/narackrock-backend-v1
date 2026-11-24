@@ -46,9 +46,11 @@ class ProjectTimingUpdateUseCaseTest {
         assertThat(project.getBpm()).isEqualTo(120);
     }
     @Test void invalidTimingAndCompletedProjectsAreRejected() {
-        for(int[] values:List.of(new int[]{29,4,4},new int[]{301,4,4},new int[]{120,0,4},new int[]{120,13,4},new int[]{120,4,3})) {
+        for(int[] values:List.of(new int[]{29,4,4},new int[]{301,4,4},new int[]{120,0,4},new int[]{120,17,4},new int[]{120,4,3},new int[]{120,4,32})) {
             assertThatThrownBy(()->timing.execute(10L,1L,values[0],values[1],values[2])).isInstanceOf(ProjectApplicationException.class);
         }
+        assertThat(timing.execute(10L,1L,120,16,16).timeSignatureNumerator()).isEqualTo(16);
+        assertThat(timing.execute(10L,1L,120,4,1).timeSignatureDenominator()).isEqualTo(1);
         project.startPublishing();project.publish(java.time.LocalDateTime.now());project.complete();
         assertThatThrownBy(()->timing.execute(10L,1L,100,4,4)).isInstanceOf(ProjectApplicationException.class);
     }

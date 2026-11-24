@@ -2,6 +2,8 @@ package glitched.adlips.adapter.in.web.opensource;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonUnwrapped;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
 import glitched.adlips.application.opensource.OpenSourceQueryPort;
@@ -10,27 +12,54 @@ import glitched.adlips.application.opensource.OpenSourceQueryUseCase.Page;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import java.time.Instant;
+import java.util.List;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @Tag(name = "샘플 조회", description = "공개 목록·검색·상세, 내 보관함 및 등록 목록. 로그인 필요")
 @SecurityRequirement(name = "bearerAuth")
 public class OpenSourceQueryController {
+    private static final ObjectMapper MIDI_JSON = new ObjectMapper();
+    private static final TypeReference<List<MidiNoteItem>> MIDI_LIST_TYPE = new TypeReference<>() {};
+
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public record Writer(Long userId, String nickname, String profileImageUrl) {}
     @JsonInclude(JsonInclude.Include.ALWAYS)
+    public record MidiNoteItem(int pitch, int startTick, int durationTick, int velocity) {}
+    @JsonInclude(JsonInclude.Include.ALWAYS)
     public record Summary(Long openSourceId, String title, String description, String thumbnailUrl, Writer writer,
             Long usageCount, boolean canPreview, boolean isSaved, boolean isLiked, boolean isDisliked,
-            long likeCount, long dislikeCount, long commentCount, Instant createdAt, String instrument) {
+            long likeCount, long dislikeCount, long commentCount, Instant createdAt, String instrument,
+            boolean hasMidiNotes) {
         static Summary from(OpenSourceQueryPort.Item item) {
             var writer = item.writer();
             return new Summary(item.openSourceId(), item.title(), item.description(), item.thumbnailUrl(),
                     new Writer(writer.userId(), writer.nickname(), writer.profileImageUrl()),
-                    item.usageCount(), item.canPreview(), item.isSaved(), item.isLiked(), item.isDisliked(), item.likeCount(), item.dislikeCount(), item.commentCount(), item.createdAt(), item.instrument());
+                    item.usageCount(), item.canPreview(), item.isSaved(), item.isLiked(), item.isDisliked(),
+                    item.likeCount(), item.dislikeCount(), item.commentCount(), item.createdAt(),
+                    item.instrument(), item.hasMidiNotes());
         }
     }
     @JsonInclude(JsonInclude.Include.ALWAYS)
-    public record Detail(@JsonUnwrapped Summary source, Long durationMs) {}
+    public record Detail(@JsonUnwrapped Summary source, Long durationMs,
+                         Integer midiPpq, Integer midiBpm, List<MidiNoteItem> midiNotes) {
+        static Detail from(OpenSourceQueryPort.Item item) {
+            List<MidiNoteItem> notes = parseMidiNotes(item.midiNotesJson());
+            return new Detail(Summary.from(item), null,
+                    notes == null ? null : item.midiPpq(),
+                    notes == null ? null : item.midiBpm(),
+                    notes);
+        }
+
+        private static List<MidiNoteItem> parseMidiNotes(String json) {
+            if (json == null || json.isBlank()) return null;
+            try {
+                return MIDI_JSON.readValue(json, MIDI_LIST_TYPE);
+            } catch (Exception ignored) {
+                return null;
+            }
+        }
+    }
     @JsonInclude(JsonInclude.Include.ALWAYS)
     public record Saved(Long openSourceId, Instant savedAt, String availability, Summary source) {
         static Saved from(OpenSourceQueryPort.SavedItem item) {
@@ -66,7 +95,7 @@ public class OpenSourceQueryController {
     @GetMapping({"/api/v1/sources/{id}", "/api/v1/open-sources/{id}"})
     public ApiResponse<Detail> detail(@PathVariable Long id, @RequestHeader("Authorization") String authorization) {
         var item = useCase.detail(users.requireUserId(authorization), id);
-        return ApiResponse.success("샘플 상세 조회가 완료되었습니다.", new Detail(Summary.from(item), null));
+        return ApiResponse.success("샘플 상세 조회가 완료되었습니다.", Detail.from(item));
     }
 
     @GetMapping({"/api/v1/users/me/sources", "/api/v1/users/me/open-sources"})

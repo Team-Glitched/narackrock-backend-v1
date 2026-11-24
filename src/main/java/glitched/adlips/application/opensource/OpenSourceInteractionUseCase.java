@@ -5,6 +5,8 @@ import static glitched.adlips.domain.notification.NotificationType.*;
 
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.community.port.out.UserBanQueryPort;
+import glitched.adlips.domain.common.ContentLimits;
+import glitched.adlips.domain.common.TextSanitizer;
 import glitched.adlips.domain.reaction.ReactionToggle;
 import glitched.adlips.domain.reaction.ReactionType;
 import java.time.Clock;
@@ -62,8 +64,8 @@ public class OpenSourceInteractionUseCase {
     }
     public Created create(Long userId, Long sourceId, String content, Long parentId) {
         writeAllowed(userId); validId(sourceId);
-        if(content==null || content.strip().isEmpty() || content.strip().codePointCount(0,content.strip().length())>1000) throw invalid();
-        String normalized=content.strip();
+        String normalized = TextSanitizer.sanitizeMultiline(content);
+        if (normalized.isEmpty() || ContentLimits.exceeds(normalized, ContentLimits.COMMENT_MAX_LENGTH)) throw invalid();
         return transactions.required(() -> {
             available(sourceId); parent(sourceId,parentId);
             if (parentId != null && port.isCommentHidden(userId, parentId)) throw commentMissing();
@@ -86,11 +88,10 @@ public class OpenSourceInteractionUseCase {
     public Long updateComment(Long userId, Long commentId, String content) {
         writeAllowed(userId);
         validId(commentId);
-        if (content == null || content.strip().isEmpty()
-                || content.strip().codePointCount(0, content.strip().length()) > 1000) {
+        String normalized = TextSanitizer.sanitizeMultiline(content);
+        if (normalized.isEmpty() || ContentLimits.exceeds(normalized, ContentLimits.COMMENT_MAX_LENGTH)) {
             throw invalid();
         }
-        String normalized = content.strip();
         return transactions.required(() -> {
             var comment = findOwnedComment(commentId);
             available(comment.openSourceId());

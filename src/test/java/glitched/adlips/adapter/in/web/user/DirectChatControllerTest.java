@@ -41,4 +41,42 @@ class DirectChatControllerTest {
             assertThat(thread.outgoing()).isFalse();
         });
     }
+
+    @Test
+    void deletedLatestMessageShowsPlaceholderInThreadsAndEditDeletePublishRealtimeUpdates() {
+        DirectChatUseCase chat = mock(DirectChatUseCase.class);
+        AuthenticatedUserResolver users = mock(AuthenticatedUserResolver.class);
+        ChatRealtimePublisher realtime = mock(ChatRealtimePublisher.class);
+        ProfileRepositoryPort profiles = mock(ProfileRepositoryPort.class);
+        MediaFileRepositoryPort mediaFiles = mock(MediaFileRepositoryPort.class);
+        LocalDateTime sentAt = LocalDateTime.of(2026, 11, 24, 9, 0);
+        LocalDateTime updatedAt = LocalDateTime.of(2026, 11, 24, 9, 5);
+        when(users.requireUserId("Bearer test")).thenReturn(1L);
+        when(profiles.findByUserId(2L)).thenReturn(Optional.of(Profile.create(2L, "friend")));
+
+        var edited = new ChatMessagePort.Message(7L, 1L, 2L, "updated", sentAt, updatedAt, false, 1L);
+        var deleted = new ChatMessagePort.Message(7L, 1L, 2L, "", sentAt, updatedAt, true, 2L);
+        when(chat.edit(1L, 2L, 7L, "updated")).thenReturn(edited);
+        when(chat.delete(1L, 2L, 7L)).thenReturn(deleted);
+        when(chat.latestConversations(1L)).thenReturn(List.of(
+                new DirectChatUseCase.ThreadSummary(2L, deleted, 0L)));
+
+        var controller = new DirectChatController(chat, users, realtime, profiles, mediaFiles);
+
+        var editResponse = controller.edit("Bearer test", 2L, 7L, new DirectChatController.EditMessageRequest("updated"));
+        assertThat(editResponse.data().content()).isEqualTo("updated");
+        assertThat(editResponse.data().editedAt()).isEqualTo(updatedAt);
+        assertThat(editResponse.data().revision()).isEqualTo(1L);
+        verify(realtime).publish(edited);
+
+        var deleteResponse = controller.delete("Bearer test", 2L, 7L);
+        assertThat(deleteResponse.data().deleted()).isTrue();
+        assertThat(deleteResponse.data().content()).isEmpty();
+        assertThat(deleteResponse.data().revision()).isEqualTo(2L);
+        verify(realtime).publish(deleted);
+
+        var threadsResponse = controller.threads("Bearer test");
+        assertThat(threadsResponse.data()).singleElement().satisfies(thread ->
+                assertThat(thread.lastMessage()).isEqualTo("삭제된 메시지입니다."));
+    }
 }

@@ -197,6 +197,62 @@ class OpenSourcePublicationIntegrationTest {
         assertThat(jdbc.queryForObject("SELECT count(*) FROM open_sources WHERE owner_id=97001", Integer.class)).isEqualTo(1);
     }
 
+    @Test void optionalMidiNotesArePersistedAndExposedOnlyInDetailWhileSummaryHasFlag() throws Exception {
+        String midiBody = """
+                {
+                  "title": "MIDI 피아노",
+                  "description": "코드 진행",
+                  "mediaFileId": 97101,
+                  "instrument": "piano",
+                  "midiPpq": 480,
+                  "midiBpm": 115,
+                  "midiNotes": [
+                    {"pitch": 60, "startTick": 0, "durationTick": 480, "velocity": 100},
+                    {"pitch": 64, "startTick": 480, "durationTick": 240, "velocity": 90}
+                  ]
+                }
+                """;
+        var midiCreated = call("POST", "/api/v1/sources", midiBody, owner);
+        assertThat(midiCreated.status()).as(midiCreated.body().toString()).isEqualTo(201);
+        assertThat(midiCreated.body().at("/data/hasMidiNotes").asBoolean()).isTrue();
+        long midiId = midiCreated.body().at("/data/openSourceId").asLong();
+
+        var audioCreated = call("POST", "/api/v1/sources", createBody(), owner);
+        assertThat(audioCreated.status()).isEqualTo(201);
+        assertThat(audioCreated.body().at("/data/hasMidiNotes").asBoolean()).isFalse();
+        long audioId = audioCreated.body().at("/data/openSourceId").asLong();
+
+        call("PUT", path(midiId) + "/visibility", "{\"visibility\":\"PUBLIC\"}", owner);
+        call("PUT", path(audioId) + "/visibility", "{\"visibility\":\"PUBLIC\"}", owner);
+
+        var list = call("GET", "/api/v1/sources", null, other);
+        assertThat(list.status()).isEqualTo(200);
+        var items = list.body().at("/data/items");
+        assertThat(items.get(0).at("/hasMidiNotes").asBoolean()).isFalse();
+        assertThat(items.get(1).at("/hasMidiNotes").asBoolean()).isTrue();
+
+        var midiDetail = call("GET", "/api/v1/sources/" + midiId, null, other);
+        assertThat(midiDetail.status()).isEqualTo(200);
+        assertThat(midiDetail.body().at("/data/hasMidiNotes").asBoolean()).isTrue();
+        assertThat(midiDetail.body().at("/data/midiPpq").asInt()).isEqualTo(480);
+        assertThat(midiDetail.body().at("/data/midiBpm").asInt()).isEqualTo(115);
+        assertThat(midiDetail.body().at("/data/midiNotes")).hasSize(2);
+        assertThat(midiDetail.body().at("/data/midiNotes/0/pitch").asInt()).isEqualTo(60);
+
+        var audioDetail = call("GET", "/api/v1/sources/" + audioId, null, other);
+        assertThat(audioDetail.status()).isEqualTo(200);
+        assertThat(audioDetail.body().at("/data/hasMidiNotes").asBoolean()).isFalse();
+        assertThat(audioDetail.body().at("/data/midiNotes").isNull()).isTrue();
+
+        for (String badBody : List.of(
+                createBody().replace("}", ",\"midiNotes\":[]}"),
+                createBody().replace("}", ",\"midiPpq\":480}"),
+                createBody().replace("}", ",\"midiNotes\":[{\"pitch\":128,\"startTick\":0,\"durationTick\":480,\"velocity\":100}]}"),
+                createBody().replace("}", ",\"midiNotes\":[{\"pitch\":60,\"startTick\":0,\"durationTick\":0,\"velocity\":100}]}"))) {
+            assertThat(call("POST", "/api/v1/sources", badBody, owner).status()).as(badBody).isEqualTo(400);
+        }
+    }
+
     long create() throws Exception {
         var response=call("POST","/api/v1/open-sources",createBody(),owner);
         assertThat(response.status()).as(response.body().toString()).isEqualTo(201);

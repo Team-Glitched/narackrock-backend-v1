@@ -16,10 +16,12 @@ import glitched.adlips.application.project.dto.request.ProjectContributionCreate
 import glitched.adlips.application.project.usecase.ProjectContributionCreateUseCase;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.domain.project.ApprovalStatus;
+import glitched.adlips.domain.project.ClipSourceType;
 import glitched.adlips.domain.project.ContributionApprovalStatus;
 import glitched.adlips.domain.project.ContributionChangeType;
 import glitched.adlips.domain.project.ContributionTargetType;
 import glitched.adlips.domain.project.Project;
+import glitched.adlips.domain.project.ProjectClip;
 import glitched.adlips.domain.project.ProjectContribution;
 import glitched.adlips.domain.project.ProjectMember;
 import glitched.adlips.domain.project.ProjectMemberRole;
@@ -29,6 +31,7 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.test.util.ReflectionTestUtils;
 
 class ProjectContributionCreateUseCaseTest {
     private final ProjectRepositoryPort projects = mock(ProjectRepositoryPort.class);
@@ -97,6 +100,35 @@ class ProjectContributionCreateUseCaseTest {
                 .isInstanceOf(ProjectApplicationException.class)
                 .extracting("errorCode")
                 .isEqualTo(ProjectErrorCode.CONTRIBUTION_ALREADY_PENDING);
+    }
+
+    @Test
+    void submitsASampleClipOnlyTogetherWithItsDedicatedTrack() {
+        ProjectTrack sampleTrack = new ProjectTrack(project, contributor, "Sample", "drum-kit", 1, 55L);
+        ReflectionTestUtils.setField(sampleTrack, "id", 102L);
+        ProjectClip sampleClip = ProjectClip.createAudio(
+                project, sampleTrack, contributor, ClipSourceType.IMPORTED, 21L, null, 0, 960, 0, 500, 0);
+        ReflectionTestUtils.setField(sampleClip, "id", 202L);
+        when(tracks.findTrackByIdAndIsDeletedFalse(102L)).thenReturn(Optional.of(sampleTrack));
+        when(clips.findClipByIdAndIsDeletedFalse(202L)).thenReturn(Optional.of(sampleClip));
+        when(clips.findByTrackIdAndIsDeletedFalseOrderByStartTickAscIdAsc(102L)).thenReturn(List.of(sampleClip));
+        var clipItem = new ProjectContributionCreateRequest.Item(
+                ContributionChangeType.ADD, ContributionTargetType.CLIP, 202L);
+
+        assertThatThrownBy(() -> useCase().execute(new ProjectContributionCreateRequest(
+                1L, 2L, "샘플 클립만", null, List.of(clipItem))))
+                .isInstanceOf(ProjectApplicationException.class)
+                .extracting("errorCode")
+                .isEqualTo(ProjectErrorCode.INVALID_CONTRIBUTION_ITEM);
+        assertThat(sampleClip.getApprovalStatus()).isEqualTo(ApprovalStatus.DRAFT);
+
+        useCase().execute(new ProjectContributionCreateRequest(1L, 2L, "샘플", null, List.of(
+                new ProjectContributionCreateRequest.Item(
+                        ContributionChangeType.ADD, ContributionTargetType.TRACK, 102L),
+                clipItem)));
+
+        assertThat(sampleTrack.getApprovalStatus()).isEqualTo(ApprovalStatus.PENDING);
+        assertThat(sampleClip.getApprovalStatus()).isEqualTo(ApprovalStatus.PENDING);
     }
 
     private ProjectContributionCreateUseCase useCase() {

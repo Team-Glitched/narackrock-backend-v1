@@ -37,15 +37,17 @@ class OpenSourceClipIntegrationTest {
     record Response(int status, JsonNode body) {}
 
     @BeforeEach void setup() {
-        // 97001 publishes the source; 97002 owns the project and track 97401; 97003 owns track 97402.
-        jdbc.update("INSERT INTO users(id,email,role,created_at) VALUES(97001,'clip-source@test.local','USER',CURRENT_TIMESTAMP),(97002,'clip-owner@test.local','USER',CURRENT_TIMESTAMP),(97003,'clip-editor@test.local','USER',CURRENT_TIMESTAMP)");
+        // 97001 publishes the source; 97002 owns the project and track 97401; 97003 owns track 97402; 97004 has no track yet.
+        jdbc.update("INSERT INTO users(id,email,role,created_at) VALUES(97001,'clip-source@test.local','USER',CURRENT_TIMESTAMP),(97002,'clip-owner@test.local','USER',CURRENT_TIMESTAMP),(97003,'clip-editor@test.local','USER',CURRENT_TIMESTAMP),(97004,'clip-joiner@test.local','USER',CURRENT_TIMESTAMP)");
+        jdbc.update("INSERT INTO profiles(user_id,nickname,is_private,follower_count,following_count) VALUES(97001,'샘플원작자',false,0,0),(97002,'프로젝트오너',false,0,0),(97003,'에디터',false,0,0),(97004,'신규참여자',false,0,0)");
         jdbc.update("INSERT INTO media_files(id,owner_id,file_url,storage_key,file_type,status,file_size,created_at) VALUES(97101,97001,'http://local/files/riff.wav','media/97001/riff.wav','AUDIO','READY',100,CURRENT_TIMESTAMP)");
-        jdbc.update("INSERT INTO open_sources(id,owner_id,title,description,media_file_id,is_public,created_at,updated_at,deleted_at) VALUES"
-                + "(97201,97001,'공개 리프','riff',97101,true,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL),"
-                + "(97202,97001,'비공개 리프','riff',97101,false,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL),"
-                + "(97203,97001,'삭제된 리프','riff',97101,true,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
+        jdbc.update("INSERT INTO open_sources(id,owner_id,title,description,instrument,media_file_id,is_public,created_at,updated_at,deleted_at) VALUES"
+                + "(97201,97001,'공개 리프','riff','drum-kit',97101,true,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL),"
+                + "(97202,97001,'비공개 리프','riff','drum-kit',97101,false,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL),"
+                + "(97203,97001,'삭제된 리프','riff','drum-kit',97101,true,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),"
+                + "(97204,97001,'공개 베이스','bass','electric-bass',97101,true,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,NULL)");
         jdbc.update("INSERT INTO projects(id,owner_id,title,album_image_file_id,bpm,time_signature_numerator,time_signature_denominator,ppq,max_duration_ms,major_version,minor_version,status,is_public,created_at,updated_at) VALUES(97301,97002,'곡',97999,120,4,4,480,60000,1,1,'IN_PROGRESS',true,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
-        jdbc.update("INSERT INTO project_members(id,project_id,user_id,role,joined_at) VALUES(97351,97301,97002,'OWNER',CURRENT_TIMESTAMP),(97352,97301,97003,'EDITOR',CURRENT_TIMESTAMP)");
+        jdbc.update("INSERT INTO project_members(id,project_id,user_id,role,joined_at) VALUES(97351,97301,97002,'OWNER',CURRENT_TIMESTAMP),(97352,97301,97003,'EDITOR',CURRENT_TIMESTAMP),(97353,97301,97004,'EDITOR',CURRENT_TIMESTAMP)");
         jdbc.update("INSERT INTO project_tracks(id,project_id,owner_id,name,instrument,volume,pan,sort_order,is_muted,is_solo,approval_status,is_deleted,created_at,updated_at) VALUES"
                 + "(97401,97301,97002,'기타','acoustic-guitar',100,0,0,false,false,'DRAFT',false,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP),"
                 + "(97402,97301,97003,'피아노','piano',100,0,1,false,false,'DRAFT',false,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)");
@@ -58,7 +60,8 @@ class OpenSourceClipIntegrationTest {
         jdbc.update("DELETE FROM projects WHERE id=97301");
         jdbc.update("DELETE FROM open_sources WHERE id BETWEEN 97201 AND 97299");
         jdbc.update("DELETE FROM media_files WHERE id=97101");
-        jdbc.update("DELETE FROM users WHERE id IN (97001,97002,97003)");
+        jdbc.update("DELETE FROM profiles WHERE user_id IN (97001,97002,97003,97004)");
+        jdbc.update("DELETE FROM users WHERE id IN (97001,97002,97003,97004)");
     }
 
     @Test void insertsAnotherUsersPublicSourceAndCompositionReturnsPlayableMediaUrl() throws Exception {
@@ -101,6 +104,47 @@ class OpenSourceClipIntegrationTest {
         var otherWorking = call("GET", "/api/v1/projects/97301/tracks?view=WORKING", null, 97003L);
         assertThat(otherWorking.body().at("/data/tracks/0/trackId").asLong()).isEqualTo(97402L);
         assertThat(otherWorking.body().at("/data/tracks/0/clips").size()).isZero();
+    }
+
+    @Test void createsDedicatedBottomSampleTracksWithoutBlockingRegularLayerCreation() throws Exception {
+        // User 97004 first imports sample 97201 as a standalone bottom track.
+        var sampleOne = call("POST", "/api/v1/projects/97301/tracks/source",
+                "{\"openSourceId\":97201,\"startTick\":0,\"durationTick\":960}", 97004L);
+        assertThat(sampleOne.status()).isEqualTo(201);
+        long sampleTrackOne = sampleOne.body().at("/data/trackId").asLong();
+
+        // Adding the exact same sample 97201 a second time is rejected (at most 1 per project).
+        var duplicate = call("POST", "/api/v1/projects/97301/tracks/source",
+                "{\"openSourceId\":97201,\"startTick\":480,\"durationTick\":960}", 97004L);
+        assertThat(duplicate.status()).isEqualTo(409);
+        assertThat(duplicate.body().at("/errorCode").asText()).isEqualTo("TRACK_LIMIT_EXCEEDED");
+
+        // Adding a different sample 97204 succeeds and creates another bottom track.
+        var sampleTwo = call("POST", "/api/v1/projects/97301/tracks/source",
+                "{\"openSourceId\":97204,\"startTick\":480,\"durationTick\":960}", 97004L);
+        assertThat(sampleTwo.status()).isEqualTo(201);
+        long sampleTrackTwo = sampleTwo.body().at("/data/trackId").asLong();
+        assertThat(sampleTrackTwo).isNotEqualTo(sampleTrackOne);
+
+        // Importing sample tracks does not consume user 97004's single regular layer slot.
+        var regular = call("POST", "/api/v1/projects/97301/tracks",
+                "{\"name\":\"내 피아노\",\"instrument\":\"piano\",\"sortOrder\":99}", 97004L);
+        assertThat(regular.status()).isEqualTo(201);
+        long regularTrackId = regular.body().at("/data/trackId").asLong();
+
+        // Even with a higher sortOrder, the regular track stays above sample tracks, and sample tracks show creator nickname.
+        var working = call("GET", "/api/v1/projects/97301/tracks?view=WORKING", null, 97004L);
+        assertThat(working.status()).isEqualTo(200);
+        JsonNode listed = working.body().at("/data/tracks");
+        assertThat(listed.size()).isEqualTo(3);
+        assertThat(listed.get(0).at("/trackId").asLong()).isEqualTo(regularTrackId);
+        assertThat(listed.get(0).at("/originOpenSourceId").isNull()).isTrue();
+        assertThat(listed.get(1).at("/trackId").asLong()).isEqualTo(sampleTrackOne);
+        assertThat(listed.get(1).at("/originOpenSourceId").asLong()).isEqualTo(97201L);
+        assertThat(listed.get(1).at("/ownerId").asLong()).isEqualTo(97004L);
+        assertThat(listed.get(1).at("/ownerNickname").asText()).isEqualTo("샘플원작자");
+        assertThat(listed.get(2).at("/trackId").asLong()).isEqualTo(sampleTrackTwo);
+        assertThat(listed.get(2).at("/originOpenSourceId").asLong()).isEqualTo(97204L);
     }
 
     @Test void rejectsAnotherMembersLayerAndCompletedProject() throws Exception {

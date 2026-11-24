@@ -233,9 +233,11 @@ public class ProjectApplicationConfiguration {
             MediaFileRepositoryPort mediaFiles,
             ProfileRepositoryPort profiles,
             ProjectContributionRepositoryPort contributions,
-            TransactionRunner transactionRunner
+            TransactionRunner transactionRunner,
+            OpenSourceMediaPort openSources
     ) {
-        return new TrackGetListUseCase(projects, members, tracks, clips, mediaFiles, profiles, contributions, transactionRunner);
+        return new TrackGetListUseCase(projects, members, tracks, clips, mediaFiles, profiles, contributions,
+                transactionRunner, openSources);
     }
 
     @Bean
@@ -248,19 +250,21 @@ public class ProjectApplicationConfiguration {
 
     @Bean
     TrackDeleteUseCase trackDeleteUseCase(
+            ProjectRepositoryPort projects,
             ProjectTrackRepositoryPort tracks,
             ProjectContributionItemRepositoryPort contributionItems,
             TransactionRunner transactionRunner
     ) {
-        return new TrackDeleteUseCase(tracks, contributionItems, transactionRunner);
+        return new TrackDeleteUseCase(projects, tracks, contributionItems, transactionRunner);
     }
 
     @Bean
     TrackVolumeUpdateUseCase trackVolumeUpdateUseCase(
+            ProjectRepositoryPort projects,
             ProjectTrackRepositoryPort tracks,
             TransactionRunner transactionRunner
     ) {
-        return new TrackVolumeUpdateUseCase(tracks, transactionRunner);
+        return new TrackVolumeUpdateUseCase(projects, tracks, transactionRunner);
     }
 
     @Bean
@@ -357,6 +361,7 @@ public class ProjectApplicationConfiguration {
 
     @Bean
     ProjectContributionReviewUseCase projectContributionReviewUseCase(
+            ProjectRepositoryPort projects,
             ProjectContributionRepositoryPort contributions,
             ProjectMemberRepositoryPort members,
             ProjectTrackRepositoryPort tracks,
@@ -366,6 +371,6 @@ public class ProjectApplicationConfiguration {
             TransactionRunner transactionRunner
     , glitched.adlips.application.notification.NotificationEvents notificationEvents) {
         return new ProjectContributionReviewUseCase(
-                contributions, members, tracks, clips, users, exports, transactionRunner, notificationEvents);
+                projects, contributions, members, tracks, clips, users, exports, transactionRunner, notificationEvents);
     }
 }

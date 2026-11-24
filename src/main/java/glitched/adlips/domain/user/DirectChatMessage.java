@@ -2,6 +2,7 @@ package glitched.adlips.domain.user;
 
 import glitched.adlips.global.entity.BaseCreatedEntity;
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "direct_chat_messages", indexes = {
@@ -20,6 +21,14 @@ public class DirectChatMessage extends BaseCreatedEntity {
     private String content;
     @Column(name = "is_unread", nullable = false, columnDefinition = "boolean default false")
     private boolean unread;
+    @Column(name = "edited_at")
+    private LocalDateTime editedAt;
+    @Column(name = "is_deleted", nullable = false, columnDefinition = "boolean default false")
+    private boolean deleted = false;
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+    @Column(name = "revision", nullable = false, columnDefinition = "bigint default 0")
+    private long revision;
 
     protected DirectChatMessage() {}
 
@@ -29,8 +38,13 @@ public class DirectChatMessage extends BaseCreatedEntity {
         this.content = content;
         this.unread = true;
     }
+
     public Long getId() { return id; }
     public Long getSenderId() { return senderId; }
     public Long getRecipientId() { return recipientId; }
     public String getContent() { return content; }
+    public LocalDateTime getEditedAt() { return editedAt; }
+    public boolean isDeleted() { return deleted; }
+    public LocalDateTime getDeletedAt() { return deletedAt; }
+    public long getRevision() { return revision; }
 }

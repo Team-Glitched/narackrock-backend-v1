@@ -10,6 +10,7 @@ import glitched.adlips.application.shorts.port.out.ShortsCompositionQueryPort;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
 import glitched.adlips.domain.media.MediaFileStatus;
 import glitched.adlips.domain.project.ApprovalStatus;
+import java.util.Comparator;
 import java.util.List;
 
 public class GetShortsParticipantTracksUseCase {
@@ -34,7 +35,9 @@ public class GetShortsParticipantTracksUseCase {
             var project = projects.findByIdAndDeletedAtIsNull(shortInfo.projectId()).orElseThrow(this::notFound);
             List<TrackSummary> approvedTracks = tracks
                     .findByProjectIdAndApprovalStatusAndIsDeletedFalse(shortInfo.projectId(), ApprovalStatus.APPROVED)
-                    .stream().map(track -> new TrackSummary(track.getId(), track.getOwner().getId(),
+                    .stream()
+                    .sorted(Comparator.comparing(track -> track.getOriginOpenSourceId() != null))
+                    .map(track -> new TrackSummary(track.getId(), track.getOwner().getId(),
                             track.getName(), track.getInstrument(), null, null,
                             track.getVolume(), track.getPan(), track.getSortOrder(), track.isMuted(), track.isSolo(),
                             track.getApprovalStatus(), clips
@@ -44,7 +47,7 @@ public class GetShortsParticipantTracksUseCase {
                                     clip.getClipType(), clip.getSourceType(), clip.getMediaFileId(), url(clip.getMediaFileId()),
                                     null, clip.getStartTick(), clip.getDurationTick(), clip.getStartTimeMs(),
                                     clip.getDurationMs(), clip.getClipOffsetMs(), clip.getApprovalStatus(), clip.getMidiNotes()))
-                            .toList(), null, null)).toList();
+                            .toList(), null, null, track.getOriginOpenSourceId())).toList();
             return new ShortsParticipantTracksResult(shortId,
                     new ShortsParticipantTracksResult.ProjectTiming(project.getBpm(), project.getPpq(), project.getMaxDurationMs()),
                     approvedTracks);

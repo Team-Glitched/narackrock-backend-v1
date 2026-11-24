@@ -43,7 +43,7 @@ public class GalleryModerationLog extends BaseCreatedEntity {
     @Column(name = "target_id")
     private Long targetId;
 
-    @Column(name = "reason")
+    @Column(name = "reason", length = 500)
     private String reason;
 
     protected GalleryModerationLog() {

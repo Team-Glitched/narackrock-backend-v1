@@ -139,7 +139,7 @@ public class Profile extends BaseUpdatedEntity {
             String explanation,
             LocalDateTime changedAt
     ) {
-        if (nickname != null && !this.nickname.equals(nickname.trim())) {
+        if (nickname != null && !this.nickname.equals(glitched.adlips.domain.common.TextSanitizer.sanitizeSingleLine(nickname))) {
             this.nickname = requireNickname(nickname);
             this.nicknameUpdatedAt = Objects.requireNonNull(changedAt);
         }
@@ -183,10 +183,11 @@ public class Profile extends BaseUpdatedEntity {
     }
 
     private static String requireNickname(String nickname) {
-        if (nickname == null || nickname.isBlank()) {
+        String sanitized = glitched.adlips.domain.common.TextSanitizer.sanitizeSingleLine(nickname);
+        if (sanitized.isEmpty()) {
             throw new IllegalArgumentException("닉네임은 필수입니다.");
         }
-        return nickname.trim();
+        return sanitized;
     }
 
     private static int requireNonNegative(int count) {
@@ -197,7 +198,7 @@ public class Profile extends BaseUpdatedEntity {
     }
 
     private static String normalizeOptional(String value) {
-        String normalized = value.trim();
+        String normalized = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(value);
         return normalized.isEmpty() ? null : normalized;
     }
 }

@@ -71,18 +71,20 @@ public class Post extends BaseTimeEntity {
 
     private static String requireTitle(String title) {
         Objects.requireNonNull(title, "title must not be null");
-        if (title.isBlank()) {
+        String sanitized = glitched.adlips.domain.common.TextSanitizer.sanitizeSingleLine(title);
+        if (sanitized.isEmpty()) {
             throw new IllegalArgumentException("title must not be blank");
         }
-        return title;
+        return sanitized;
     }
 
     private static String requireContent(String content) {
         Objects.requireNonNull(content, "content must not be null");
-        if (content.isBlank()) {
+        String sanitized = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(content);
+        if (sanitized.isEmpty()) {
             throw new IllegalArgumentException("content must not be blank");
         }
-        return content;
+        return sanitized;
     }
 
     public Long getId() {

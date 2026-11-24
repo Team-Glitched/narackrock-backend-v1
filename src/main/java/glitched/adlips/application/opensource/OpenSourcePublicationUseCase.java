@@ -5,16 +5,26 @@ import static glitched.adlips.domain.notification.NotificationType.*;
 
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort;
+import glitched.adlips.domain.common.ContentLimits;
+import glitched.adlips.domain.common.TextSanitizer;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import glitched.adlips.domain.media.MediaFileStatus;
 import glitched.adlips.domain.media.MediaFileType;
 import glitched.adlips.domain.opensource.OpenSourcePublication;
 import java.time.Clock;
+import java.util.List;
 import glitched.adlips.domain.project.InstrumentFamily;
 import static glitched.adlips.application.opensource.OpenSourceException.Code.*;
 
 public class OpenSourcePublicationUseCase {
-    public static final int MAX_TITLE_LENGTH = 40;
-    public static final int MAX_DESCRIPTION_LENGTH = 500;
+    public static final int MAX_TITLE_LENGTH = ContentLimits.SOURCE_TITLE_MAX_LENGTH;
+    public static final int MAX_DESCRIPTION_LENGTH = ContentLimits.SOURCE_DESCRIPTION_MAX_LENGTH;
+    private static final int DEFAULT_MIDI_PPQ = 480;
+    private static final int MAX_MIDI_NOTES = 10_000;
+    private static final ObjectMapper MIDI_JSON = new ObjectMapper();
+
+    public record MidiNoteData(int pitch, int startTick, int durationTick, int velocity) {}
 
     private final NotificationEvents notifications;
     public record Patch(boolean hasTitle, String title, boolean hasDescription, String description,
@@ -40,17 +50,61 @@ public class OpenSourcePublicationUseCase {
     }
 
     public OpenSourcePublication create(Long userId, String title, String description, Long mediaFileId, Long thumbnailMediaFileId, String instrument) {
+        return create(userId, title, description, mediaFileId, thumbnailMediaFileId, instrument, null, null, null);
+    }
+
+    public OpenSourcePublication create(Long userId, String title, String description, Long mediaFileId,
+                                        Long thumbnailMediaFileId, String instrument,
+                                        List<MidiNoteData> midiNotes, Integer midiPpq, Integer midiBpm) {
         validId(userId);
         String normalizedTitle = title(title);
         String normalizedInstrument = instrument(instrument);
         String normalizedDescription = description(description);
+        MidiMetadata midi = validateAndSerializeMidi(midiNotes, midiPpq, midiBpm);
         return transactions.required(() -> {
             validateMedia(userId, mediaFileId, MediaFileType.AUDIO);
             if (thumbnailMediaFileId != null) validateMedia(userId, thumbnailMediaFileId, MediaFileType.IMAGE);
             var now = clock.instant();
             return publications.save(new OpenSourcePublication(null, userId, normalizedTitle, normalizedDescription,
-                    mediaFileId, thumbnailMediaFileId, false, now, now, null, normalizedInstrument));
+                    mediaFileId, thumbnailMediaFileId, false, now, now, null, normalizedInstrument,
+                    midi.notesJson(), midi.ppq(), midi.bpm()));
         });
+    }
+
+    private record MidiMetadata(String notesJson, Integer ppq, Integer bpm) {}
+
+    private MidiMetadata validateAndSerializeMidi(List<MidiNoteData> midiNotes, Integer midiPpq, Integer midiBpm) {
+        if (midiNotes == null) {
+            if (midiPpq != null || midiBpm != null) {
+                throw invalid();
+            }
+            return new MidiMetadata(null, null, null);
+        }
+        if (midiNotes.isEmpty() || midiNotes.size() > MAX_MIDI_NOTES) {
+            throw invalid();
+        }
+        int effectivePpq = midiPpq == null ? DEFAULT_MIDI_PPQ : midiPpq;
+        if (effectivePpq < 1 || effectivePpq > 9600) {
+            throw invalid();
+        }
+        if (midiBpm != null && (midiBpm < 30 || midiBpm > 300)) {
+            throw invalid();
+        }
+        for (MidiNoteData note : midiNotes) {
+            if (note == null
+                    || note.pitch() < 0 || note.pitch() > 127
+                    || note.startTick() < 0
+                    || note.durationTick() < 1
+                    || (long) note.startTick() + note.durationTick() > Integer.MAX_VALUE
+                    || note.velocity() < 1 || note.velocity() > 127) {
+                throw invalid();
+            }
+        }
+        try {
+            return new MidiMetadata(MIDI_JSON.writeValueAsString(midiNotes), effectivePpq, midiBpm);
+        } catch (JsonProcessingException e) {
+            throw invalid();
+        }
     }
 
     public OpenSourcePublication get(Long userId, Long id) {
@@ -112,17 +166,19 @@ public class OpenSourcePublicationUseCase {
         return normalized;
     }
     private String title(String title) {
-        String stripped = title == null ? "" : title.strip();
-        if (stripped.isEmpty() || stripped.codePointCount(0, stripped.length()) > MAX_TITLE_LENGTH) {
+        String stripped = TextSanitizer.sanitizeSingleLine(title);
+        if (stripped.isEmpty() || ContentLimits.exceeds(stripped, MAX_TITLE_LENGTH)) {
             throw new OpenSourceException(INVALID_REQUEST, "샘플 이름은 1~40자 이내로 입력해 주세요.");
         }
         return stripped;
     }
     private String description(String description) {
-        if (description != null && description.codePointCount(0, description.length()) > MAX_DESCRIPTION_LENGTH) {
+        if (description == null) return null;
+        String sanitized = TextSanitizer.sanitizeMultiline(description);
+        if (ContentLimits.exceeds(sanitized, MAX_DESCRIPTION_LENGTH)) {
             throw new OpenSourceException(INVALID_REQUEST, "샘플 설명은 500자 이내로 입력해 주세요.");
         }
-        return description;
+        return sanitized;
     }
     private void validId(Long id) { if (id == null || id <= 0) throw invalid(); }
     private OpenSourceException invalid() { return new OpenSourceException(INVALID_REQUEST, "샘플 입력값이 올바르지 않습니다."); }

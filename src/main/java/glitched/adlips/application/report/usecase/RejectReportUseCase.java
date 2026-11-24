@@ -6,6 +6,7 @@ import static glitched.adlips.domain.notification.NotificationType.*;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.report.port.out.ReportResolutionPort;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.report.ModerationAction;
 import glitched.adlips.domain.report.ModerationActionType;
 import glitched.adlips.domain.report.Report;
@@ -46,11 +47,17 @@ public class RejectReportUseCase {
 
     public ReportResolutionResult execute(Long reportId, Long adminUserId, String reason) {
         User admin = requireAdmin(adminUserId);
-        if (reason == null || reason.isBlank()) {
+        String sanitizedReason = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(reason);
+        if (sanitizedReason.isEmpty()) {
             throw new ReportResolutionApplicationException(
                     ReportResolutionErrorCode.VALIDATION_ERROR, "반려 사유를 입력해 주세요.");
         }
-        return transactionRunner.required(() -> reject(reportId, admin, reason.trim()));
+        if (ContentLimits.exceeds(sanitizedReason, ContentLimits.MODERATION_REASON_MAX_LENGTH)) {
+            throw new ReportResolutionApplicationException(
+                    ReportResolutionErrorCode.VALIDATION_ERROR,
+                    "반려 사유는 " + ContentLimits.MODERATION_REASON_MAX_LENGTH + "자 이내로 입력해 주세요.");
+        }
+        return transactionRunner.required(() -> reject(reportId, admin, sanitizedReason));
     }
 
     private ReportResolutionResult reject(Long reportId, User admin, String reason) {

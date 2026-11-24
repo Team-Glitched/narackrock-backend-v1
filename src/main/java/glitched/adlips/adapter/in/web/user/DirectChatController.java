@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/v1/chats")
 public class DirectChatController {
     public record SendMessageRequest(String content) {}
+    public record EditMessageRequest(String content) {}
     public record ReadMessagesRequest(Long throughId) {}
     public record UnreadCount(long count) {}
     public record ChatThreadCard(Long userId, String nickname, String profileImageUrl, String primaryInstrument,
@@ -39,8 +40,9 @@ public class DirectChatController {
             var profile = profiles.findByUserId(partnerId).orElse(null);
             String imageUrl = profile == null || profile.getProfileImageFileId() == null ? null
                     : mediaFiles.findById(profile.getProfileImageFileId()).map(MediaFile::getFileUrl).orElse(null);
+            String preview = message.deleted() ? "삭제된 메시지입니다." : message.content();
             return new ChatThreadCard(partnerId, profile == null ? "알 수 없는 사용자" : profile.getNickname(), imageUrl,
-                    profile == null ? null : profile.getPrimaryInstrument(), message.id(), message.content(),
+                    profile == null ? null : profile.getPrimaryInstrument(), message.id(), preview,
                     message.createdAt().atZone(ZoneId.systemDefault()).toInstant(),
                     viewerId.equals(message.senderId()), thread.unreadCount());
         }).toList());
@@ -69,5 +71,19 @@ public class DirectChatController {
         ChatMessagePort.Message message = chat.send(users.requireUserId(authorization), friendId, request.content());
         realtime.publish(message);
         return ApiResponse.success("메시지 전송", message);
+    }
+    @PatchMapping("/{friendId}/messages/{messageId}")
+    public ApiResponse<ChatMessagePort.Message> edit(@RequestHeader("Authorization") String authorization,
+            @PathVariable Long friendId, @PathVariable Long messageId, @RequestBody EditMessageRequest request) {
+        ChatMessagePort.Message updated = chat.edit(users.requireUserId(authorization), friendId, messageId, request.content());
+        realtime.publish(updated);
+        return ApiResponse.success("메시지 수정", updated);
+    }
+    @DeleteMapping("/{friendId}/messages/{messageId}")
+    public ApiResponse<ChatMessagePort.Message> delete(@RequestHeader("Authorization") String authorization,
+            @PathVariable Long friendId, @PathVariable Long messageId) {
+        ChatMessagePort.Message deleted = chat.delete(users.requireUserId(authorization), friendId, messageId);
+        realtime.publish(deleted);
+        return ApiResponse.success("메시지 삭제", deleted);
     }
 }

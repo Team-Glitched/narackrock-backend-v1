@@ -8,6 +8,8 @@ import glitched.adlips.application.port.TokenIssuer;
 import glitched.adlips.application.port.TransactionRunner;
 import glitched.adlips.application.port.UserAuthProviderRepository;
 import glitched.adlips.application.port.UserRepository;
+import glitched.adlips.domain.common.ContentLimits;
+import glitched.adlips.domain.common.TextSanitizer;
 import glitched.adlips.domain.user.AuthProvider;
 import glitched.adlips.domain.user.Profile;
 import glitched.adlips.domain.user.User;
@@ -39,8 +41,13 @@ public class SignUpWithGoogleUseCase {
     }
 
     public AuthResult signUp(String idToken, String nickname) {
+        String trimmedNickname = TextSanitizer.sanitizeSingleLine(nickname);
+        if (trimmedNickname.isEmpty() || ContentLimits.exceeds(trimmedNickname, ContentLimits.NICKNAME_MAX_LENGTH)) {
+            throw new IllegalArgumentException(
+                    "닉네임은 1자 이상 " + ContentLimits.NICKNAME_MAX_LENGTH + "자 이하여야 합니다.");
+        }
         GoogleUserInfo googleUser = tokenVerifier.verify(idToken);
-        return transactionRunner.required(() -> signUp(googleUser, nickname));
+        return transactionRunner.required(() -> signUp(googleUser, trimmedNickname));
     }
 
     private AuthResult signUp(GoogleUserInfo googleUser, String nickname) {

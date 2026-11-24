@@ -8,6 +8,7 @@ import glitched.adlips.application.report.port.out.ReportSubmissionPort;
 import glitched.adlips.application.report.port.out.ReportTarget;
 import glitched.adlips.application.report.port.out.ReportTargetQueryPort;
 import glitched.adlips.application.report.port.out.ReportUserRestrictionPort;
+import glitched.adlips.domain.common.ContentLimits;
 import glitched.adlips.domain.report.ReportTargetType;
 import java.time.Clock;
 import java.time.LocalDateTime;
@@ -74,6 +75,13 @@ public class SubmitReportUseCase {
     ) {
         validateTargetType(targetType);
         String normalizedReason = requireReason(reason);
+        String normalizedDescription = normalize(description);
+        if (ContentLimits.exceeds(normalizedDescription, ContentLimits.REPORT_DESCRIPTION_MAX_LENGTH)) {
+            throw new ReportSubmissionApplicationException(
+                    ReportSubmissionErrorCode.VALIDATION_ERROR,
+                    "신고 상세 내용은 " + ContentLimits.REPORT_DESCRIPTION_MAX_LENGTH + "자 이내로 입력해 주세요."
+            );
+        }
         if (restrictionPort.isBanned(reporterId, LocalDateTime.now(clock))) {
             throw new ReportSubmissionApplicationException(
                     ReportSubmissionErrorCode.BANNED_USER_ACCESS,
@@ -95,7 +103,7 @@ public class SubmitReportUseCase {
                         targetType,
                         targetId,
                         normalizedReason,
-                        normalize(description)
+                        normalizedDescription
                 )
                 .orElseThrow(() -> alreadyReported(targetType));
         notifications.record(REPORT_CREATED,reporterId,reportId);
@@ -115,20 +123,27 @@ public class SubmitReportUseCase {
     }
 
     private String requireReason(String reason) {
-        if (reason == null || reason.isBlank()) {
+        String trimmed = glitched.adlips.domain.common.TextSanitizer.sanitizeSingleLine(reason);
+        if (trimmed.isEmpty()) {
             throw new ReportSubmissionApplicationException(
                     ReportSubmissionErrorCode.VALIDATION_ERROR,
                     "신고 사유를 입력해 주세요."
             );
         }
-        return reason.trim();
+        if (ContentLimits.exceeds(trimmed, ContentLimits.REPORT_REASON_MAX_LENGTH)) {
+            throw new ReportSubmissionApplicationException(
+                    ReportSubmissionErrorCode.VALIDATION_ERROR,
+                    "신고 사유는 " + ContentLimits.REPORT_REASON_MAX_LENGTH + "자 이내로 입력해 주세요."
+            );
+        }
+        return trimmed;
     }
 
     private String normalize(String value) {
         if (value == null) {
             return null;
         }
-        String normalized = value.trim();
+        String normalized = glitched.adlips.domain.common.TextSanitizer.sanitizeMultiline(value);
         return normalized.isEmpty() ? null : normalized;
     }
 

@@ -12,6 +12,8 @@ import glitched.adlips.application.user.common.UserErrorCode;
 import glitched.adlips.application.user.common.port.out.UserRepositoryPort;
 import glitched.adlips.application.user.profile.port.out.ProfileRepositoryPort;
 import glitched.adlips.application.port.TransactionRunner;
+import glitched.adlips.domain.common.ContentLimits;
+import glitched.adlips.domain.common.TextSanitizer;
 import glitched.adlips.domain.user.AuthProvider;
 import glitched.adlips.domain.user.Profile;
 import glitched.adlips.domain.user.User;
@@ -102,9 +104,15 @@ public class UserSignupUseCase {
     }
 
     private String validateNickname(String nickname) {
-        if (nickname == null || nickname.isBlank()) {
+        String trimmed = TextSanitizer.sanitizeSingleLine(nickname);
+        if (trimmed.isEmpty()) {
             throw new UserApplicationException(UserErrorCode.VALIDATION_ERROR, "닉네임이 입력되지 않았습니다.");
         }
-        return nickname.trim();
+        if (ContentLimits.exceeds(trimmed, ContentLimits.NICKNAME_MAX_LENGTH)) {
+            throw new UserApplicationException(
+                    UserErrorCode.VALIDATION_ERROR,
+                    "닉네임은 " + ContentLimits.NICKNAME_MAX_LENGTH + "자 이내로 입력해 주세요.");
+        }
+        return trimmed;
     }
 }

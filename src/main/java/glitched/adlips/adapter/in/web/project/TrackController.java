@@ -5,8 +5,11 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import glitched.adlips.adapter.in.web.ApiResponse;
 import glitched.adlips.adapter.in.web.user.AuthenticatedUserResolver;
+import glitched.adlips.application.project.dto.request.OpenSourceTrackCreateRequest;
 import glitched.adlips.application.project.dto.request.TrackCreateRequest;
+import glitched.adlips.application.project.dto.response.AudioClipCreateResponse;
 import glitched.adlips.application.project.dto.response.TrackCreateResponse;
+import glitched.adlips.application.project.usecase.OpenSourceClipCreateUseCase;
 import glitched.adlips.application.project.usecase.TrackCreateUseCase;
 import glitched.adlips.application.project.dto.request.TrackGetListRequest;
 import glitched.adlips.application.project.dto.response.TrackGetListResponse;
@@ -29,12 +32,15 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class TrackController {
     private final TrackCreateUseCase trackCreateUseCase;
     private final TrackGetListUseCase trackGetListUseCase;
+    private final OpenSourceClipCreateUseCase openSourceClipCreateUseCase;
     private final AuthenticatedUserResolver authenticatedUserResolver;
 
     public TrackController(TrackCreateUseCase trackCreateUseCase, TrackGetListUseCase trackGetListUseCase,
+                           OpenSourceClipCreateUseCase openSourceClipCreateUseCase,
                            AuthenticatedUserResolver authenticatedUserResolver) {
         this.trackCreateUseCase = trackCreateUseCase;
         this.trackGetListUseCase = trackGetListUseCase;
+        this.openSourceClipCreateUseCase = openSourceClipCreateUseCase;
         this.authenticatedUserResolver = authenticatedUserResolver;
     }
 
@@ -46,6 +52,18 @@ public class TrackController {
         TrackCreateResponse response = trackCreateUseCase.execute(new TrackCreateRequest(
                 projectId, userId, request.name(), request.instrument(), request.sortOrder()));
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.success("트랙이 생성되었습니다.", response));
+    }
+
+    @PostMapping({"/source", "/open-source"})
+    public ResponseEntity<ApiResponse<AudioClipCreateResponse>> createFromOpenSource(
+            @PathVariable Long projectId,
+            @RequestHeader("Authorization") String authorization,
+            @RequestBody OpenSourceTrackCreateRequest request) {
+        Long userId = authenticatedUserResolver.requireUserId(authorization);
+        var response = openSourceClipCreateUseCase.createTrack(new OpenSourceTrackCreateRequest(
+                projectId, userId, request.openSourceId(), request.startTick(), request.durationTick()));
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("샘플을 새 트랙으로 추가했습니다.", response));
     }
 
     @GetMapping

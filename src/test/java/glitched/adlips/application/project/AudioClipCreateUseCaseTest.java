@@ -74,4 +74,26 @@ class AudioClipCreateUseCaseTest {
             .execute(new AudioClipCreateRequest(10L,21L,1L,501L,ClipSourceType.FILE_UPLOAD,0,480,0)))
             .isInstanceOf(ProjectApplicationException.class).extracting("errorCode").isEqualTo(ProjectErrorCode.TRACK_INSTRUMENT_NOT_SET);
     }
+
+    @Test
+    void rejectsAddingRegularAudioClipToDedicatedSampleTrack() {
+        User owner = User.create("owner@example.com").withId(1L);
+        Project project = new Project(owner, "곡", null, 701L);
+        ProjectTrack sampleTrack = new ProjectTrack(project, owner, "Sample", "drum-kit", 1, 55L);
+        ProjectRepositoryPort projects = mock(ProjectRepositoryPort.class);
+        ProjectMemberRepositoryPort members = mock(ProjectMemberRepositoryPort.class);
+        ProjectTrackRepositoryPort tracks = mock(ProjectTrackRepositoryPort.class);
+        when(projects.findByIdAndDeletedAtIsNullForUpdate(10L)).thenReturn(Optional.of(project));
+        when(members.findByProjectIdAndUserId(10L, 1L))
+                .thenReturn(Optional.of(new ProjectMember(project, owner, ProjectMemberRole.OWNER)));
+        when(tracks.findTrackByIdAndIsDeletedFalse(21L)).thenReturn(Optional.of(sampleTrack));
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> new AudioClipCreateUseCase(
+                projects, members, tracks,
+                mock(ProjectClipRepositoryPort.class), mock(UserRepositoryPort.class), mock(MediaFileRepositoryPort.class))
+                .execute(new AudioClipCreateRequest(10L, 21L, 1L, 501L, ClipSourceType.RECORDING, 0, 480, 0)))
+                .isInstanceOf(ProjectApplicationException.class)
+                .extracting("errorCode")
+                .isEqualTo(ProjectErrorCode.TRACK_EDIT_DENIED);
+    }
 }

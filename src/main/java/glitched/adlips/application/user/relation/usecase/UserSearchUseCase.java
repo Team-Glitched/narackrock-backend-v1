@@ -10,6 +10,8 @@ import glitched.adlips.application.user.profile.port.out.MediaFileRepositoryPort
 import glitched.adlips.application.user.relation.port.out.FollowRepositoryPort;
 import glitched.adlips.application.user.relation.port.out.ProfileQueryPort;
 import glitched.adlips.application.port.TransactionRunner;
+import glitched.adlips.domain.common.ContentLimits;
+import glitched.adlips.domain.common.TextSanitizer;
 import glitched.adlips.domain.media.MediaFile;
 import glitched.adlips.domain.user.Profile;
 import java.util.List;
@@ -51,10 +53,15 @@ public class UserSearchUseCase {
         int page = request.page();
         int size = request.size();
         validatePage(page, size);
-        if (keyword == null || keyword.isBlank()) {
+        String normalizedKeyword = TextSanitizer.sanitizeSingleLine(keyword);
+        if (normalizedKeyword.isEmpty()) {
             throw new UserApplicationException(UserErrorCode.VALIDATION_ERROR, "검색어는 필수 입력 사항입니다.");
         }
-        String normalizedKeyword = keyword.trim();
+        if (ContentLimits.exceeds(normalizedKeyword, ContentLimits.SEARCH_QUERY_MAX_LENGTH)) {
+            throw new UserApplicationException(
+                    UserErrorCode.VALIDATION_ERROR,
+                    "검색어는 " + ContentLimits.SEARCH_QUERY_MAX_LENGTH + "자 이내로 입력해 주세요.");
+        }
         PageResult<Profile> result = profileQuery.search(normalizedKeyword, page, size);
         List<SearchUserResponse> users = result.content().stream()
                 .map(profile -> new SearchUserResponse(

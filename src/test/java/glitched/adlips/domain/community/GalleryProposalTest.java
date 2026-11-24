@@ -32,10 +32,10 @@ class GalleryProposalTest {
     }
 
     @Test
-    void 이름이_2자_미만이거나_30자를_넘으면_예외가_발생한다() {
+    void 이름이_2자_미만이거나_20자를_넘으면_예외가_발생한다() {
         assertThatThrownBy(() -> GalleryProposal.submit(proposer(), "재", "설명"))
                 .isInstanceOf(IllegalArgumentException.class);
-        assertThatThrownBy(() -> GalleryProposal.submit(proposer(), "가".repeat(31), "설명"))
+        assertThatThrownBy(() -> GalleryProposal.submit(proposer(), "가".repeat(21), "설명"))
                 .isInstanceOf(IllegalArgumentException.class);
     }
 

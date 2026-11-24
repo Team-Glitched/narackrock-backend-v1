@@ -142,6 +142,7 @@ public class EditorDraftUseCase {
         var track = tracks.findTrackByIdAndIsDeletedFalse(trackId).orElseThrow(() ->
                 new ProjectApplicationException(ProjectErrorCode.TRACK_NOT_FOUND, "레이어를 찾을 수 없습니다."));
         if (!track.belongsTo(project) || !track.getOwner().getId().equals(userId)) throw denied();
+        if (track.isSampleTrack()) throw denied();
         if (track.getInstrument() == null || track.getInstrument().isBlank() || InstrumentFamily.audioOnly(track.getInstrument())
                 || (track.getApprovalStatus() != ApprovalStatus.DRAFT
                     && track.getApprovalStatus() != ApprovalStatus.APPROVED)) throw denied();
